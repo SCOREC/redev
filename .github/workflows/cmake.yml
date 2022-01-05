@@ -66,11 +66,11 @@ jobs:
            -DBUILD_TESTING=ON
 
     - name: Redev Build
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/build-redev
       shell: bash
-      run: cmake --build .
+      run: cmake --build . --parallel 2
 
     - name: Redev Test
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/build-redev
       shell: bash
       run: ctest
