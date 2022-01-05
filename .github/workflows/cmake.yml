@@ -34,8 +34,11 @@ jobs:
       working-directory: ${{runner.workspace}}/build-adios2
       run: cmake $GITHUB_WORKSPACE/adios2
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
-           -DCMAKE_VERBOSE_MAKEFILE=on
-           -DADIOS_USE_MPI=ON
+           -DADIOS2_USE_MPI=ON
+           -DADIOS2_USE_CUDA=OFF 
+           -DADIOS2_BUILD_EXAMPLES=OFF 
+           -DBUILD_TESTING=OFF
+           -DADIOS2_USE_Fortran=OFF
            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
 
     - name: ADIOS2 Build
