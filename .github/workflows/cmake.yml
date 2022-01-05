@@ -1,0 +1,70 @@
+name: CMake test matrix
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++]
+    env:
+      CMAKE_PREFIX_PATH: ${{runner.workspace}}/build-adios2/install
+
+    steps:
+    - name: Install mpi
+      run: |
+        sudo apt-get update
+        sudo apt-get install openmpi-bin libopenmpi-dev
+
+    - name: ADIOS2: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build-adios2
+
+    - name: ADIOS2: Checkout repo
+      uses: actions/checkout@v2
+      with:
+	repository: ornladios/ADIOS2
+	path: adios2
+
+    - name: ADIOS2: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build-adios2
+      run: cmake $GITHUB_WORKSPACE/adios2
+           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DCMAKE_VERBOSE_MAKEFILE=on
+           -DADIOS_USE_MPI=ON
+           -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
+
+    - name: ADIOS2: Build
+      working-directory: ${{runner.workspace}}/build-adios2
+      shell: bash
+      run: cmake --build .
+
+    - name: Redev: Checkout repo
+      uses: actions/checkout@v2
+      with:
+	repository: SCOREC/redev
+	path: redev
+
+    - name: Redev: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build-redev
+
+    - name: Redev: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build-redev
+      run: cmake $GITHUB_WORKSPACE/redev
+           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DBUILD_TESTING=ON
+
+    - name: Redev: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build .
+
+    - name: Redev: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest
