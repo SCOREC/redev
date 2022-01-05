@@ -1,30 +1,38 @@
 cmake_minimum_required(VERSION 3.12.0...3.21.0)
 
-project(redev VERSION 0.1.0 LANGUAGES CXX)
+project(redev VERSION 0.1.0 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 find_package(MPI REQUIRED)
 #adios2 adds C and Fortran depending on how it was built
-find_package(ADIOS2 2.7.1 REQUIRED)
+find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
 
 set(REDEV_HEADERS
+  redev.h
   )
 
 set(REDEV_SOURCES
+  redev.cpp
   )
 
 add_library(redev ${REDEV_SOURCES})
 target_compile_features(redev PUBLIC cxx_std_20)
+target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C)
 
 include(CTest)
 if(BUILD_TESTING)
   message(STATUS "MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}")
   message(STATUS "MPIEXEC_NUMPROC_FLAG: ${MPIEXEC_NUMPROC_FLAG}")
-  #more
+  add_executable(test_init test_init.cpp)
+  target_link_libraries(test_init redev)
+  add_test(NAME test_init_1p 
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ./test_init
+  )
 endif()
 
+## export the library
 set_target_properties(redev PROPERTIES
   PUBLIC_HEADER "${REDEV_HEADERS}")
 target_include_directories(redev
