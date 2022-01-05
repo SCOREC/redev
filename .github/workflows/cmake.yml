@@ -11,8 +11,6 @@ jobs:
     strategy:
       matrix:
         compiler: [g++]
-    env:
-      CMAKE_PREFIX_PATH: ${{runner.workspace}}/build-adios2/install
 
     steps:
     - name: Install mpi
@@ -22,6 +20,8 @@ jobs:
 
     - name: ADIOS2 Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-adios2
+      env:
+        CMAKE_PREFIX_PATH: ${{runner.workspace}}/build-adios2/install
 
     - name: ADIOS2 Checkout repo
       uses: actions/checkout@v2
