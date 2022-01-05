@@ -15,8 +15,8 @@ jobs:
     steps:
     - name: Install mpi
       run: |
-        sudo apt-get update
-        sudo apt-get install openmpi-bin libopenmpi-dev
+        sudo apt-get update -yq
+        sudo apt-get install -yq mpich libmpich-dev
 
     - name: ADIOS2 Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-adios2
