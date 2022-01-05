@@ -1,2 +1,2 @@
-# rdv
+# redev
 rendezvous communication library
