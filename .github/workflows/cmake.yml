@@ -20,8 +20,6 @@ jobs:
 
     - name: ADIOS2 Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-adios2
-      env:
-        CMAKE_PREFIX_PATH: ${{runner.workspace}}/build-adios2/install
 
     - name: ADIOS2 Checkout repo
       uses: actions/checkout@v2
@@ -39,6 +37,7 @@ jobs:
            -DADIOS2_BUILD_EXAMPLES=OFF 
            -DBUILD_TESTING=OFF
            -DADIOS2_USE_Fortran=OFF
+           -DADIOS2_USE_SST=OFF
            -DADIOS2_INSTALL_GENERATE_CONFIG=OFF
            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
 
@@ -61,6 +60,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build-redev
       run: cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib64/cmake/adios2/
            -DBUILD_TESTING=ON
 
     - name: Redev Build
