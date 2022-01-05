@@ -62,7 +62,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build-redev
       run: cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
-           -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib64/cmake/adios2/
+           -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DBUILD_TESTING=ON
 
     - name: Redev Build
