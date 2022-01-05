@@ -1,3 +1,5 @@
+[![CMake test matrix](https://github.com/SCOREC/redev/actions/workflows/cmake.yml/badge.svg)](https://github.com/SCOREC/redev/actions/workflows/cmake.yml)
+
 # redev
 rendezvous communication library
 
