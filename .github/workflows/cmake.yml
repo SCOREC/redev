@@ -44,7 +44,9 @@ jobs:
     - name: ADIOS2 Build
       working-directory: ${{runner.workspace}}/build-adios2
       shell: bash
-      run: cmake --build .
+      run: |
+        cmake --build . --parallel 2
+        cmake --install .
 
     - name: Redev Checkout repo
       uses: actions/checkout@v2
