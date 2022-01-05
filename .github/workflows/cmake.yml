@@ -20,16 +20,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
 
-    - name: ADIOS2: Create Build Environment
+    - name: ADIOS2 Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-adios2
 
-    - name: ADIOS2: Checkout repo
+    - name: ADIOS2 Checkout repo
       uses: actions/checkout@v2
       with:
-	repository: ornladios/ADIOS2
-	path: adios2
+        repository: ornladios/adios2
+        path: adios2
 
-    - name: ADIOS2: Configure CMake
+    - name: ADIOS2 Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build-adios2
       run: cmake $GITHUB_WORKSPACE/adios2
@@ -38,33 +38,33 @@ jobs:
            -DADIOS_USE_MPI=ON
            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
 
-    - name: ADIOS2: Build
+    - name: ADIOS2 Build
       working-directory: ${{runner.workspace}}/build-adios2
       shell: bash
       run: cmake --build .
 
-    - name: Redev: Checkout repo
+    - name: Redev Checkout repo
       uses: actions/checkout@v2
       with:
-	repository: SCOREC/redev
-	path: redev
+        repository: SCOREC/redev
+        path: redev
 
-    - name: Redev: Create Build Environment
+    - name: Redev Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-redev
 
-    - name: Redev: Configure CMake
+    - name: Redev Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build-redev
       run: cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DBUILD_TESTING=ON
 
-    - name: Redev: Build
+    - name: Redev Build
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build .
 
-    - name: Redev: Test
+    - name: Redev Test
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: ctest
