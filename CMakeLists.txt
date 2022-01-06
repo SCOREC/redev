@@ -29,11 +29,24 @@ include(CTest)
 if(BUILD_TESTING)
   message(STATUS "MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}")
   message(STATUS "MPIEXEC_NUMPROC_FLAG: ${MPIEXEC_NUMPROC_FLAG}")
-  add_executable(test_init test_init.cpp)
-  target_link_libraries(test_init redev)
-  add_test(NAME test_init_1p 
-    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ./test_init
-  )
+
+  function(add_exe NAME)
+    add_executable(${NAME} ${NAME}.cpp)
+    target_link_libraries(${NAME} redev)
+  endfunction(mpi_test)
+
+  function(mpi_test TESTNAME PROCS EXE)
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${PROCS} ${VALGRIND} ${VALGRIND_ARGS} ${EXE} ${ARGN}
+    )
+  endfunction(mpi_test)
+
+  add_exe(test_init test_init.cpp)
+  mpi_test(test_init_1p 1 ./test_init)
+  add_exe(test_setup test_setup.cpp)
+  mpi_test(test_setup_write_1p 1 ./test_setup 1)
+  mpi_test(test_setup_read_1p 1 ./test_setup 0)
 endif()
 
 ## export the library
