@@ -5,6 +5,9 @@ project(redev VERSION 0.1.0 LANGUAGES C CXX)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+include(cmake/CheckGit.cmake)
+CheckGitSetup()
+
 find_package(MPI REQUIRED)
 #adios2 adds C and Fortran depending on how it was built
 find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
@@ -19,6 +22,7 @@ set(REDEV_SOURCES
 
 add_library(redev ${REDEV_SOURCES})
 target_compile_features(redev PUBLIC cxx_std_20)
+target_link_libraries(redev PUBLIC git_version)
 target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C)
 
 include(CTest)
