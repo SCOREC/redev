@@ -27,7 +27,7 @@ namespace redev {
     io = adios.DeclareIO("rendezvous"); //this will likely change
     std::string varName = "redev git hash";
     std::string bpName = "redev_version.bp";
-    //rendezvous app writes the version is has and others read
+    //rendezvous app writes the version it has and others read
     if(isRendezvous) {
       auto writer = io.Open(bpName, adios2::Mode::Write);
       auto varVersion = io.DefineVariable<std::string>(varName);
