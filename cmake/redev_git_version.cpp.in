@@ -1,0 +1,2 @@
+#include "redev_git_version.h"
+const char *redevGitHash = "@GIT_HASH@";

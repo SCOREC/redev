@@ -33,8 +33,8 @@ if (NOT DEFINED post_configure_dir)
     set(post_configure_dir ${CMAKE_BINARY_DIR}/generated)
 endif ()
 
-set(pre_configure_file ${pre_configure_dir}/git_version.cpp.in)
-set(post_configure_file ${post_configure_dir}/git_version.cpp)
+set(pre_configure_file ${pre_configure_dir}/redev_git_version.cpp.in)
+set(post_configure_file ${post_configure_dir}/redev_git_version.cpp)
 
 function(CheckGitWrite git_hash)
     file(WRITE ${CMAKE_BINARY_DIR}/git-state.txt ${git_hash})
@@ -63,8 +63,8 @@ function(CheckGitVersion)
         file(MAKE_DIRECTORY ${post_configure_dir})
     endif ()
 
-    if (NOT EXISTS ${post_configure_dir}/git_version.h)
-        file(COPY ${pre_configure_dir}/git_version.h DESTINATION ${post_configure_dir})
+    if (NOT EXISTS ${post_configure_dir}/redev_git_version.h)
+        file(COPY ${pre_configure_dir}/redev_git_version.h DESTINATION ${post_configure_dir})
     endif()
 
     if (NOT DEFINED GIT_HASH_CACHE)
@@ -94,13 +94,13 @@ function(CheckGitSetup)
         BYPRODUCTS ${post_configure_file}
         )
 
-    add_library(git_version ${post_configure_file})
-    target_include_directories(git_version PUBLIC
+    add_library(redev_git_version ${post_configure_file})
+    target_include_directories(redev_git_version PUBLIC
       "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated/>"
       "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>")
-    add_dependencies(git_version AlwaysCheckGit)
+    add_dependencies(redev_git_version AlwaysCheckGit)
 
-    set(tgt_name "git_version")
+    set(tgt_name "redev_git_version")
     install(TARGETS ${tgt_name} EXPORT ${tgt_name}-target
         RUNTIME DESTINATION bin
         ARCHIVE DESTINATION lib

@@ -1,6 +1,6 @@
 #include <redev.h>
 #include <cassert>
-#include "git_version.h"
+#include "redev_git_version.h"
 
 namespace {
   void begin_func() {
@@ -12,7 +12,7 @@ namespace {
 namespace redev {
   Redev::Redev(MPI_Comm comm) : adios(comm) {
     begin_func();
-    std::cout << "Redev Git Hash: " << kGitHash << "\n";
+    std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
     assert(isInitialized);

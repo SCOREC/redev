@@ -22,7 +22,7 @@ set(REDEV_SOURCES
 
 add_library(redev ${REDEV_SOURCES})
 target_compile_features(redev PUBLIC cxx_std_20)
-target_link_libraries(redev PUBLIC git_version)
+target_link_libraries(redev PUBLIC redev_git_version)
 target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C)
 
 include(CTest)
