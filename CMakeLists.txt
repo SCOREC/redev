@@ -14,6 +14,7 @@ find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
 
 set(REDEV_HEADERS
   redev.h
+  redev_types.h
   )
 
 set(REDEV_SOURCES
@@ -33,7 +34,7 @@ if(BUILD_TESTING)
   function(add_exe NAME)
     add_executable(${NAME} ${NAME}.cpp)
     target_link_libraries(${NAME} redev)
-  endfunction(mpi_test)
+  endfunction(add_exe)
 
   function(mpi_test TESTNAME PROCS EXE)
     add_test(
