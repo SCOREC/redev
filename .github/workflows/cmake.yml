@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compiler: [g++]
+        compiler: [g++,clang++]
 
     steps:
     - name: Install mpi
