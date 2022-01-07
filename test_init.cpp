@@ -7,7 +7,8 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   redev::RCBPtn ptn;
-  redev::Redev(MPI_COMM_WORLD,ptn);
+  auto isRendezvous=true;
+  redev::Redev(MPI_COMM_WORLD,ptn,isRendezvous);
   MPI_Finalize();
   return 0;
 }
