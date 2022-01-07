@@ -30,13 +30,75 @@ namespace {
     }
     return mpitype;
   }
+
+  template<typename T>
+  void Broadcast(T* data, int count, int root, MPI_Comm comm) {
+    begin_func();
+    auto type = getMpiType(T());
+    MPI_Bcast(data, count, type, root, comm);
+    end_func();
+  }
+
 }
 
-
-
 namespace redev {
-  Redev::Redev(MPI_Comm comm_, bool isRendezvous_)
-    : comm(comm_), adios(comm), isRendezvous(isRendezvous_) {
+
+  //TODO consider moving the RCBPtn source to another file
+  RCBPtn::RCBPtn() {}
+
+  RCBPtn::RCBPtn(std::vector<int>& ranks_, std::vector<double>& cuts_)
+    : ranks(ranks_), cuts(cuts_) {}
+
+  redev::LO RCBPtn::GetRank(redev::Real coords[3]) {
+    begin_func();
+    assert(ranks.size() && cuts.size());
+    assert(false); //TODO implement this
+    end_func();
+    return 0;
+  }
+
+  std::vector<redev::LO>& RCBPtn::GetRanks() {
+    return ranks;
+  }
+
+  std::vector<redev::Real>& RCBPtn::GetCuts() {
+    return cuts;
+  }
+
+  void RCBPtn::Write(adios2::Engine& eng, adios2::IO& io) {
+    const auto len = ranks.size();
+    assert(len>=1);
+    auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
+    auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len-1});
+    eng.Put(ranksVar, ranks.data());
+    eng.Put(cutsVar, cuts.data());
+  }
+
+  void RCBPtn::Read(adios2::Engine& eng, adios2::IO& io) {
+    const auto step = eng.CurrentStep();
+    auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
+    auto cutsVar = io.InquireVariable<redev::Real>(cutsVarName);
+    assert(ranksVar && cutsVar);
+
+    auto blocksInfo = eng.BlocksInfo(ranksVar,step);
+    assert(blocksInfo.size()==1);
+    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    eng.Get(ranksVar, ranks);
+
+    blocksInfo = eng.BlocksInfo(ranksVar,step);
+    assert(blocksInfo.size()==1);
+    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    eng.Get(cutsVar, cuts);
+    eng.PerformGets(); //default read mode is deferred
+  }
+
+  void RCBPtn::Broadcast(MPI_Comm comm, int root) {
+    ::Broadcast(ranks.data(), ranks.size(), root, comm);
+    ::Broadcast(cuts.data(), cuts.size(), root, comm);
+  }
+
+  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_)
+    : comm(comm_), adios(comm), ptn(ptn_), isRendezvous(isRendezvous_) {
     begin_func();
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
@@ -45,17 +107,18 @@ namespace redev {
     if(!rank) {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     }
-    end_func();
-  }
-  void Redev::Setup(std::vector<int>& ranks, std::vector<double>& cuts) {
-    begin_func();
     io = adios.DeclareIO("rendezvous"); //this will likely change
-    const auto hashVarName = "redev git hash";
     const auto bpName = "rendevous.bp";
     const auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
     auto eng = io.Open(bpName, mode);
-    //rendezvous app writes the version it has and other apps read
+    CheckVersion(eng,io);
+    end_func();
+  }
+
+  void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
+    const auto hashVarName = "redev git hash";
     eng.BeginStep();
+    //rendezvous app writes the version it has and other apps read
     if(isRendezvous) {
       auto varVersion = io.DefineVariable<std::string>(hashVarName);
       if(!rank)
@@ -72,54 +135,22 @@ namespace redev {
       }
     }
     eng.EndStep();
+  }
+
+  void Redev::Setup() {
+    begin_func();
     eng.BeginStep();
-    //rendezvous app writes the partition vector and other apps read
-    auto ranksVarName = "partition vector ranks";
-    auto cutsVarName = "partition vector cuts";
-    std::vector<redev::LO> inRanks;
-    std::vector<redev::Real> inCuts;
-    if(isRendezvous && !rank) {
-      const auto len = ranks.size();
-      std::cout << "writing " << len << "\n";
-      auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
-      auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len-1});
-      eng.Put(ranksVar, ranks.data());
-      eng.Put(cutsVar, cuts.data());
-    }
-    else { //all ranks need the partition vector; read on rank 0 then broadcast
-      if(!rank) {
-        const auto step = eng.CurrentStep();
-        auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
-        auto cutsVar = io.InquireVariable<redev::Real>(cutsVarName);
-        assert(ranksVar && cutsVar);
-
-        auto blocksInfo = eng.BlocksInfo(ranksVar,step);
-        assert(blocksInfo.size()==1);
-        ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
-        eng.Get(ranksVar, inRanks);
-
-        blocksInfo = eng.BlocksInfo(ranksVar,step);
-        assert(blocksInfo.size()==1);
-        ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
-        eng.Get(cutsVar, inCuts);
-
-        eng.PerformGets(); //default read mode is deferred
-        //TODO check if ranks and cuts are valid before the asserts
-        assert(inRanks == ranks);
-        assert(inCuts == cuts);
-      }
+    //rendezvous app rank 0 writes partition info and other apps read
+    if(!rank) {
+      if(isRendezvous)
+        ptn.Write(eng,io);
+      else
+        ptn.Read(eng,io);
     }
     eng.EndStep();
     eng.Close();
-    Broadcast(inRanks.data(), inRanks.size(), 0);
+    ptn.Broadcast(comm);
     end_func();
   }
 
-  template<typename T>
-  void Redev::Broadcast(T* data, int count, int root) {
-    begin_func();
-    auto type = getMpiType(T());
-    MPI_Bcast(data, count, type, root, comm);
-    end_func();
-  }
 }
