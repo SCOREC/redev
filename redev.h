@@ -35,10 +35,11 @@ class Redev {
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false);
     void Setup();
   private:
-    bool CheckVersion();
+    void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise
     MPI_Comm comm;
     adios2::ADIOS adios;
+    adios2::Engine eng;
     adios2::IO io;
     int rank;
     Partition& ptn;

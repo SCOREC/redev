@@ -110,8 +110,7 @@ namespace redev {
     io = adios.DeclareIO("rendezvous"); //this will likely change
     const auto bpName = "rendevous.bp";
     const auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
-    auto eng = io.Open(bpName, mode);
-    CheckVersion(eng,io);
+    eng = io.Open(bpName, mode);
     end_func();
   }
 
@@ -139,6 +138,7 @@ namespace redev {
 
   void Redev::Setup() {
     begin_func();
+    CheckVersion(eng,io);
     eng.BeginStep();
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
@@ -148,8 +148,8 @@ namespace redev {
         ptn.Read(eng,io);
     }
     eng.EndStep();
-    eng.Close();
     ptn.Broadcast(comm);
+    eng.Close(); //not sure if this should be here
     end_func();
   }
 
