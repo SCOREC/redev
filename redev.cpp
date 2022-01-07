@@ -41,6 +41,7 @@ namespace redev {
       std::string inHash;
       if(varVersion && !rank) {
         eng.Get(varVersion, inHash);
+        eng.PerformGets(); //default read mode is deferred
         std::cout << "inHash " << inHash << "\n";
         assert(inHash == redevGitHash);
       }
@@ -68,10 +69,12 @@ namespace redev {
         assert(blocksInfo.size()==1);
         std::vector<redev::LO> inRanks;
         std::vector<redev::Real> inCuts;
+        ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
         eng.Get(ranksVar, inRanks);
         eng.Get(cutsVar, inCuts);
-//        assert(inRanks == ranks); //fails here, inRanks contains zeros
-//        assert(inCuts == cuts);
+        eng.PerformGets(); //default read mode is deferred
+        assert(inRanks == ranks);
+        assert(inCuts == cuts);
       }
     }
     eng.EndStep();
