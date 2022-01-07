@@ -1,7 +1,6 @@
 #include <redev.h>
 #include <cassert>
 #include "redev_git_version.h"
-#include "redev_types.h"
 
 namespace {
   void begin_func() {
@@ -53,6 +52,7 @@ namespace redev {
     auto cutsVarName = "partition vector cuts";
     if(isRendezvous && !rank) {
       const auto len = ranks.size();
+      std::cout << "writing " << len << "\n";
       auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
       auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len-1});
       eng.Put(ranksVar, ranks.data());
@@ -60,16 +60,18 @@ namespace redev {
     }
     else { //all ranks need the partition vector; read on rank 0 then broadcast
       if(!rank) {
-        auto var = io.InquireVariable<redev::LO>(ranksVarName);
+        const auto step = eng.CurrentStep();
         auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
         auto cutsVar = io.InquireVariable<redev::Real>(cutsVarName);
         assert(ranksVar && cutsVar);
-        const auto shp = ranksVar.Shape();
-        std::cerr << "len " << shp.size() << "\n"; //size is zero here...
-        //std::vector<redev::LO> inRanks(len);
-        //std::vector<redev::Real> inCuts(len-1);
-        //eng.Get(ranksVar, inRanks.data());
-        //eng.Get(cutsVar, inCuts.data());
+        auto blocksInfo = eng.BlocksInfo(ranksVar,step);
+        assert(blocksInfo.size()==1);
+        std::vector<redev::LO> inRanks;
+        std::vector<redev::Real> inCuts;
+        eng.Get(ranksVar, inRanks);
+        eng.Get(cutsVar, inCuts);
+//        assert(inRanks == ranks); //fails here, inRanks contains zeros
+//        assert(inCuts == cuts);
       }
     }
     eng.EndStep();

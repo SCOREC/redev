@@ -1,5 +1,6 @@
 #pragma once
 #include <adios2.h>
+#include "redev_types.h"
 #include <mpi.h>
 
 namespace redev {

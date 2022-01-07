@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   redev::Redev rdv(MPI_COMM_WORLD,isRdv);
   //dummy partition vector data
-  std::vector<int> ranks = {0,1,2,3};
-  std::vector<double> cuts = {0.5,0.5,0.5};
+  std::vector<redev::LO> ranks = {0,1,2,3};
+  std::vector<redev::Real> cuts = {0.5,0.5,0.5};
   rdv.Setup(ranks,cuts);
   MPI_Finalize();
   return 0;
