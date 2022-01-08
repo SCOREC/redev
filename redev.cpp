@@ -51,31 +51,26 @@ namespace redev {
     assert(dim>0 && dim<=3);
   }
 
-  redev::LO RCBPtn::GetRank(redev::Real pt[3]) {
-    begin_func();
+  redev::LO RCBPtn::GetRank(redev::Real pt[3]) { //TODO better name?
+    //begin_func(); //TODO fix this by creating a hook object that goes out of scope
     assert(ranks.size() && cuts.size());
-    if(dim==1) {
-      const auto len = cuts.size();
-      const auto levels = std::log2(len);
-      auto lvl = 0;
-      auto idx = 1;
-      while(lvl < levels) {
-        if(pt[0]<cuts[idx])
-          idx = idx*2;
-        else
-          idx = idx*2+1;
-        ++lvl;
-      }
-      auto rankIdx = idx-std::pow(2,lvl);
-      assert(rankIdx < ranks.size());
-      return ranks[rankIdx];
-    } else if(dim==2) {
-    } else if(dim==3) {
-    } else {
-      exit(EXIT_FAILURE);
+    assert(dim>0 && dim<=3);
+    const auto len = cuts.size();
+    const auto levels = std::log2(len);
+    auto lvl = 0;
+    auto idx = 1;
+    auto d = 0;
+    while(lvl < levels) {
+      if(pt[d]<cuts[idx])
+        idx = idx*2;
+      else
+        idx = idx*2+1;
+      ++lvl;
+      d = (d + 1) % dim;
     }
-    end_func();
-    return 0;
+    auto rankIdx = idx-std::pow(2,lvl);
+    assert(rankIdx < ranks.size());
+    return ranks[rankIdx];
   }
 
   std::vector<redev::LO>& RCBPtn::GetRanks() {
