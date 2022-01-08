@@ -46,13 +46,34 @@ namespace redev {
   //TODO consider moving the RCBPtn source to another file
   RCBPtn::RCBPtn() {}
 
-  RCBPtn::RCBPtn(std::vector<int>& ranks_, std::vector<double>& cuts_)
-    : ranks(ranks_), cuts(cuts_) {}
+  RCBPtn::RCBPtn(redev::LO dim_, std::vector<int>& ranks_, std::vector<double>& cuts_)
+    : dim(dim_), ranks(ranks_), cuts(cuts_) {
+    assert(dim>0 && dim<=3);
+  }
 
-  redev::LO RCBPtn::GetRank(redev::Real coords[3]) {
+  redev::LO RCBPtn::GetRank(redev::Real pt[3]) {
     begin_func();
     assert(ranks.size() && cuts.size());
-    assert(false); //TODO implement this
+    if(dim==1) {
+      const auto len = cuts.size();
+      const auto levels = std::log2(len);
+      auto lvl = 0;
+      auto idx = 1;
+      while(lvl < levels) {
+        if(pt[0]<cuts[idx])
+          idx = idx*2;
+        else
+          idx = idx*2+1;
+        ++lvl;
+      }
+      auto rankIdx = idx-std::pow(2,lvl);
+      assert(rankIdx < ranks.size());
+      return ranks[rankIdx];
+    } else if(dim==2) {
+    } else if(dim==3) {
+    } else {
+      exit(EXIT_FAILURE);
+    }
     end_func();
     return 0;
   }

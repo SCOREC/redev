@@ -17,7 +17,8 @@ int main(int argc, char** argv) {
   //dummy partition vector data
   std::vector<redev::LO> ranks = {0,1,2,3};
   std::vector<redev::Real> cuts = {0.5,0.5,0.5};
-  auto ptn = isRdv ? redev::RCBPtn(ranks,cuts) : redev::RCBPtn();
+  const auto dim = 2;
+  auto ptn = isRdv ? redev::RCBPtn(dim,ranks,cuts) : redev::RCBPtn();
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   rdv.Setup();
   if(!isRdv) {

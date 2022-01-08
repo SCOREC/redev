@@ -16,7 +16,20 @@ class Partition {
 class RCBPtn : public Partition {
   public:
     RCBPtn();
-    RCBPtn(std::vector<int>& ranks, std::vector<double>& cuts);
+    /* The non-leaf levels of the partition tree have alternating cut dimensions associated
+     * with the level starting with 'x'.
+     * Each non-leaf node has a coordinate for the position of the cut along the dimension
+     * specified by its level.
+     * Non-leaf tree node n with cut dimension d and cut coordinate v along dimension d has
+     * a left child that covers the sub-domain d < v and a right child that
+     * covers the sub-domain d >= v.
+     * ranks: labels the leaf nodes in the partition tree from left to right
+     * cuts: Specifies the coordinates associated with the non-leaf nodes
+     * in a breath-first traversal order starting at the root and
+     * visiting the child nodes at each level from left to right.
+     * The root of the cut tree is stored at index 1.
+     */
+    RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
     redev::LO GetRank(redev::Real coords[3]);
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
@@ -26,6 +39,7 @@ class RCBPtn : public Partition {
   private:
     const std::string ranksVarName = "rcb partition ranks";
     const std::string cutsVarName = "rcb partition cuts";
+    redev::LO dim;
     std::vector<redev::LO> ranks;
     std::vector<redev::Real> cuts;
 };

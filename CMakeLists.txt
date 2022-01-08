@@ -48,6 +48,8 @@ if(BUILD_TESTING)
   add_exe(test_setup test_setup.cpp)
   mpi_test(test_setup_write_1p 1 ./test_setup 1)
   mpi_test(test_setup_read_1p 1 ./test_setup 0)
+  add_exe(test_query test_query.cpp)
+  mpi_test(test_query_1p 1 ./test_query)
 endif()
 
 ## export the library
