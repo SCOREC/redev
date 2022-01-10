@@ -46,6 +46,11 @@ namespace redev {
   //TODO consider moving the RCBPtn source to another file
   RCBPtn::RCBPtn() {}
 
+  RCBPtn::RCBPtn(redev::LO dim_)
+    : dim(dim_) {
+    assert(dim>0 && dim<=3);
+  }
+
   RCBPtn::RCBPtn(redev::LO dim_, std::vector<int>& ranks_, std::vector<double>& cuts_)
     : dim(dim_), ranks(ranks_), cuts(cuts_) {
     assert(dim>0 && dim<=3);
@@ -84,8 +89,9 @@ namespace redev {
   void RCBPtn::Write(adios2::Engine& eng, adios2::IO& io) {
     const auto len = ranks.size();
     assert(len>=1);
+    assert(len==cuts.size());
     auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
-    auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len-1});
+    auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len});
     eng.Put(ranksVar, ranks.data());
     eng.Put(cutsVar, cuts.data());
   }

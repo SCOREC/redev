@@ -24,10 +24,11 @@ class RCBPtn : public Partition {
      * a left child that covers the sub-domain d < v and a right child that
      * covers the sub-domain d >= v.
      * ranks: labels the leaf nodes in the partition tree from left to right
-     * cuts: Specifies the coordinates associated with the non-leaf nodes
+     * cuts: Array specifying the coordinates associated with the non-leaf nodes
      * in a breath-first traversal order starting at the root and
      * visiting the child nodes at each level from left to right.
-     * The root of the cut tree is stored at index 1.
+     * The root of the cut tree is stored at index 1 and index 0 is unused.
+     * See test_query.cpp for examples.
      */
     RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
     redev::LO GetRank(redev::Real coords[3]);
