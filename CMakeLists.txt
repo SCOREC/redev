@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12.0...3.21.0)
+cmake_minimum_required(VERSION 3.15.0...3.21.0)
 
 project(redev VERSION 0.1.0 LANGUAGES C CXX)
 
@@ -43,11 +43,20 @@ if(BUILD_TESTING)
     )
   endfunction(mpi_test)
 
+  function(dual_mpi_test TESTNAME PROCS1 EXE1 ARGS1 PROCS2 EXE2 ARGS2)
+    add_test(NAME ${TESTNAME}
+      COMMAND ${CMAKE_COMMAND}
+      -DMPIEXEC_EXECUTABLE=${MPIEXEC_EXECUTABLE}
+      -DMPIEXEC_NUMPROC_FLAG=${MPIEXEC_NUMPROC_FLAG}
+      -DPROCS1=${PROCS1} -DEXE1=${EXE1} -DARGS1=${ARGS1}
+      -DPROCS2=${PROCS2} -DEXE2=${EXE2} -DARGS2=${ARGS2}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runTwoMpiJobs.cmake)
+  endfunction(dual_mpi_test)
+
   add_exe(test_init test_init.cpp)
   mpi_test(test_init_1p 1 ./test_init)
   add_exe(test_setup test_setup.cpp)
-  mpi_test(test_setup_write_1p 1 ./test_setup 1)
-  mpi_test(test_setup_read_1p 1 ./test_setup 0)
+  dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
 endif()
