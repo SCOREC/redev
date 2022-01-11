@@ -105,6 +105,11 @@ namespace redev {
     end_func();
   }
 
+  Redev::~Redev() {
+    if(eng)
+      eng.Close();
+  }
+
   void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
     const auto hashVarName = "redev git hash";
     eng.BeginStep();
@@ -140,7 +145,6 @@ namespace redev {
     }
     eng.EndStep();
     ptn.Broadcast(comm);
-    eng.Close(); //not sure if this should be here
     end_func();
   }
 

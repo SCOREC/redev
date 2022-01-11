@@ -50,6 +50,7 @@ class RCBPtn : public Partition {
 class Redev {
   public:
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false);
+    ~Redev();
     void Setup();
     adios2::Engine& getEngine() { return eng; }
     adios2::IO& getIO() { return io; }
