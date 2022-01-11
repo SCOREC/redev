@@ -14,7 +14,6 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   auto isRdv = atoi(argv[1]);
-  std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   //dummy partition vector data
   const auto dim = 2;
   std::vector<redev::LO> ranks = {0,1,2,3};
