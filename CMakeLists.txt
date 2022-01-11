@@ -62,6 +62,8 @@ if(BUILD_TESTING)
   mpi_test(test_query_1p 1 ./test_query)
   add_exe(test_sendrecv test_sendrecv.cpp)
   mpi_test(test_sendrecv_3p 3 ./test_sendrecv 1)
+  add_exe(test_1d test_1d.cpp)
+  mpi_test(test_1d_2p 2 ./test_1d)
 endif()
 
 ## export the library
