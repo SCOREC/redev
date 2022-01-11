@@ -1,44 +1,13 @@
 #include <redev.h>
 #include <cassert>
-#include <type_traits> // is_same
 #include "redev_git_version.h"
+#include "redev_comm.h"
 
 namespace {
   void begin_func() {
   }
   void end_func() {
   }
-
-  //TODO I think there is a cleaner way
-  template<class T>
-  MPI_Datatype getMpiType(T) {
-    MPI_Datatype mpitype;
-    //determine the type based on what is being sent
-    if( std::is_same<T, redev::Real>::value ) {
-      mpitype = MPI_DOUBLE;
-    } else if ( std::is_same<T, redev::CV>::value ) {
-      //https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node48.htm
-      mpitype = MPI_CXX_DOUBLE_COMPLEX;
-    } else if ( std::is_same<T, redev::GO>::value ) {
-      mpitype = MPI_UNSIGNED_LONG;
-    } else if ( std::is_same<T, redev::LO>::value ) {
-      mpitype = MPI_INT;
-    } else {
-      assert(false);
-      fprintf(stderr, "Unknown type in %s... exiting\n", __func__);
-      exit(EXIT_FAILURE);
-    }
-    return mpitype;
-  }
-
-  template<typename T>
-  void Broadcast(T* data, int count, int root, MPI_Comm comm) {
-    begin_func();
-    auto type = getMpiType(T());
-    MPI_Bcast(data, count, type, root, comm);
-    end_func();
-  }
-
 }
 
 namespace redev {
@@ -115,8 +84,8 @@ namespace redev {
   }
 
   void RCBPtn::Broadcast(MPI_Comm comm, int root) {
-    ::Broadcast(ranks.data(), ranks.size(), root, comm);
-    ::Broadcast(cuts.data(), cuts.size(), root, comm);
+    redev::Broadcast(ranks.data(), ranks.size(), root, comm);
+    redev::Broadcast(cuts.data(), cuts.size(), root, comm);
   }
 
   Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_)

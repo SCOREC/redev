@@ -1,7 +1,8 @@
 #pragma once
 #include <adios2.h>
-#include "redev_types.h"
 #include <mpi.h>
+#include <cassert>
+#include "redev_types.h"
 
 namespace redev {
 
@@ -30,6 +31,7 @@ class RCBPtn : public Partition {
      * The root of the cut tree is stored at index 1 and index 0 is unused.
      * See test_query.cpp for examples.
      */
+    RCBPtn(redev::LO dim);
     RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
     redev::LO GetRank(redev::Real coords[3]);
     void Write(adios2::Engine& eng, adios2::IO& io);
@@ -49,6 +51,8 @@ class Redev {
   public:
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false);
     void Setup();
+    adios2::Engine& getEngine() { return eng; }
+    adios2::IO& getIO() { return io; }
   private:
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise

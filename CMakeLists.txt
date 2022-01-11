@@ -15,6 +15,7 @@ find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
 set(REDEV_HEADERS
   redev.h
   redev_types.h
+  redev_comm.h
   )
 
 set(REDEV_SOURCES
@@ -59,6 +60,8 @@ if(BUILD_TESTING)
   dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
+  add_exe(test_sendrecv test_sendrecv.cpp)
+  mpi_test(test_sendrecv_3p 3 ./test_sendrecv 1)
 endif()
 
 ## export the library
