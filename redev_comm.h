@@ -65,9 +65,7 @@ class AdiosComm : public Communicator<T> {
       // allocating a comm size array is acceptable.
       GOs degree(rdvRanks,0);
       //for now assume pack was called exactly once on each rank
-      //for( auto p : packed ) {
-      for( int j=0; j < packed.size(); j++) {
-        auto p = packed[j];
+      for( auto p : packed ) {
         for( auto i=0; i<p.dest.size(); i++) {
           auto destRank = p.dest[i];
           assert(destRank < rdvRanks);
