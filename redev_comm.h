@@ -1,5 +1,6 @@
 #pragma once
-#include <redev.h>
+#include "redev.h"
+#include <numeric> // accumulate, esclusive_scan
 #include <type_traits> // is_same
 
 namespace redev {
@@ -64,7 +65,6 @@ class AdiosComm : public Communicator<T> {
       // (the rendezvous application) 16. Given this,
       // allocating a comm size array is acceptable.
       GOs degree(rdvRanks,0);
-      //for now assume pack was called exactly once on each rank
       for( auto p : packed ) {
         for( auto i=0; i<p.dest.size(); i++) {
           auto destRank = p.dest[i];
@@ -72,15 +72,46 @@ class AdiosComm : public Communicator<T> {
           degree[destRank] += p.offsets[i+1] - p.offsets[i];
         }
       }
-      GOs gOffset(rdvRanks,0);
-      //TODO make a wrapper for scan
-      auto ret = MPI_Exscan(degree.data(), gOffset.data(), rdvRanks, 
+      GOs gOffset(rdvRanks+1,0);
+      auto ret = MPI_Exscan(degree.data(), gOffset.data(), rdvRanks,
           getMpiType(redev::GO()), MPI_SUM, comm);
       assert(ret == MPI_SUCCESS);
+
+      GOs gDegree(rdvRanks,0);
+      ret = MPI_Allreduce(degree.data(), gDegree.data(), rdvRanks,
+          getMpiType(redev::GO()), MPI_SUM, comm);
+      assert(ret == MPI_SUCCESS);
+      const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), 0));
+
+      GOs gStart(rdvRanks+1,0);
+      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), 0); //TODO check this!
+
+      adios2::Dims shape{static_cast<size_t>(gDegreeTot)};
+      adios2::Dims start{};
+      adios2::Dims count{};
+      auto var = io.DefineVariable<T>(name, shape, start, count);
+      assert(var);
+      eng.BeginStep();
+
+      //assume one call to pack from each rank for now
+      assert(packed.size() == 1);
+      auto p = packed[0];
+      for( auto i=0; i<p.dest.size(); i++ ) {
+        const auto destRank = p.dest[i];
+        const auto lStart = gStart[destRank]+gOffset[destRank];
+        const auto lCount = p.offsets[i+1]-p.offsets[i];
+        fprintf(stderr, "%d dest %d start %d count %d\n",rank, destRank, lStart, lCount);
+        if( lCount > 0 ) {
+          start = adios2::Dims{static_cast<size_t>(lStart)};
+          count = adios2::Dims{static_cast<size_t>(lCount)};
+          var.SetSelection({start,count});
+          eng.Put<T>(var, p.msgs);
+        }
+      }
+      eng.PerformPuts();
+      eng.EndStep();
     }
     void Unpack() {
-      //eng.Get(varVersion, inHash);
-      //eng.PerformGets();
     }
   private:
     MPI_Comm comm;
