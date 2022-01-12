@@ -63,7 +63,8 @@ class AdiosComm : public Communicator<T> {
       // used by the largest application.  For example,
       // XGC may use 1024 ranks, GENE 16, and the coupler
       // (the rendezvous application) 16. Given this,
-      // allocating a comm size array is acceptable.
+      // allocating an array with length equal to the
+      // rendevous communicator size is acceptable.
       GOs degree(rdvRanks,0);
       for( auto p : packed ) {
         for( auto i=0; i<p.dest.size(); i++) {
