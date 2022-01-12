@@ -70,7 +70,7 @@ if(BUILD_TESTING)
   mpi_test(test_sendrecv_3p 3 ./test_sendrecv 1)
   if(ADIOS2_BPLS_PATH)
     add_test(NAME test_sendrecv_check
-      COMMAND /space/cwsmith/wdmCpl/buildAdios2/install/bin/bpls -d -n 27 rendevous.bp/ foo)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 rendevous.bp/ foo)
     set_tests_properties(test_sendrecv_check PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2")
   endif()
