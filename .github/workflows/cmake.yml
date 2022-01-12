@@ -63,6 +63,7 @@ jobs:
       run: cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
+           -DADIOS2_BPLS_PATH=${{runner.workspace}}/build-adios2/install/bin/bpls
            -DBUILD_TESTING=ON
 
     - name: Redev Build
