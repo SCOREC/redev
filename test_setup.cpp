@@ -2,8 +2,6 @@
 #include <cstdlib>
 #include <cassert>
 #include "redev.h"
-#include <thread>         // std::this_thread::sleep_for
-#include <chrono>         // std::chrono::seconds
 
 int main(int argc, char** argv) {
   int rank, nproc;
@@ -15,22 +13,22 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   auto isRdv = atoi(argv[1]);
-  //wait for writer to open the bp file...  TODO is there a better way?
-  if(!isRdv) std::this_thread::sleep_for(std::chrono::seconds(1));
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   {
   //dummy partition vector data
-  std::vector<redev::LO> ranks = {0,1,2,3};
-  std::vector<redev::Real> cuts = {0,0.5,0.5,0.5};
+  const auto expectedRanks = redev::LOs({0,1,2,3});
+  const auto expectedCuts = redev::Reals({0,0.5,0.75,0.25});
+  auto ranks = isRdv ? expectedRanks : redev::LOs(4);
+  auto cuts = isRdv ? expectedCuts : redev::Reals(4);
   const auto dim = 2;
-  auto ptn = isRdv ? redev::RCBPtn(dim,ranks,cuts) : redev::RCBPtn(dim);
+  auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   rdv.Setup();
   if(!isRdv) {
     auto ptnRanks = ptn.GetRanks();
     auto ptnCuts = ptn.GetCuts();
-    assert(ptnRanks == ranks);
-    assert(ptnCuts == cuts);
+    assert(ptnRanks == expectedRanks);
+    assert(ptnCuts == expectedCuts);
   }
   }
   MPI_Finalize();

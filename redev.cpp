@@ -2,6 +2,8 @@
 #include <cassert>
 #include "redev_git_version.h"
 #include "redev_comm.h"
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
 
 namespace {
   void begin_func() {
@@ -88,7 +90,7 @@ namespace redev {
     redev::Broadcast(cuts.data(), cuts.size(), root, comm);
   }
 
-  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_)
+  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noParticipant)
     : comm(comm_), adios(comm), ptn(ptn_), isRendezvous(isRendezvous_) {
     begin_func();
     int isInitialized = 0;
@@ -99,15 +101,34 @@ namespace redev {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     }
     io = adios.DeclareIO("rendezvous"); //this will likely change
-    const auto bpName = "rendevous.bp";
-    const auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
-    eng = io.Open(bpName, mode);
+    //engine for data sent from rendezvous
+    auto bpName = "fromRendevous.bp";
+    auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
+    //wait for the file to be created by the writer
+    if(!isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(1));
+    fromEng = io.Open(bpName, mode);
+    assert(fromEng);
+
+    if(noParticipant) {
+      end_func();
+      return;
+    }
+
+    //engine for data sent to rendezvous
+    bpName = "toRendevous.bp";
+    mode = isRendezvous ? adios2::Mode::Read : adios2::Mode::Write;
+    //wait for the file to be created by the writer
+    if(isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(2)); //better way?
+    toEng = io.Open(bpName, mode);
+    assert(toEng);
     end_func();
   }
 
   Redev::~Redev() {
-    if(eng)
-      eng.Close();
+    if(toEng)
+      toEng.Close();
+    if(fromEng)
+      fromEng.Close();
   }
 
   void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
@@ -134,16 +155,16 @@ namespace redev {
 
   void Redev::Setup() {
     begin_func();
-    CheckVersion(eng,io);
-    eng.BeginStep();
+    CheckVersion(fromEng,io);
+    fromEng.BeginStep();
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
       if(isRendezvous)
-        ptn.Write(eng,io);
+        ptn.Write(fromEng,io);
       else
-        ptn.Read(eng,io);
+        ptn.Read(fromEng,io);
     }
-    eng.EndStep();
+    fromEng.EndStep();
     ptn.Broadcast(comm);
     end_func();
   }
