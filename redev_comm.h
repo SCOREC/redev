@@ -73,10 +73,14 @@ class AdiosComm : public Communicator<T> {
           degree[destRank] += p.offsets[i+1] - p.offsets[i];
         }
       }
-      GOs gOffset(rdvRanks+1,0);
-      auto ret = MPI_Exscan(degree.data(), gOffset.data(), rdvRanks,
+      GOs rdvRankStart(rdvRanks,0);
+      auto ret = MPI_Exscan(degree.data(), rdvRankStart.data(), rdvRanks,
           getMpiType(redev::GO()), MPI_SUM, comm);
       assert(ret == MPI_SUCCESS);
+      if(!rank) {
+        //on rank 0 the result of MPI_Exscan is undefined, set it to zero
+        rdvRankStart = GOs(rdvRanks,0);
+      }
 
       GOs gDegree(rdvRanks,0);
       ret = MPI_Allreduce(degree.data(), gDegree.data(), rdvRanks,
@@ -84,8 +88,8 @@ class AdiosComm : public Communicator<T> {
       assert(ret == MPI_SUCCESS);
       const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), 0));
 
-      GOs gStart(rdvRanks+1,0);
-      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), 0); //TODO check this!
+      GOs gStart(rdvRanks,0);
+      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), 0);
 
       adios2::Dims shape{static_cast<size_t>(gDegreeTot)};
       adios2::Dims start{};
@@ -99,7 +103,7 @@ class AdiosComm : public Communicator<T> {
       auto p = packed[0];
       for( auto i=0; i<p.dest.size(); i++ ) {
         const auto destRank = p.dest[i];
-        const auto lStart = gStart[destRank]+gOffset[destRank];
+        const auto lStart = gStart[destRank]+rdvRankStart[destRank];
         const auto lCount = p.offsets[i+1]-p.offsets[i];
         fprintf(stderr, "%d dest %d start %d count %d\n",rank, destRank, lStart, lCount);
         if( lCount > 0 ) {
