@@ -29,18 +29,17 @@ int main(int argc, char** argv) {
   redev::LOs msgs;
   if(rank==0) {
     dest = redev::LOs{0,2};
-    offsets = redev::LOs{0,10,20};
-    msgs = redev::LOs(20);
+    offsets = redev::LOs{0,2,6};
+    msgs = redev::LOs(6,0); //write the src rank as the msg for now
   } else if (rank==1) {
     dest = redev::LOs{0,1,2,3};
-    offsets = redev::LOs{0,20,23,43,45};
-    msgs = redev::LOs(45);
+    offsets = redev::LOs{0,1,4,8,10};
+    msgs = redev::LOs(10,1);
   } else if (rank==2) {
     dest = redev::LOs{0,1,2,3};
-    offsets = redev::LOs{0,25,40,65,75};
-    msgs = redev::LOs(75);
+    offsets = redev::LOs{0,4,5,7,11};
+    msgs = redev::LOs(11,2);
   }
-
   comm.Pack(dest, offsets, msgs.data());
   comm.Send();
   }
