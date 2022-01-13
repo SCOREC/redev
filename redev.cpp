@@ -102,7 +102,7 @@ namespace redev {
     }
     io = adios.DeclareIO("rendezvous"); //this will likely change
     //engine for data sent from rendezvous
-    auto bpName = "fromRendevous.bp";
+    auto bpName = "fromRendezvous.bp";
     auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
     //wait for the file to be created by the writer
     if(!isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -115,7 +115,7 @@ namespace redev {
     }
 
     //engine for data sent to rendezvous
-    bpName = "toRendevous.bp";
+    bpName = "toRendezvous.bp";
     mode = isRendezvous ? adios2::Mode::Read : adios2::Mode::Write;
     //wait for the file to be created by the writer
     if(isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(2)); //better way?
