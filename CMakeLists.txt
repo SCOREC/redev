@@ -67,10 +67,12 @@ if(BUILD_TESTING)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runTwoMpiJobs.cmake)
   endfunction(dual_mpi_test)
 
-  add_exe(test_init test_init.cpp)
-  mpi_test(test_init_1p 1 ./test_init)
+  add_exe(test_1d test_1d.cpp)
+  mpi_test(test_1d_2p 2 ./test_1d)
   add_exe(test_rcb test_rcb.cpp)
   mpi_test(test_rcb_4p 4 ./test_rcb)
+  add_exe(test_init test_init.cpp)
+  mpi_test(test_init_1p 1 ./test_init)
   add_exe(test_setup test_setup.cpp)
   dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
@@ -85,8 +87,6 @@ if(BUILD_TESTING)
     set_tests_properties(test_sendrecv_check PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2")
   endif()
-  add_exe(test_1d test_1d.cpp)
-  mpi_test(test_1d_2p 2 ./test_1d)
 endif()
 
 ## export the library
