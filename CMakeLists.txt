@@ -83,7 +83,7 @@ if(BUILD_TESTING)
                 3 ./test_sendrecv 0)
   if(ADIOS2_BPLS_PATH)
     add_test(NAME test_sendrecv_check
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendevous.bp/ foo)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendezvous.bp/ foo)
     set_tests_properties(test_sendrecv_check PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2")
   endif()
