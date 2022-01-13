@@ -69,6 +69,8 @@ if(BUILD_TESTING)
 
   add_exe(test_init test_init.cpp)
   mpi_test(test_init_1p 1 ./test_init)
+  add_exe(test_rcb test_rcb.cpp)
+  mpi_test(test_rcb_4p 4 ./test_rcb)
   add_exe(test_setup test_setup.cpp)
   dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
