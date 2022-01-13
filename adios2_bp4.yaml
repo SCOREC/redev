@@ -1,0 +1,8 @@
+---
+# adios2 config.yaml
+- IO: "rendezvous"
+  Engine:
+      Type: "BP4"
+      Streaming: On
+      OpenTimeoutSecs: 2
+
