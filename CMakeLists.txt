@@ -44,6 +44,7 @@ if(BUILD_TESTING)
   endfunction(add_exe)
 
   function(mpi_test TESTNAME PROCS EXE)
+    file(REMOVE *.bp)
     add_test(
       NAME ${TESTNAME}
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${PROCS} ${VALGRIND} ${VALGRIND_ARGS} ${EXE} ${ARGN}
@@ -51,6 +52,7 @@ if(BUILD_TESTING)
   endfunction(mpi_test)
 
   function(dual_mpi_test TESTNAME PROCS1 EXE1 ARGS1 PROCS2 EXE2 ARGS2)
+    file(REMOVE *.bp)
     add_test(NAME ${TESTNAME}
       COMMAND ${CMAKE_COMMAND}
       -DMPIEXEC_EXECUTABLE=${MPIEXEC_EXECUTABLE}
@@ -67,10 +69,9 @@ if(BUILD_TESTING)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
   add_exe(test_sendrecv test_sendrecv.cpp)
-  #mpi_test(test_sendrecv_3p 3 ./test_sendrecv 0)
   dual_mpi_test(test_sendrecv_3p
-                3 ./test_sendrecv 0
-                4 ./test_sendrecv 1)
+                4 ./test_sendrecv 1
+                3 ./test_sendrecv 0)
   if(ADIOS2_BPLS_PATH)
     add_test(NAME test_sendrecv_check
       COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendevous.bp/ foo)
