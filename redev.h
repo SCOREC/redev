@@ -36,7 +36,7 @@ class RCBPtn : public Partition {
     redev::LO GetRank(redev::Real coords[3]);
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
-    void Broadcast(MPI_Comm comm, int root);
+    void Broadcast(MPI_Comm comm, int root=0);
     std::vector<redev::LO>& GetRanks();
     std::vector<redev::Real>& GetCuts();
   private:
