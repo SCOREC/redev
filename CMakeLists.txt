@@ -43,8 +43,13 @@ if(BUILD_TESTING)
     target_link_libraries(${NAME} redev)
   endfunction(add_exe)
 
+  function(removeBpFiles TESTNAME)
+    add_test(NAME ${TESTNAME} COMMAND ${CMAKE_COMMAND}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/removeBpFiles.cmake)
+  endfunction()
+
   function(mpi_test TESTNAME PROCS EXE)
-    file(REMOVE *.bp)
+    removeBpFiles(${TESTNAME}_cleanup)
     add_test(
       NAME ${TESTNAME}
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${PROCS} ${VALGRIND} ${VALGRIND_ARGS} ${EXE} ${ARGN}
@@ -52,7 +57,7 @@ if(BUILD_TESTING)
   endfunction(mpi_test)
 
   function(dual_mpi_test TESTNAME PROCS1 EXE1 ARGS1 PROCS2 EXE2 ARGS2)
-    file(REMOVE *.bp)
+    removeBpFiles(${TESTNAME}_cleanup)
     add_test(NAME ${TESTNAME}
       COMMAND ${CMAKE_COMMAND}
       -DMPIEXEC_EXECUTABLE=${MPIEXEC_EXECUTABLE}
