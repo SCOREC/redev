@@ -10,6 +10,13 @@ namespace {
   }
   void end_func() {
   }
+  //Wait for the file to be created by the writer.
+  //Assuming that if 'Streaming' and 'OpenTimeoutSecs' are set then we are in
+  //BP4 mode.  SST blocks on Open by default.
+  void waitForEngineCreation(adios2::Params& params) {
+    if(!params.count("Streaming") && !params.count("OpenTimeoutSecs"))
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+  }
 }
 
 namespace redev {
@@ -101,11 +108,11 @@ namespace redev {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     }
     io = adios.DeclareIO("rendezvous"); //this will likely change
+    auto params = io.Parameters();
     //engine for data sent from rendezvous
     auto bpName = "fromRendezvous.bp";
     auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
-    //wait for the file to be created by the writer
-    if(!isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(1));
+    if(!isRendezvous) waitForEngineCreation(params);
     fromEng = io.Open(bpName, mode);
     assert(fromEng);
 
@@ -117,8 +124,7 @@ namespace redev {
     //engine for data sent to rendezvous
     bpName = "toRendezvous.bp";
     mode = isRendezvous ? adios2::Mode::Read : adios2::Mode::Write;
-    //wait for the file to be created by the writer
-    if(isRendezvous) std::this_thread::sleep_for(std::chrono::seconds(2)); //better way?
+    if(isRendezvous) waitForEngineCreation(params);
     toEng = io.Open(bpName, mode);
     assert(toEng);
     end_func();
