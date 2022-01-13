@@ -91,7 +91,7 @@ namespace redev {
   }
 
   Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noParticipant)
-    : comm(comm_), adios(comm), ptn(ptn_), isRendezvous(isRendezvous_) {
+    : comm(comm_), adios("adios2.yaml", comm), ptn(ptn_), isRendezvous(isRendezvous_) {
     begin_func();
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
