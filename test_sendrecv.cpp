@@ -57,6 +57,13 @@ int main(int argc, char** argv) {
     }
     comm.Pack(dest, offsets, msgs.data());
     comm.Send();
+  } else {
+    redev::LO* msgs;
+    redev::GOs rdvRankOffsets;
+    redev::GOs offsets;
+    comm.Unpack(rdvRankOffsets,offsets,msgs);
+    fprintf(stderr, "%d msgs[0] %d\n", rank, msgs[0]);
+    delete [] msgs;
   }
   }
   MPI_Finalize();

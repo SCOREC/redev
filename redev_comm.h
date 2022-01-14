@@ -40,7 +40,7 @@ class Communicator {
   public:
     virtual void Pack(LOs& dest, LOs& offsets, T* msgs) = 0;
     virtual void Send() = 0;
-    virtual void Unpack() = 0;
+    virtual void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs) = 0;
 };
 
 template<typename T>
@@ -139,8 +139,35 @@ class AdiosComm : public Communicator<T> {
       eng.PerformPuts();
       eng.EndStep();
     }
-    void Unpack() {
-      //read
+    void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs) {
+      int rank, commSz;
+      MPI_Comm_rank(comm, &rank);
+      MPI_Comm_size(comm, &commSz);
+      eng.BeginStep();
+      auto msgsVar = io.InquireVariable<T>(name);
+      auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
+      auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
+      if(!msgsVar) fprintf(stderr, "%d msgs failed\n", rank);
+      if(!rdvRanksVar) fprintf(stderr, "%d rdvRanks failed\n", rank);
+      if(!offsetsVar) fprintf(stderr, "%d offsets failed\n", rank);
+      assert(msgsVar && rdvRanksVar && offsetsVar);
+
+      auto offsetsShape = offsetsVar.Shape();
+      fprintf(stderr, "%d offsetShape.size() %d\n", rank, offsetsShape.size());
+      assert(offsetsShape.size() == 1);
+      fprintf(stderr, "%d offsetShape[0] %d\n", rank, offsetsShape[0]);
+
+      auto rdvRanksShape = rdvRanksVar.Shape();
+      assert(rdvRanksShape.size() == 1);
+      fprintf(stderr, "%d rdvRankshape[0] %d\n", rank, rdvRanksShape[0]);
+
+      auto msgShape = msgsVar.Shape();
+      assert(msgShape.size() == 1);
+      msgs = new T[msgShape[0]];
+      //need to read offsets to determine which slice this rank should read
+      //msgVar.SetSelection();
+      msgs[0] = 123;
+      eng.EndStep();
     }
   private:
     MPI_Comm comm;
