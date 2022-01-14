@@ -130,7 +130,10 @@ class AdiosComm : public Communicator<T> {
         auto offsets = gStart;
         offsets.push_back(gDegreeTot);
         const auto offsetsName = name+"_offsets";
-        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{},{},{offsets.size()});
+        const auto shape = offsets.size();
+        const auto start = 0;
+        const auto count = offsets.size();
+        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{shape},{start},{count});
         eng.Put<redev::GO>(offsetsVar, offsets.data());
       }
       eng.PerformPuts();
