@@ -113,6 +113,15 @@ class AdiosComm : public Communicator<T> {
           eng.Put<T>(var, p.msgs);
         }
       }
+
+      //send offsets array from rank 0
+      if(!rank) {
+        auto offsets = gStart;
+        offsets.push_back(gDegreeTot);
+        const auto offsetsName = name+"_offsets";
+        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{},{},{offsets.size()});
+        eng.Put<redev::GO>(offsetsVar, offsets.data());
+      }
       eng.PerformPuts();
       eng.EndStep();
     }
