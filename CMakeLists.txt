@@ -88,16 +88,24 @@ if(BUILD_TESTING)
   dual_mpi_test(test_send_3p
                 4 ./test_send 1
                 3 ./test_send 0)
+  if(ADIOS2_BPLS_PATH)
+    add_test(NAME test_send_check_msgs
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendezvous.bp/ foo)
+    set_tests_properties(test_send_check_msgs PROPERTIES
+      PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2")
+    add_test(NAME test_send_check_offsets
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 5 toRendezvous.bp/ foo_offsets)
+    set_tests_properties(test_send_check_offsets PROPERTIES
+      PASS_REGULAR_EXPRESSION "0 7 11 21 27")
+    add_test(NAME test_send_check_srcRanks
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 12 toRendezvous.bp/ foo_srcRanks)
+    set_tests_properties(test_send_check_srcRanks PROPERTIES
+      PASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2")
+  endif()
   add_exe(test_sendrecv test_sendrecv.cpp)
   dual_mpi_test(test_sendrecv_3p
                 4 ./test_sendrecv 1
                 3 ./test_sendrecv 0)
-  if(ADIOS2_BPLS_PATH)
-    add_test(NAME test_sendrecv_check
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendezvous.bp/ foo)
-    set_tests_properties(test_sendrecv_check PROPERTIES
-      PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2")
-  endif()
 endif()
 
 ## export the library
