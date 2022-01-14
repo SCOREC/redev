@@ -74,4 +74,4 @@ jobs:
     - name: Redev Test
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
-      run: ctest
+      run: ctest --output-on-failure
