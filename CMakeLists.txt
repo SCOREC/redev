@@ -84,6 +84,10 @@ if(BUILD_TESTING)
   dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
+  add_exe(test_send test_send.cpp)
+  dual_mpi_test(test_send_3p
+                4 ./test_send 1
+                3 ./test_send 0)
   add_exe(test_sendrecv test_sendrecv.cpp)
   dual_mpi_test(test_sendrecv_3p
                 4 ./test_sendrecv 1
