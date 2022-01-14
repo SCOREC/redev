@@ -91,12 +91,25 @@ class AdiosComm : public Communicator<T> {
       GOs gStart(rdvRanks,0);
       std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), 0);
 
+      //The messages array has a different length on each rank ('irregular') so we don't
+      //define local size and count here.
       adios2::Dims shape{static_cast<size_t>(gDegreeTot)};
       adios2::Dims start{};
       adios2::Dims count{};
       auto var = io.DefineVariable<T>(name, shape, start, count);
       assert(var);
+      const auto srcRanksName = name+"_srcRanks";
+      //The source rank offsets array is the same on each process ('regular').
+      adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
+      adios2::Dims srStart{static_cast<size_t>(rdvRanks*rank)};
+      adios2::Dims srCount{static_cast<size_t>(rdvRanks)};
+      fprintf(stderr, "0.1 %d srShape %d srStart %d srCount %d\n", rank, srShape[0], srStart[0], srCount[0]);
+      auto srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
+      assert(srcRanksVar);
       eng.BeginStep();
+
+      //send source rank offsets array 'rdvRankStart'
+      eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data());
 
       //assume one call to pack from each rank for now
       assert(packed.size() == 1);
@@ -114,7 +127,7 @@ class AdiosComm : public Communicator<T> {
         }
       }
 
-      //send offsets array from rank 0
+      //send dest rank offsets array from rank 0
       if(!rank) {
         auto offsets = gStart;
         offsets.push_back(gDegreeTot);
