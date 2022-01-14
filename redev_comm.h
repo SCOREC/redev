@@ -103,7 +103,6 @@ class AdiosComm : public Communicator<T> {
       adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
       adios2::Dims srStart{static_cast<size_t>(rdvRanks*rank)};
       adios2::Dims srCount{static_cast<size_t>(rdvRanks)};
-      fprintf(stderr, "0.1 %d srShape %d srStart %d srCount %d\n", rank, srShape[0], srStart[0], srCount[0]);
       auto srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
       assert(srcRanksVar);
       eng.BeginStep();
@@ -118,7 +117,6 @@ class AdiosComm : public Communicator<T> {
         const auto destRank = p.dest[i];
         const auto lStart = gStart[destRank]+rdvRankStart[destRank];
         const auto lCount = p.offsets[i+1]-p.offsets[i];
-        fprintf(stderr, "%d dest %d start %d count %d\n",rank, destRank, lStart, lCount);
         if( lCount > 0 ) {
           start = adios2::Dims{static_cast<size_t>(lStart)};
           count = adios2::Dims{static_cast<size_t>(lCount)};
