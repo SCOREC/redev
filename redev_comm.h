@@ -144,11 +144,11 @@ class AdiosComm : public Communicator<T> {
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       eng.BeginStep();
+
       auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
+      assert(rdvRanksVar);
       auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
-      if(!rdvRanksVar) fprintf(stderr, "%d rdvSrcRanks failed\n", rank);
-      if(!offsetsVar) fprintf(stderr, "%d offsets failed\n", rank);
-      assert(rdvRanksVar && offsetsVar);
+      assert(offsetsVar);
 
       auto offsetsShape = offsetsVar.Shape();
       assert(offsetsShape.size() == 1);
@@ -159,7 +159,6 @@ class AdiosComm : public Communicator<T> {
 
       auto rdvRanksShape = rdvRanksVar.Shape();
       assert(rdvRanksShape.size() == 1);
-      fprintf(stderr, "%d rdvRankshape[0] %d\n", rank, rdvRanksShape[0]);
       const auto rsrSz = rdvRanksShape[0];
       rdvSrcRanks.reserve(rsrSz);
       rdvRanksVar.SetSelection({{0},{rsrSz}});
@@ -168,31 +167,15 @@ class AdiosComm : public Communicator<T> {
       eng.PerformGets();
 
       auto msgsVar = io.InquireVariable<T>(name);
-      if(!msgsVar) fprintf(stderr, "%d msgs failed\n", rank);
       assert(msgsVar);
       const auto start = static_cast<size_t>(offsets[rank]);
       const auto count = static_cast<size_t>(offsets[rank+1]-start);
-      fprintf(stderr, "%d msg slice start count %d %d\n", rank, start, count);
       msgs = new T[count];
       msgsVar.SetSelection({{start}, {count}});
       eng.Get(msgsVar, msgs);
 
       eng.PerformGets();
-
       eng.EndStep();
-      fprintf(stderr, "%d offsets: ", rank);
-      for(auto i=0; i<offSz; i++)
-        fprintf(stderr, " %ld ", offsets[i]);
-      fprintf(stderr, "\n");
-      fprintf(stderr, "%d rdvSrcRanks: ", rank);
-      for(auto i=0; i<rsrSz; i++)
-        fprintf(stderr, " %ld ", rdvSrcRanks[i]);
-      fprintf(stderr, "\n");
-      fprintf(stderr, "%d msgs: ", rank);
-      for(auto i=0; i<count; i++)
-        fprintf(stderr, " %ld ", msgs[i]);
-      fprintf(stderr, "\n");
-
     }
   private:
     MPI_Comm comm;

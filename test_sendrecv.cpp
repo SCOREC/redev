@@ -62,7 +62,6 @@ int main(int argc, char** argv) {
     redev::GOs rdvRankOffsets;
     redev::GOs offsets;
     comm.Unpack(rdvRankOffsets,offsets,msgs);
-    fprintf(stderr, "%d msgs[0] %d\n", rank, msgs[0]);
     delete [] msgs;
   }
   }
