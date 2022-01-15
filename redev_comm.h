@@ -126,9 +126,9 @@ class AdiosComm : public Communicator<T> {
       }
 
       //send dest rank offsets array from rank 0
+      auto offsets = gStart;
+      offsets.push_back(gDegreeTot);
       if(!rank) {
-        auto offsets = gStart;
-        offsets.push_back(gDegreeTot);
         const auto offsetsName = name+"_offsets";
         const auto shape = offsets.size();
         const auto start = 0;
