@@ -139,35 +139,60 @@ class AdiosComm : public Communicator<T> {
       eng.PerformPuts();
       eng.EndStep();
     }
-    void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs) {
+    void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs) {
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       eng.BeginStep();
-      auto msgsVar = io.InquireVariable<T>(name);
       auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
       auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
-      if(!msgsVar) fprintf(stderr, "%d msgs failed\n", rank);
-      if(!rdvRanksVar) fprintf(stderr, "%d rdvRanks failed\n", rank);
+      if(!rdvRanksVar) fprintf(stderr, "%d rdvSrcRanks failed\n", rank);
       if(!offsetsVar) fprintf(stderr, "%d offsets failed\n", rank);
-      assert(msgsVar && rdvRanksVar && offsetsVar);
+      assert(rdvRanksVar && offsetsVar);
 
       auto offsetsShape = offsetsVar.Shape();
-      fprintf(stderr, "%d offsetShape.size() %d\n", rank, offsetsShape.size());
       assert(offsetsShape.size() == 1);
-      fprintf(stderr, "%d offsetShape[0] %d\n", rank, offsetsShape[0]);
+      const auto offSz = offsetsShape[0];
+      offsets.reserve(offSz);
+      offsetsVar.SetSelection({{0}, {offSz}});
+      eng.Get(offsetsVar, offsets.data());
 
       auto rdvRanksShape = rdvRanksVar.Shape();
       assert(rdvRanksShape.size() == 1);
       fprintf(stderr, "%d rdvRankshape[0] %d\n", rank, rdvRanksShape[0]);
+      const auto rsrSz = rdvRanksShape[0];
+      rdvSrcRanks.reserve(rsrSz);
+      rdvRanksVar.SetSelection({{0},{rsrSz}});
+      eng.Get(rdvRanksVar, rdvSrcRanks.data());
 
-      auto msgShape = msgsVar.Shape();
-      assert(msgShape.size() == 1);
-      msgs = new T[msgShape[0]];
-      //need to read offsets to determine which slice this rank should read
-      //msgVar.SetSelection();
-      msgs[0] = 123;
+      eng.PerformGets();
+
+      auto msgsVar = io.InquireVariable<T>(name);
+      if(!msgsVar) fprintf(stderr, "%d msgs failed\n", rank);
+      assert(msgsVar);
+      const auto start = static_cast<size_t>(offsets[rank]);
+      const auto count = static_cast<size_t>(offsets[rank+1]-start);
+      fprintf(stderr, "%d msg slice start count %d %d\n", rank, start, count);
+      msgs = new T[count];
+      msgsVar.SetSelection({{start}, {count}});
+      eng.Get(msgsVar, msgs);
+
+      eng.PerformGets();
+
       eng.EndStep();
+      fprintf(stderr, "%d offsets: ", rank);
+      for(auto i=0; i<offSz; i++)
+        fprintf(stderr, " %ld ", offsets[i]);
+      fprintf(stderr, "\n");
+      fprintf(stderr, "%d rdvSrcRanks: ", rank);
+      for(auto i=0; i<rsrSz; i++)
+        fprintf(stderr, " %ld ", rdvSrcRanks[i]);
+      fprintf(stderr, "\n");
+      fprintf(stderr, "%d msgs: ", rank);
+      for(auto i=0; i<count; i++)
+        fprintf(stderr, " %ld ", msgs[i]);
+      fprintf(stderr, "\n");
+
     }
   private:
     MPI_Comm comm;
