@@ -59,9 +59,24 @@ int main(int argc, char** argv) {
     comm.Send();
   } else {
     redev::LO* msgs;
-    redev::GOs rdvRankOffsets;
+    redev::GOs rdvSrcRanks;
     redev::GOs offsets;
-    comm.Unpack(rdvRankOffsets,offsets,msgs);
+    comm.Unpack(rdvSrcRanks,offsets,msgs);
+    assert(offsets == redev::GOs({0,7,11,21,27}));
+    assert(rdvSrcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
+    if(rank == 0) {
+      redev::LOs msgVec(msgs, msgs+7);
+      assert(msgVec == redev::LOs({0,0,1,2,2,2,2}));
+    } else if(rank == 1) {
+      redev::LOs msgVec(msgs, msgs+4);
+      assert(msgVec == redev::LOs({1,1,1,2}));
+    } else if(rank == 2) {
+      redev::LOs msgVec(msgs, msgs+10);
+      assert(msgVec == redev::LOs({0,0,0,0,1,1,1,1,2,2}));
+    } else if(rank == 3) {
+      redev::LOs msgVec(msgs, msgs+6);
+      assert(msgVec == redev::LOs({1,1,2,2,2,2}));
+    }
     delete [] msgs;
   }
   }
