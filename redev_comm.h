@@ -153,14 +153,14 @@ class AdiosComm : public Communicator<T> {
       auto offsetsShape = offsetsVar.Shape();
       assert(offsetsShape.size() == 1);
       const auto offSz = offsetsShape[0];
-      offsets.reserve(offSz);
+      offsets.resize(offSz);
       offsetsVar.SetSelection({{0}, {offSz}});
       eng.Get(offsetsVar, offsets.data());
 
       auto rdvRanksShape = rdvRanksVar.Shape();
       assert(rdvRanksShape.size() == 1);
       const auto rsrSz = rdvRanksShape[0];
-      rdvSrcRanks.reserve(rsrSz);
+      rdvSrcRanks.resize(rsrSz);
       rdvRanksVar.SetSelection({{0},{rsrSz}});
       eng.Get(rdvRanksVar, rdvSrcRanks.data());
 
