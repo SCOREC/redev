@@ -15,10 +15,15 @@
 //#define MBPR (1*THOUSAND)
 
 // send/recv benchmark
-// - currently hardcoded for RDV_RANKS rendezvous (RD) ranks
-// - there are no (intentional) restrictions on the number of non-rendzvous (NR) ranks
-// - each NR rank sends 'mbpr' (millions of bytes per rank) data that is uniformly divided
-//   across the RD ranks (each one gets mbpr/RDV_RANKS)
+// - Rendezvous
+//   - currently hardcoded for RDV_RANKS rendezvous (RD) ranks
+//   - there are no (intentional) restrictions on the number of non-rendzvous (NR) ranks
+//   - each NR rank sends 'mbpr' (millions of bytes per rank) data that is uniformly divided
+//     across the RD ranks (each one gets mbpr/RDV_RANKS)
+// - Mapped
+//   - the sender and receiver have the same number of ranks and data layout to
+//     emulate matching partitions
+//   - sender rank i sends to receiver rank i mbpr data
 
 void constructCsrOffsets(int tot, int n, std::vector<int>& offsets) {
   //produces an uniform distribution of values
@@ -48,17 +53,17 @@ void printTime(std::string mode, double min, double max, double avg) {
 
 void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
   int rank, nproc;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+  MPI_Comm_rank(mpiComm, &rank);
+  MPI_Comm_size(mpiComm, &nproc);
   //dummy partition vector data
   const auto dim = 2;
   //hard coding the number of rdv ranks to 32 for now....
   if(isRdv) assert(RDV_RANKS == nproc);
-  auto ranks = isRdv ? redev::LOs(RDV_RANKS) : redev::LOs(RDV_RANKS);
+  auto ranks = redev::LOs(RDV_RANKS);
   //the cuts won't be used since getRank(...) won't be called
-  auto cuts = isRdv ? redev::Reals(RDV_RANKS) : redev::Reals(RDV_RANKS);
+  auto cuts = redev::Reals(RDV_RANKS);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
+  redev::Redev rdv(mpiComm,ptn,isRdv);
   rdv.Setup();
   std::string name = "foo";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
@@ -93,6 +98,40 @@ void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
   }
 }
 
+void sendRecvMapped(MPI_Comm mpiComm, bool isRdv) {
+  int rank, nproc;
+  MPI_Comm_rank(mpiComm, &rank);
+  MPI_Comm_size(mpiComm, &nproc);
+  assert(nproc == RDV_RANKS);
+  //using Redev to create engine objects...
+  const auto dim = 2;
+  auto ranks = redev::LOs(RDV_RANKS);
+  auto cuts = redev::Reals(RDV_RANKS);
+  auto ptn = redev::RCBPtn(dim,ranks,cuts);
+  redev::Redev rdv(mpiComm,ptn,isRdv);
+  //get adios objs
+  auto io = rdv.getIO();
+  auto eng = rdv.getToEngine();
+  std::string name = "mapped";
+  if(!isRdv) { //sender
+    adios2::Dims shape{static_cast<size_t>(MBPR*nproc)};
+    adios2::Dims start{MBPR*rank};
+    adios2::Dims count{MBPR};
+    auto var = io.DefineVariable<T>(name, shape, start, count);
+    redev::LOs msgs(MBPR,rank);
+    assert(srcRanksVar);
+    eng.BeginStep();
+    eng.Put<redev::LO>(var, msgs.data());
+    eng.EndStep();
+  } else {
+    eng.BeginStep();
+    auto msgs = io.InquireVariable<redev::LO>(name);
+    assert(msgs);
+    eng.Get(offsetsVar, offsets.data());
+    //HERE
+  }
+}
+
 int main(int argc, char** argv) {
   int rank, nproc;
   MPI_Init(&argc, &argv);
@@ -104,6 +143,7 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   auto isRdv = atoi(argv[1]);
   sendRecvRdv(MPI_COMM_WORLD, isRdv);
+  sendRecvMapped(MPI_Comm mpiComm, bool isRdv);
   MPI_Finalize();
   return 0;
 }
