@@ -46,17 +46,10 @@ void printTime(std::string mode, double min, double max, double avg) {
             << min << " " << max << " " << avg << "\n";
 }
 
-int main(int argc, char** argv) {
+void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
   int rank, nproc;
-  MPI_Init(&argc, &argv);
-  if(argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <1=isRendezvousApp,0=isParticipant>\n";
-    exit(EXIT_FAILURE);
-  }
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-  auto isRdv = atoi(argv[1]);
-  {
   //dummy partition vector data
   const auto dim = 2;
   //hard coding the number of rdv ranks to 32 for now....
@@ -68,7 +61,7 @@ int main(int argc, char** argv) {
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   rdv.Setup();
   std::string name = "foo";
-  redev::AdiosComm<redev::LO> comm(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     //dest and offets define a CSR for which ranks the array of messages get sent to
@@ -98,7 +91,19 @@ int main(int argc, char** argv) {
     if(!rank) printTime("read", min, max, avg);
     delete [] msgs;
   }
+}
+
+int main(int argc, char** argv) {
+  int rank, nproc;
+  MPI_Init(&argc, &argv);
+  if(argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " <1=isRendezvousApp,0=isParticipant>\n";
+    exit(EXIT_FAILURE);
   }
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+  auto isRdv = atoi(argv[1]);
+  sendRecvRdv(MPI_COMM_WORLD, isRdv);
   MPI_Finalize();
   return 0;
 }
