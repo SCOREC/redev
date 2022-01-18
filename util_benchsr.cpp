@@ -10,10 +10,8 @@
 
 // send/recv benchmark
 // - Rendezvous
-//   - currently hardcoded for RDV_RANKS rendezvous (RD) ranks
-//   - there are no (intentional) restrictions on the number of non-rendzvous (NR) ranks
-//   - each NR rank sends 'mbpr' (millions of bytes per rank) data that is uniformly divided
-//     across the RD ranks (each one gets mbpr/RDV_RANKS)
+//   - each non-rendezvous rank sends 'mbpr' (millions of bytes per rank) data that
+//     is uniformly divided across the rendezvous ranks
 // - Mapped
 //   - the sender and receiver have the same number of ranks and data layout to
 //     emulate matching partitions
