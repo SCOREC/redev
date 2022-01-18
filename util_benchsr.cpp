@@ -2,17 +2,11 @@
 #include <cstdlib>
 #include <cassert>
 #include <chrono> //steady_clock, duration
+#include <thread> //this_thread
 #include "redev.h"
 #include "redev_comm.h"
 
 #define MILLION 1024*1024
-#define THOUSAND 1024
-#define RDV_RANKS 32
-#define MBPR (1*MILLION) //megabytes per rank
-
-//the following combination appears to work with 8 NR ranks
-//#define RDV_RANKS 4
-//#define MBPR (1*THOUSAND)
 
 // send/recv benchmark
 // - Rendezvous
@@ -47,34 +41,36 @@ void timeMinMaxAvg(double time, double& min, double& max, double& avg) {
 }
 
 void printTime(std::string mode, double min, double max, double avg) {
-  std::cout << "elapsed " << mode << " time min, max, avg (s): "
+  std::cout << mode << "elapsed time min, max, avg (s): "
             << min << " " << max << " " << avg << "\n";
 }
 
-void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
+void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int rdvRanks) {
   int rank, nproc;
   MPI_Comm_rank(mpiComm, &rank);
   MPI_Comm_size(mpiComm, &nproc);
   //dummy partition vector data
   const auto dim = 2;
   //hard coding the number of rdv ranks to 32 for now....
-  if(isRdv) assert(RDV_RANKS == nproc);
-  auto ranks = redev::LOs(RDV_RANKS);
+  if(isRdv) assert(rdvRanks == nproc);
+  auto ranks = redev::LOs(rdvRanks);
   //the cuts won't be used since getRank(...) won't be called
-  auto cuts = redev::Reals(RDV_RANKS);
+  auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   rdv.Setup();
   std::string name = "foo";
+  std::stringstream ss;
+  ss << mbpr << " B rdv ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     //dest and offets define a CSR for which ranks the array of messages get sent to
-    redev::LOs dest(RDV_RANKS);
+    redev::LOs dest(rdvRanks);
     std::iota(dest.begin(),dest.end(),0);
-    redev::LOs offsets(MBPR);
-    constructCsrOffsets(MBPR,RDV_RANKS,offsets);
-    redev::LOs msgs(MBPR,rank);
+    redev::LOs offsets(mbpr);
+    constructCsrOffsets(mbpr,rdvRanks,offsets);
+    redev::LOs msgs(mbpr,rank);
     auto start = std::chrono::steady_clock::now();
     comm.Pack(dest, offsets, msgs.data());
     comm.Send();
@@ -82,7 +78,9 @@ void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
     timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-    if(!rank) printTime("write", min, max, avg);
+    ss << "write";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
   } else {
     redev::LO* msgs;
     redev::GOs rdvSrcRanks;
@@ -93,57 +91,93 @@ void sendRecvRdv(MPI_Comm mpiComm, bool isRdv) {
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
     timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-    if(!rank) printTime("read", min, max, avg);
+    ss << "read";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
     delete [] msgs;
   }
 }
 
-void sendRecvMapped(MPI_Comm mpiComm, bool isRdv) {
+void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int rdvRanks) {
   int rank, nproc;
   MPI_Comm_rank(mpiComm, &rank);
   MPI_Comm_size(mpiComm, &nproc);
-  assert(nproc == RDV_RANKS);
+  assert(nproc == rdvRanks);
   //using Redev to create engine objects...
   const auto dim = 2;
-  auto ranks = redev::LOs(RDV_RANKS);
-  auto cuts = redev::Reals(RDV_RANKS);
+  auto ranks = redev::LOs(rdvRanks);
+  auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   //get adios objs
   auto io = rdv.getIO();
   auto eng = rdv.getToEngine();
   std::string name = "mapped";
+  std::stringstream ss;
+  ss << mbpr << " B " << name;
   if(!isRdv) { //sender
-    adios2::Dims shape{static_cast<size_t>(MBPR*nproc)};
-    adios2::Dims start{MBPR*rank};
-    adios2::Dims count{MBPR};
-    auto var = io.DefineVariable<T>(name, shape, start, count);
-    redev::LOs msgs(MBPR,rank);
-    assert(srcRanksVar);
+    adios2::Dims shape{static_cast<size_t>(mbpr*nproc)};
+    adios2::Dims start{static_cast<size_t>(mbpr*rank)};
+    adios2::Dims count{static_cast<size_t>(mbpr)};
+    auto var = io.DefineVariable<redev::LO>(name, shape, start, count);
+    assert(var);
+    redev::LOs msgs(mbpr,rank);
+    auto tStart = std::chrono::steady_clock::now();
     eng.BeginStep();
     eng.Put<redev::LO>(var, msgs.data());
+    eng.PerformPuts();
     eng.EndStep();
+    auto tEnd = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = tEnd-tStart;
+    double min, max, avg;
+    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+    ss << " read";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
   } else {
+    auto start = std::chrono::steady_clock::now();
     eng.BeginStep();
     auto msgs = io.InquireVariable<redev::LO>(name);
     assert(msgs);
-    eng.Get(offsetsVar, offsets.data());
-    //HERE
+    redev::LOs inMsgs(mbpr);
+    msgs.SetSelection({{static_cast<size_t>(mbpr*rank)},
+                       {static_cast<size_t>(mbpr)}
+                      });
+    eng.Get(msgs, inMsgs.data());
+    eng.PerformGets();
+    eng.EndStep();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    double min, max, avg;
+    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+    ss << " write";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
   }
 }
 
 int main(int argc, char** argv) {
-  int rank, nproc;
   MPI_Init(&argc, &argv);
-  if(argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <1=isRendezvousApp,0=isParticipant>\n";
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(argc != 4) {
+    if(!rank) {
+      std::cerr << "Usage: " << argv[0] << " <1=isRendezvousApp,0=isParticipant> <MBPR> <rdvRanks>\n";
+      std::cerr << "MBPR: millions of bytes per rank\n";
+      std::cerr << "rdvRanks: number of ranks ran by the rendezvous app\n";
+    }
     exit(EXIT_FAILURE);
   }
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   auto isRdv = atoi(argv[1]);
-  sendRecvRdv(MPI_COMM_WORLD, isRdv);
-  sendRecvMapped(MPI_Comm mpiComm, bool isRdv);
+  assert(isRdv==0 || isRdv ==1);
+  auto mbpr = atoi(argv[2])*MILLION;
+  assert(mbpr>0);
+  auto rdvRanks = atoi(argv[3]);
+  assert(rdvRanks>0);
+
+  sendRecvRdv(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  sendRecvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks);
   MPI_Finalize();
   return 0;
 }
