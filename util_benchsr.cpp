@@ -41,7 +41,7 @@ void timeMinMaxAvg(double time, double& min, double& max, double& avg) {
 }
 
 void printTime(std::string mode, double min, double max, double avg) {
-  std::cout << mode << "elapsed time min, max, avg (s): "
+  std::cout << mode << " elapsed time min, max, avg (s): "
             << min << " " << max << " " << avg << "\n";
 }
 
