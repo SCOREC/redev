@@ -2,5 +2,5 @@
 # adios2 config.yaml
 - IO: "rendezvous"
   Engine:
-      Type: "SST"
+      Type: SST
 
