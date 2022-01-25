@@ -109,24 +109,27 @@ namespace redev {
     }
     io = adios.DeclareIO("rendezvous"); //this will likely change
     auto params = io.Parameters();
-    //engine for data sent from rendezvous
-    auto bpName = "fromRendezvous.bp";
-    auto mode = isRendezvous ? adios2::Mode::Write : adios2::Mode::Read;
-    if(!isRendezvous) waitForEngineCreation(params);
-    fromEng = io.Open(bpName, mode);
-    assert(fromEng);
-
-    if(noParticipant) {
-      end_func();
-      return;
+    const auto bpFromName = "fromRendezvous.bp";
+    const auto bpToName = "toRendezvous.bp";
+    //create engines for writing
+    if(isRendezvous) {
+      fromEng = io.Open(bpFromName, adios2::Mode::Write);
+      assert(fromEng);
+    } else {
+      toEng = io.Open(bpToName, adios2::Mode::Write);
+      assert(toEng);
     }
-
-    //engine for data sent to rendezvous
-    bpName = "toRendezvous.bp";
-    mode = isRendezvous ? adios2::Mode::Read : adios2::Mode::Write;
-    if(isRendezvous) waitForEngineCreation(params);
-    toEng = io.Open(bpName, mode);
-    assert(toEng);
+    waitForEngineCreation(params); //ideally this can be removed
+    //create engines for reading
+    if(isRendezvous) {
+      if(noParticipant==false) { //support unit tests and debugging with only a rendezvous process
+        toEng = io.Open(bpToName, adios2::Mode::Read);
+        assert(toEng);
+      }
+    } else {
+      fromEng = io.Open(bpFromName, adios2::Mode::Read);
+      assert(fromEng);
+    }
     end_func();
   }
 
