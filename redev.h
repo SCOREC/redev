@@ -58,6 +58,10 @@ class Redev {
   private:
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise
+    void openEnginesBP4(bool noParticipant);
+    void openEnginesSST(bool noParticipant);
+    const char* bpFromName = "fromRendezvous.bp";
+    const char* bpToName = "toRendezvous.bp";
     MPI_Comm comm;
     adios2::ADIOS adios;
     adios2::Engine fromEng;

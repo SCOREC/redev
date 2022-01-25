@@ -23,7 +23,8 @@ namespace {
   //Wait for the file to be created by the writer.
   //Assuming that if 'Streaming' and 'OpenTimeoutSecs' are set then we are in
   //BP4 mode.  SST blocks on Open by default.
-  void waitForEngineCreation(adios2::IO& io, adios2::Params& params) {
+  void waitForEngineCreation(adios2::IO& io) {
+    auto params = io.Parameters();
     bool isStreaming = params.count("Streaming") && isSameCi(params["Streaming"],"ON");
     bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
     bool isSST = isSameCi(io.EngineType(),"SST");
@@ -110,6 +111,54 @@ namespace redev {
     redev::Broadcast(cuts.data(), cuts.size(), root, comm);
   }
 
+  // SST support
+  // - with a rendezvous + non-rendezvous application pair
+  // - with only a rendezvous application for debugging/testing
+  void Redev::openEnginesBP4(bool noParticipant) {
+    //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
+    if(isRendezvous) {
+      fromEng = io.Open(bpFromName, adios2::Mode::Write);
+      assert(fromEng);
+    } else {
+      toEng = io.Open(bpToName, adios2::Mode::Write);
+      assert(toEng);
+    }
+    waitForEngineCreation(io);
+    //create engines for reading
+    if(isRendezvous) {
+      if(noParticipant==false) { //support unit testing
+        toEng = io.Open(bpToName, adios2::Mode::Read);
+        assert(toEng);
+      }
+    } else {
+      fromEng = io.Open(bpFromName, adios2::Mode::Read);
+      assert(fromEng);
+    }
+  }
+
+  // BP4 support
+  // - with a rendezvous + non-rendezvous application pair
+  // - with only a rendezvous application for debugging/testing
+  // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
+  void Redev::openEnginesSST(bool noParticipant) {
+    //create one engine's reader and writer pair at a time - SST blocks on open(read)
+    if(isRendezvous) {
+      fromEng = io.Open(bpFromName, adios2::Mode::Write);
+    } else {
+      fromEng = io.Open(bpFromName, adios2::Mode::Read);
+    }
+    assert(fromEng);
+    if(isRendezvous) {
+      if(noParticipant==false) { //support unit testing
+        toEng = io.Open(bpToName, adios2::Mode::Read);
+        assert(toEng);
+      }
+    } else {
+      toEng = io.Open(bpToName, adios2::Mode::Write);
+      assert(toEng);
+    }
+  }
+
   Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noParticipant)
     : comm(comm_), adios("adios2.yaml", comm), ptn(ptn_), isRendezvous(isRendezvous_) {
     begin_func();
@@ -121,53 +170,11 @@ namespace redev {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     }
     io = adios.DeclareIO("rendezvous"); //this will likely change
-    auto params = io.Parameters();
     if(noParticipant) io.SetEngine("BP4"); //SST hangs if there is no reader
-    const auto bpFromName = "fromRendezvous.bp";
-    const auto bpToName = "toRendezvous.bp";
-    // the following code is a bowl of noodles... but it supports
-    // SST - with a rendezvous + non-rendezvous application pair
-    //     - with only a rendezvous application for debugging/testing
-    // BP4 - with a rendezvous + non-rendezvous application pair
-    //     - with only a rendezvous application for debugging/testing
-    //     - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
     if( isSameCi(io.EngineType(), "SST") ) {
-      //create one engine's reader and writer pair at a time - SST blocks on open(read)
-      if(isRendezvous) {
-        fromEng = io.Open(bpFromName, adios2::Mode::Write);
-      } else {
-        fromEng = io.Open(bpFromName, adios2::Mode::Read);
-      }
-      assert(fromEng);
-      if(isRendezvous) {
-        if(noParticipant==false) { //support unit testing
-          toEng = io.Open(bpToName, adios2::Mode::Read);
-          assert(toEng);
-        }
-      } else {
-        toEng = io.Open(bpToName, adios2::Mode::Write);
-        assert(toEng);
-      }
+      openEnginesSST(noParticipant);
     } else if( isSameCi(io.EngineType(), "BP4") ) {
-      //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
-      if(isRendezvous) {
-        fromEng = io.Open(bpFromName, adios2::Mode::Write);
-        assert(fromEng);
-      } else {
-        toEng = io.Open(bpToName, adios2::Mode::Write);
-        assert(toEng);
-      }
-      waitForEngineCreation(io, params);
-      //create engines for reading
-      if(isRendezvous) {
-        if(noParticipant==false) { //support unit testing
-          toEng = io.Open(bpToName, adios2::Mode::Read);
-          assert(toEng);
-        }
-      } else {
-        fromEng = io.Open(bpFromName, adios2::Mode::Read);
-        assert(fromEng);
-      }
+      openEnginesBP4(noParticipant);
     }
     end_func();
   }
