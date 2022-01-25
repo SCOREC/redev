@@ -4,18 +4,31 @@
 #include "redev_comm.h"
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
+#include <string>         // std::stoi
+#include <algorithm>      // std::transform
 
 namespace {
   void begin_func() {
   }
   void end_func() {
   }
+
+  //Ci = case insensitive
+  bool isSameCi(std::string s1, std::string s2) {
+    std::transform(s1.begin(), s1.end(), s1.begin(), ::toupper);
+    std::transform(s2.begin(), s2.end(), s2.begin(), ::toupper);
+    return s1 == s2;
+  }
+
   //Wait for the file to be created by the writer.
   //Assuming that if 'Streaming' and 'OpenTimeoutSecs' are set then we are in
   //BP4 mode.  SST blocks on Open by default.
   void waitForEngineCreation(adios2::Params& params) {
-    if(!params.count("Streaming") && !params.count("OpenTimeoutSecs"))
-      std::this_thread::sleep_for(std::chrono::seconds(2));
+    bool isStreaming = params.count("Streaming") && isSameCi(params["Streaming"],"ON");
+    bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
+    bool isSST = params.count("Type") && isSameCi((params["Type"]),"SST");
+    if( (isStreaming && timeoutSet) || isSST ) return;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }
 
