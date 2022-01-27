@@ -86,10 +86,10 @@ class AdiosComm : public Communicator<T> {
       ret = MPI_Allreduce(degree.data(), gDegree.data(), rdvRanks,
           getMpiType(redev::GO()), MPI_SUM, comm);
       assert(ret == MPI_SUCCESS);
-      const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), 0));
+      const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), redev::GO(0)));
 
       GOs gStart(rdvRanks,0);
-      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), 0);
+      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
 
       //The messages array has a different length on each rank ('irregular') so we don't
       //define local size and count here.
