@@ -175,6 +175,11 @@ namespace redev {
       openEnginesSST(noParticipant);
     } else if( isSameCi(io.EngineType(), "BP4") ) {
       openEnginesBP4(noParticipant);
+    } else {
+      if(!rank) {
+        std::cerr << "ERROR: redev does not support ADIOS2 engine " << io.EngineType() << "\n";
+      }
+      exit(EXIT_FAILURE);
     }
     end_func();
   }
