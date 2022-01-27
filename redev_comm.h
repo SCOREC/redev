@@ -16,9 +16,9 @@ MPI_Datatype getMpiType(T) {
     //https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node48.htm
     mpitype = MPI_CXX_DOUBLE_COMPLEX;
   } else if ( std::is_same<T, redev::GO>::value ) {
-    mpitype = MPI_UNSIGNED_LONG;
+    mpitype = MPI_INT64_T;
   } else if ( std::is_same<T, redev::LO>::value ) {
-    mpitype = MPI_INT;
+    mpitype = MPI_INT32_T;
   } else {
     assert(false);
     fprintf(stderr, "Unknown type in %s... exiting\n", __func__);
