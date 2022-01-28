@@ -3,12 +3,13 @@
 #include <mpi.h>
 #include <cassert>
 #include "redev_types.h"
+#include <array>          // std::array
 
 namespace redev {
 
 class Partition {
   public:
-    virtual redev::LO GetRank(redev::Real coords[3]) = 0;
+    virtual redev::LO GetRank(std::array<redev::Real,3>& pt) = 0;
     virtual void Write(adios2::Engine& eng, adios2::IO& io) = 0;
     virtual void Read(adios2::Engine& eng, adios2::IO& io) = 0;
     virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
@@ -33,7 +34,7 @@ class RCBPtn : public Partition {
      */
     RCBPtn(redev::LO dim);
     RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
-    redev::LO GetRank(redev::Real coords[3]);
+    redev::LO GetRank(std::array<redev::Real,3>& pt);
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
     void Broadcast(MPI_Comm comm, int root=0);

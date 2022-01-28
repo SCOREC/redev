@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
     rdv.Setup();
-    redev::Real pt[3] = {0.6, 0.0, 0.0};
+    std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
     pt[0] = 0.6;   assert(2 == ptn.GetRank(pt));
     pt[0] = 0.01;  assert(0 == ptn.GetRank(pt));
     pt[0] = 0.5;   assert(2 == ptn.GetRank(pt));
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
     rdv.Setup();
-    redev::Real pt[3] = {0.1, 0.7, 0.0};
+    std::array<redev::Real,3> pt{0.1, 0.7, 0.0};
     pt[0] = 0.1, pt[1] = 0.7, assert(0 == ptn.GetRank(pt));
     pt[0] = 0.1; pt[1] = 0.8; assert(1 == ptn.GetRank(pt));
     pt[0] = 0.5; pt[1] = 0.0; assert(2 == ptn.GetRank(pt));
@@ -56,14 +56,15 @@ int main(int argc, char** argv) {
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
     rdv.Setup();
-    { redev::Real pt[3] = {0.1, 0.7, 0.01}; assert(0 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.1, 0.7, 0.1};  assert(1 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.1, 0.8, 0.1};  assert(2 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.1, 0.8, 0.8};  assert(3 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.6, 0.1, 0.01}; assert(4 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.6, 0.1, 0.9};  assert(5 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.6, 0.8, 0.0};  assert(6 == ptn.GetRank(pt)); }
-    { redev::Real pt[3] = {0.6, 0.8, 0.3};  assert(7 == ptn.GetRank(pt)); }
+    using Point = std::array<redev::Real,3>;
+    { Point pt{0.1, 0.7, 0.01}; assert(0 == ptn.GetRank(pt)); }
+    { Point pt{0.1, 0.7, 0.1};  assert(1 == ptn.GetRank(pt)); }
+    { Point pt{0.1, 0.8, 0.1};  assert(2 == ptn.GetRank(pt)); }
+    { Point pt{0.1, 0.8, 0.8};  assert(3 == ptn.GetRank(pt)); }
+    { Point pt{0.6, 0.1, 0.01}; assert(4 == ptn.GetRank(pt)); }
+    { Point pt{0.6, 0.1, 0.9};  assert(5 == ptn.GetRank(pt)); }
+    { Point pt{0.6, 0.8, 0.0};  assert(6 == ptn.GetRank(pt)); }
+    { Point pt{0.6, 0.8, 0.3};  assert(7 == ptn.GetRank(pt)); }
   }
 
   MPI_Finalize();

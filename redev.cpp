@@ -48,7 +48,7 @@ namespace redev {
     assert(dim>0 && dim<=3);
   }
 
-  redev::LO RCBPtn::GetRank(redev::Real pt[3]) { //TODO better name?
+  redev::LO RCBPtn::GetRank(std::array<redev::Real,3>& pt) { //TODO better name?
     //begin_func(); //TODO fix this by creating a hook object that goes out of scope
     assert(ranks.size() && cuts.size());
     assert(dim>0 && dim<=3);
