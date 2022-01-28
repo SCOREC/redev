@@ -28,11 +28,9 @@ mkdir buildAdios2
 cd !$
 cmake ../ADIOS2/ -DCMAKE_INSTALL_PREFIX=$PWD/install -DADIOS2_USE_CUDA=OFF
 make -j8
-make install # this will not complete without error
+make install
+export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$PWD/install
 ```
-
-`make install` will fail to complete, but appears to install the headers, libs,
-etc. that are needed before the failure.  See https://github.com/ornladios/ADIOS2/issues/2993.
 
 ## Redev
 
