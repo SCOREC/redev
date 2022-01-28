@@ -80,6 +80,7 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         queries: security-and-quality
+        source-root: redev
         
     - name: Redev Build
       working-directory: ${{runner.workspace}}/build-redev
