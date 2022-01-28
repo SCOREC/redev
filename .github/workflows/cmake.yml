@@ -74,6 +74,12 @@ jobs:
            -DADIOS2_BPLS_PATH=${{runner.workspace}}/build-adios2/install/bin/bpls
            -DBUILD_TESTING=ON
 
+    # Initializes the CodeQL tools for scanning.  This must be done before the code is built.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}  
+        
     - name: Redev Build
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
@@ -83,12 +89,6 @@ jobs:
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
       run: ctest --timeout 5 --output-on-failure
-      
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: ${{ matrix.language }}  
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
