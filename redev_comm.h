@@ -29,10 +29,8 @@ MPI_Datatype getMpiType(T) {
 
 template<typename T>
 void Broadcast(T* data, int count, int root, MPI_Comm comm) {
-  //begin_func();
   auto type = getMpiType(T());
   MPI_Bcast(data, count, type, root, comm);
-  //end_func();
 }
 
 template<typename T>
@@ -130,10 +128,10 @@ class AdiosComm : public Communicator<T> {
       offsets.push_back(gDegreeTot);
       if(!rank) {
         const auto offsetsName = name+"_offsets";
-        const auto shape = offsets.size();
-        const auto start = 0;
-        const auto count = offsets.size();
-        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{shape},{start},{count});
+        const auto oShape = offsets.size();
+        const auto oStart = 0;
+        const auto oCount = offsets.size();
+        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{oShape},{oStart},{oCount});
         eng.Put<redev::GO>(offsetsVar, offsets.data());
       }
       eng.PerformPuts();
