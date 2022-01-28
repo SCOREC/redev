@@ -78,7 +78,8 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
-        languages: ${{ matrix.language }}  
+        languages: ${{ matrix.language }}
+        queries: security-and-quality
         
     - name: Redev Build
       working-directory: ${{runner.workspace}}/build-redev
