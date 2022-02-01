@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0...3.21.0)
 
-project(redev VERSION 0.2.0 LANGUAGES C CXX)
+project(redev VERSION 0.3.0 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -22,10 +22,14 @@ set(REDEV_HEADERS
   redev.h
   redev_types.h
   redev_comm.h
+  redev_profile.h
+  redev_time.h
   )
 
 set(REDEV_SOURCES
   redev.cpp
+  redev_profile.cpp
+  redev_time.cpp
   )
 
 add_library(redev ${REDEV_SOURCES})
@@ -99,6 +103,8 @@ if(BUILD_TESTING)
   dual_mpi_test(test_setup_1p 1 ./test_setup 1 1 ./test_setup 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
+  add_exe(test_profile test_profile.cpp)
+  mpi_test(test_profile_1p 1 ./test_profile)
   add_exe(test_send test_send.cpp)
   dual_mpi_test(test_send_3p
                 4 ./test_send 1

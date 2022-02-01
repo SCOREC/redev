@@ -1,5 +1,6 @@
 #pragma once
 #include "redev.h"
+#include "redev_profile.h"
 #include <numeric> // accumulate, esclusive_scan
 #include <type_traits> // is_same
 
@@ -8,6 +9,7 @@ namespace redev {
 //TODO I think there is a cleaner way
 template<class T>
 MPI_Datatype getMpiType(T) {
+  REDEV_FUNCTION_TIMER;
   MPI_Datatype mpitype;
   //determine the type based on what is being sent
   if( std::is_same<T, redev::Real>::value ) {
@@ -29,6 +31,7 @@ MPI_Datatype getMpiType(T) {
 
 template<typename T>
 void Broadcast(T* data, int count, int root, MPI_Comm comm) {
+  REDEV_FUNCTION_TIMER;
   auto type = getMpiType(T());
   MPI_Bcast(data, count, type, root, comm);
 }
@@ -48,10 +51,12 @@ class AdiosComm : public Communicator<T> {
       : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_) {
     }
     void Pack(LOs& dest_, LOs& offsets_, T* msgs_) {
+      REDEV_FUNCTION_TIMER;
       Msg m(dest_, offsets_, msgs_);
       packed.push_back(m);
     }
     void Send() {
+      REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
@@ -138,6 +143,7 @@ class AdiosComm : public Communicator<T> {
       eng.EndStep();
     }
     void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs) {
+      REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
