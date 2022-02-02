@@ -92,6 +92,7 @@ if(BUILD_TESTING)
   endfunction(dual_mpi_test)
 
   add_exe(util_benchsr util_benchsr.cpp)
+  add_exe(util_benchsrLarge util_benchsrLarge.cpp)
 
   add_exe(test_1d test_1d.cpp)
   mpi_test(test_1d_2p 2 ./test_1d)
