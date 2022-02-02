@@ -55,7 +55,6 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   } else {
     assert(nproc == rdvRanks);
   }
-  return;
   //dummy partition vector data
   const auto dim = 2;
   //hard coding the number of rdv ranks to 32 for now....
@@ -66,7 +65,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   rdv.Setup();
-  std::string name = "foo";
+  std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdv ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
@@ -185,8 +184,7 @@ int main(int argc, char** argv) {
   }
   auto isRdv = atoi(argv[1]);
   assert(isRdv==0 || isRdv ==1);
-  //auto mbpr = atoi(argv[2])*MILLION;
-  auto mbpr = atoi(argv[2]);
+  auto mbpr = atoi(argv[2])*MILLION;
   assert(mbpr>0);
   auto rdvRanks = atoi(argv[3]);
   assert(rdvRanks>0);
@@ -196,7 +194,7 @@ int main(int argc, char** argv) {
     assert(rdvRanks*reductionFactor == nprocs);
   }
 
-  //sendRecvRdv(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
+  sendRecvRdv(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
   std::this_thread::sleep_for(std::chrono::seconds(2));
   sendRecvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
   MPI_Finalize();
