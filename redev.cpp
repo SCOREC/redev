@@ -114,9 +114,10 @@ namespace redev {
     redev::Broadcast(cuts.data(), cuts.size(), root, comm);
   }
 
-  // SST support
+  // BP4 support
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
+  // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
   void Redev::openEnginesBP4(bool noParticipant) {
     REDEV_FUNCTION_TIMER;
     //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
@@ -140,10 +141,9 @@ namespace redev {
     }
   }
 
-  // BP4 support
+  // SST support
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
-  // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
   void Redev::openEnginesSST(bool noParticipant) {
     REDEV_FUNCTION_TIMER;
     //create one engine's reader and writer pair at a time - SST blocks on open(read)
