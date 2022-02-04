@@ -147,6 +147,7 @@ class AdiosComm : public Communicator<T> {
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
+      auto t1 = redev::getTime();
       eng.BeginStep();
 
       auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
@@ -169,6 +170,7 @@ class AdiosComm : public Communicator<T> {
       eng.Get(rdvRanksVar, rdvSrcRanks.data());
 
       eng.PerformGets();
+      auto t2 = redev::getTime();
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
@@ -180,6 +182,12 @@ class AdiosComm : public Communicator<T> {
 
       eng.PerformGets();
       eng.EndStep();
+      auto t3 = redev::getTime();
+      std::chrono::duration<double> r1 = t2-t1;
+      std::chrono::duration<double> r2 = t3-t2;
+      if(!rank) {
+        fprintf(stderr, "unpack r1(sec.) r2(sec.) %f %f\n", r1.count(), r2.count());
+      }
     }
   private:
     MPI_Comm comm;
