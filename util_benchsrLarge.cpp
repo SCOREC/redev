@@ -9,24 +9,36 @@
 #define MILLION 1024*1024
 
 // send/recv benchmark
-// - Rendezvous
-//   - each non-rendezvous rank sends 'mbpr' (millions of bytes per rank) data that
-//     is uniformly divided across the rendezvous ranks
 // - Mapped
-//   - the receiver has reductionFactor times fewer ranks than the sender
+//   - The receiver has reductionFactor times fewer ranks than the sender
 //     and each sender computes the destination rank as
 //     senderRank/reductionFactor (using integer math).  This emulates a
 //     simple transfer pattern that would be hard coded if rendezvous
 //     was not used.
+// - RendezvousMapped
+//   - This uses the same pattern as Mapped and is for measuring the overhead
+//     of the Rendezvous APIs.
+// - RendezvousFanOut
+//   - Each non-rendezvous rank sends 'mbpr' (millions of bytes per rank) data that
+//     is uniformly divided across the rendezvous ranks.  This is nearly a
+//     worse case pattern resulting from minimal or poor application and
+//     rendezvous partition alignment.
 
-void constructCsrOffsets(int tot, int n, std::vector<int>& offsets) {
+void constructCsrOffsetsFanOut(int tot, int rdvRanks, std::vector<int>& offsets) {
   //produces an uniform distribution of values
-  const auto delta = tot/n;
-  assert(delta*n == tot);
-  offsets.resize(n+1);
+  const auto delta = tot/rdvRanks;
+  assert(delta*rdvRanks == tot);
+  offsets.resize(rdvRanks+1);
   offsets[0] = 0;
-  for( auto i=1; i<=n; i++)
+  for( auto i=1; i<=rdvRanks; i++)
     offsets[i] = offsets[i-1]+delta;
+}
+
+void constructCsrOffsetsMapped(int destRank, int tot, std::vector<int>& offsets) {
+  //send everything to one rank
+  offsets.resize(2);
+  offsets[0] = 0;
+  offsets[1] = tot;
 }
 
 void timeMinMaxAvg(double time, double& min, double& max, double& avg) {
@@ -45,7 +57,7 @@ void printTime(std::string mode, double min, double max, double avg) {
             << min << " " << max << " " << avg << "\n";
 }
 
-void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
+void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
     const int rdvRanks, const int reductionFactor) {
   int rank, nproc;
   MPI_Comm_rank(mpiComm, &rank);
@@ -67,7 +79,66 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   rdv.Setup();
   std::string name = "rendezvous";
   std::stringstream ss;
-  ss << mbpr << " B rdv ";
+  ss << mbpr << " B rdvMapped ";
+  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  // the non-rendezvous app sends to the rendezvous app
+  if(!isRdv) {
+    //dest and offets define a CSR for which ranks the array of messages get sent to
+    const int destRank = rank/reductionFactor;
+    redev::LOs dest = {destRank};
+    redev::LOs offsets;
+    constructCsrOffsetsMapped(destRank, mbpr, offsets);
+    redev::LOs msgs(mbpr,rank);
+    auto start = std::chrono::steady_clock::now();
+    comm.Pack(dest, offsets, msgs.data());
+    comm.Send();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    double min, max, avg;
+    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+    ss << "write";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
+  } else {
+    redev::LO* msgs;
+    redev::GOs rdvSrcRanks;
+    redev::GOs offsets;
+    auto start = std::chrono::steady_clock::now();
+    comm.Unpack(rdvSrcRanks,offsets,msgs);
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    double min, max, avg;
+    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+    ss << "read";
+    std::string str = ss.str();
+    if(!rank) printTime(str, min, max, avg);
+    delete [] msgs;
+  }
+}
+
+void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
+    const int rdvRanks, const int reductionFactor) {
+  int rank, nproc;
+  MPI_Comm_rank(mpiComm, &rank);
+  MPI_Comm_size(mpiComm, &nproc);
+  if(!isRdv) {
+    assert(nproc == rdvRanks*reductionFactor);
+  } else {
+    assert(nproc == rdvRanks);
+  }
+  //dummy partition vector data
+  const auto dim = 2;
+  //hard coding the number of rdv ranks to 32 for now....
+  if(isRdv) assert(rdvRanks == nproc);
+  auto ranks = redev::LOs(rdvRanks);
+  //the cuts won't be used since getRank(...) won't be called
+  auto cuts = redev::Reals(rdvRanks);
+  auto ptn = redev::RCBPtn(dim,ranks,cuts);
+  redev::Redev rdv(mpiComm,ptn,isRdv);
+  rdv.Setup();
+  std::string name = "rendezvous";
+  std::stringstream ss;
+  ss << mbpr << " B rdvFanOut ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
@@ -75,7 +146,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
     redev::LOs dest(rdvRanks);
     std::iota(dest.begin(),dest.end(),0);
     redev::LOs offsets(mbpr);
-    constructCsrOffsets(mbpr,rdvRanks,offsets);
+    constructCsrOffsetsFanOut(mbpr,rdvRanks,offsets);
     redev::LOs msgs(mbpr,rank);
     auto start = std::chrono::steady_clock::now();
     comm.Pack(dest, offsets, msgs.data());
@@ -194,7 +265,9 @@ int main(int argc, char** argv) {
     assert(rdvRanks*reductionFactor == nprocs);
   }
 
-  sendRecvRdv(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
+  sendRecvRdvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  sendRecvRdvFanOut(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
   std::this_thread::sleep_for(std::chrono::seconds(2));
   sendRecvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
   MPI_Finalize();
