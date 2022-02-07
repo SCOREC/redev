@@ -82,37 +82,42 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   ss << mbpr << " B rdvMapped ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
   // the non-rendezvous app sends to the rendezvous app
-  if(!isRdv) {
-    //dest and offets define a CSR for which ranks the array of messages get sent to
-    const int destRank = rank/reductionFactor;
-    redev::LOs dest = {destRank};
-    redev::LOs offsets;
-    constructCsrOffsetsMapped(destRank, mbpr, offsets);
-    redev::LOs msgs(mbpr,rank);
-    auto start = std::chrono::steady_clock::now();
-    comm.Pack(dest, offsets, msgs.data());
-    comm.Send();
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    double min, max, avg;
-    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-    ss << "write";
-    std::string str = ss.str();
-    if(!rank) printTime(str, min, max, avg);
-  } else {
-    redev::LO* msgs;
-    redev::GOs rdvSrcRanks;
-    redev::GOs offsets;
-    auto start = std::chrono::steady_clock::now();
-    comm.Unpack(rdvSrcRanks,offsets,msgs);
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    double min, max, avg;
-    timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-    ss << "read";
-    std::string str = ss.str();
-    if(!rank) printTime(str, min, max, avg);
-    delete [] msgs;
+  size_t msgStart, msgCount;
+  int i=0;
+  for(int i=0; i<3; i++) {
+    if(!isRdv) {
+      //dest and offets define a CSR for which ranks the array of messages get sent to
+      const int destRank = rank/reductionFactor;
+      redev::LOs dest = {destRank};
+      redev::LOs offsets;
+      constructCsrOffsetsMapped(destRank, mbpr, offsets);
+      redev::LOs msgs(mbpr,rank);
+      auto start = std::chrono::steady_clock::now();
+      comm.Pack(dest, offsets, msgs.data());
+      comm.Send();
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed_seconds = end-start;
+      double min, max, avg;
+      timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+      ss << "write";
+      std::string str = ss.str();
+      if(!rank) printTime(str, min, max, avg);
+    } else {
+      redev::LO* msgs;
+      redev::GOs rdvSrcRanks;
+      redev::GOs offsets;
+      auto start = std::chrono::steady_clock::now();
+      const bool knownSizes = (i == 0) ? false : true;
+      comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed_seconds = end-start;
+      double min, max, avg;
+      timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
+      ss << "read";
+      std::string str = ss.str();
+      if(!rank) printTime(str, min, max, avg);
+      delete [] msgs;
+    }
   }
 }
 
@@ -163,7 +168,9 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
     redev::GOs rdvSrcRanks;
     redev::GOs offsets;
     auto start = std::chrono::steady_clock::now();
-    comm.Unpack(rdvSrcRanks,offsets,msgs);
+    size_t msgStart, msgCount;
+    const bool knownSizes = false;
+    comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;

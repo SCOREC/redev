@@ -84,7 +84,9 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     redev::GOs rdvSrcRanks;
     redev::GOs offsets;
     auto start = std::chrono::steady_clock::now();
-    comm.Unpack(rdvSrcRanks,offsets,msgs);
+    size_t msgStart, msgCount;
+    const bool knownSizes = false;
+    comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;

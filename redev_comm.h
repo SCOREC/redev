@@ -41,7 +41,7 @@ class Communicator {
   public:
     virtual void Pack(LOs& dest, LOs& offsets, T* msgs) = 0;
     virtual void Send() = 0;
-    virtual void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs) = 0;
+    virtual void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) = 0;
 };
 
 template<typename T>
@@ -99,19 +99,37 @@ class AdiosComm : public Communicator<T> {
       adios2::Dims shape{static_cast<size_t>(gDegreeTot)};
       adios2::Dims start{};
       adios2::Dims count{};
-      auto var = io.DefineVariable<T>(name, shape, start, count);
+      if(!rdvVar) {
+        rdvVar = io.DefineVariable<T>(name, shape, start, count);
+      }
       assert(var);
       const auto srcRanksName = name+"_srcRanks";
       //The source rank offsets array is the same on each process ('regular').
       adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
       adios2::Dims srStart{static_cast<size_t>(rdvRanks*rank)};
       adios2::Dims srCount{static_cast<size_t>(rdvRanks)};
-      auto srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
-      assert(srcRanksVar);
       eng.BeginStep();
 
+      //send dest rank offsets array from rank 0
+      auto offsets = gStart;
+      offsets.push_back(gDegreeTot);
+      if(!rank) {
+        const auto offsetsName = name+"_offsets";
+        const auto oShape = offsets.size();
+        const auto oStart = 0;
+        const auto oCount = offsets.size();
+        if(!offsetsVar) {
+          offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{oShape},{oStart},{oCount});
+          eng.Put<redev::GO>(offsetsVar, offsets.data());
+        }
+      }
+
       //send source rank offsets array 'rdvRankStart'
-      eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data());
+      if(!srcRanksVar) {
+        srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
+        assert(srcRanksVar);
+        eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data());
+      }
 
       //assume one call to pack from each rank for now
       assert(packed.size() == 1);
@@ -123,59 +141,54 @@ class AdiosComm : public Communicator<T> {
         if( lCount > 0 ) {
           start = adios2::Dims{static_cast<size_t>(lStart)};
           count = adios2::Dims{static_cast<size_t>(lCount)};
-          var.SetSelection({start,count});
-          eng.Put<T>(var, p.msgs);
+          rdvVar.SetSelection({start,count});
+          eng.Put<T>(rdvVar, p.msgs);
         }
       }
 
-      //send dest rank offsets array from rank 0
-      auto offsets = gStart;
-      offsets.push_back(gDegreeTot);
-      if(!rank) {
-        const auto offsetsName = name+"_offsets";
-        const auto oShape = offsets.size();
-        const auto oStart = 0;
-        const auto oCount = offsets.size();
-        auto offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{oShape},{oStart},{oCount});
-        eng.Put<redev::GO>(offsetsVar, offsets.data());
-      }
       eng.PerformPuts();
       eng.EndStep();
+      packed.clear();
     }
-    void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs) {
+    void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       auto t1 = redev::getTime();
       eng.BeginStep();
+      
+      if(!knownSizes) {
+        auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
+        assert(rdvRanksVar);
+        auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
+        assert(offsetsVar);
 
-      auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
-      assert(rdvRanksVar);
-      auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
-      assert(offsetsVar);
+        auto offsetsShape = offsetsVar.Shape();
+        assert(offsetsShape.size() == 1);
+        const auto offSz = offsetsShape[0];
+        offsets.resize(offSz);
+        offsetsVar.SetSelection({{0}, {offSz}});
+        eng.Get(offsetsVar, offsets.data());
 
-      auto offsetsShape = offsetsVar.Shape();
-      assert(offsetsShape.size() == 1);
-      const auto offSz = offsetsShape[0];
-      offsets.resize(offSz);
-      offsetsVar.SetSelection({{0}, {offSz}});
-      eng.Get(offsetsVar, offsets.data());
+        auto rdvRanksShape = rdvRanksVar.Shape();
+        assert(rdvRanksShape.size() == 1);
+        const auto rsrSz = rdvRanksShape[0];
+        rdvSrcRanks.resize(rsrSz);
+        rdvRanksVar.SetSelection({{0},{rsrSz}});
+        eng.Get(rdvRanksVar, rdvSrcRanks.data());
 
-      auto rdvRanksShape = rdvRanksVar.Shape();
-      assert(rdvRanksShape.size() == 1);
-      const auto rsrSz = rdvRanksShape[0];
-      rdvSrcRanks.resize(rsrSz);
-      rdvRanksVar.SetSelection({{0},{rsrSz}});
-      eng.Get(rdvRanksVar, rdvSrcRanks.data());
-
-      eng.PerformGets();
+        eng.PerformGets();
+      }
       auto t2 = redev::getTime();
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      const auto start = static_cast<size_t>(offsets[rank]);
-      const auto count = static_cast<size_t>(offsets[rank+1]-start);
+      if(!knownSizes) {
+        start = static_cast<size_t>(offsets[rank]);
+        count = static_cast<size_t>(offsets[rank+1]-start);
+      }
+      assert(count);
       msgs = new T[count];
       msgsVar.SetSelection({{start}, {count}});
       eng.Get(msgsVar, msgs);
@@ -186,7 +199,7 @@ class AdiosComm : public Communicator<T> {
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
       if(!rank) {
-        fprintf(stderr, "unpack r1(sec.) r2(sec.) %f %f\n", r1.count(), r2.count());
+        fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n", knownSizes, r1.count(), r2.count());
       }
     }
   private:
@@ -194,6 +207,9 @@ class AdiosComm : public Communicator<T> {
     int rdvRanks;
     adios2::Engine eng;
     adios2::IO io;
+    adios2::Variable<T> rdvVar;
+    adios2::Variable<redev::GO> srcRanksVar;
+    adios2::Variable<redev::GO> offsetsVar;
     std::string name;
     //support only one call to pack for now...
     struct Msg {

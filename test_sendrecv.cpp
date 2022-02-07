@@ -61,7 +61,9 @@ int main(int argc, char** argv) {
     redev::LO* msgs;
     redev::GOs rdvSrcRanks;
     redev::GOs offsets;
-    comm.Unpack(rdvSrcRanks,offsets,msgs);
+    size_t msgStart, msgCount;
+    const bool knownSizes = false;
+    comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
     assert(offsets == redev::GOs({0,7,11,21,27}));
     assert(rdvSrcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
     if(rank == 0) {
