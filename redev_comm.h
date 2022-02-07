@@ -102,7 +102,7 @@ class AdiosComm : public Communicator<T> {
       if(!rdvVar) {
         rdvVar = io.DefineVariable<T>(name, shape, start, count);
       }
-      assert(var);
+      assert(rdvVar);
       const auto srcRanksName = name+"_srcRanks";
       //The source rank offsets array is the same on each process ('regular').
       adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
