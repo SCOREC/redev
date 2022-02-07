@@ -83,7 +83,6 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   size_t msgStart, msgCount;
-  int i=0;
   for(int i=0; i<3; i++) {
     if(!isRdv) {
       //dest and offets define a CSR for which ranks the array of messages get sent to
