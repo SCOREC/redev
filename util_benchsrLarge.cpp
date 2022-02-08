@@ -98,7 +98,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
       timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-      ss << "write";
+      if( i == 0 ) ss << "write";
       std::string str = ss.str();
       if(!rank) printTime(str, min, max, avg);
     } else {
@@ -112,7 +112,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
       timeMinMaxAvg(elapsed_seconds.count(), min, max, avg);
-      ss << "read";
+      if( i == 0 ) ss << "read";
       std::string str = ss.str();
       if(!rank) printTime(str, min, max, avg);
       delete [] msgs;
