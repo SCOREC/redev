@@ -48,7 +48,7 @@ template<typename T>
 class AdiosComm : public Communicator<T> {
   public:
     AdiosComm(MPI_Comm comm_, int rdvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
-      : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_) {
+      : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
     }
     void Pack(LOs& dest_, LOs& offsets_, T* msgs_) {
       REDEV_FUNCTION_TIMER;
@@ -198,9 +198,15 @@ class AdiosComm : public Communicator<T> {
       auto t3 = redev::getTime();
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
-      if(!rank) {
+      if(!rank && verbose) {
         fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n", knownSizes, r1.count(), r2.count());
       }
+    }
+    //the higher the value the more output is written
+    //verbose=0 is silent
+    void SetVerbose(int lvl) {
+      assert(lvl>=0 && lvl<=5);
+      verbose = lvl;
     }
   private:
     MPI_Comm comm;
@@ -220,6 +226,7 @@ class AdiosComm : public Communicator<T> {
       T* msgs;
     };
     std::vector<Msg> packed;
+    int verbose;
 };
 
 }
