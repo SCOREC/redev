@@ -34,7 +34,7 @@ set(REDEV_SOURCES
 
 add_library(redev ${REDEV_SOURCES})
 target_compile_features(redev PUBLIC cxx_std_20)
-target_link_libraries(redev PUBLIC redev_git_version)
+target_link_libraries(redev PRIVATE redev_git_version)
 target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C)
 if(HAS_ASAN)
   target_compile_options(redev PRIVATE -fsanitize=address -fno-omit-frame-pointer)
@@ -142,7 +142,7 @@ target_include_directories(redev
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 install(
-  TARGETS redev
+  TARGETS redev redev_git_version
   EXPORT redev-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
