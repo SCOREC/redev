@@ -3,3 +3,10 @@
 include("${CMAKE_CURRENT_LIST_DIR}/redev-targets.cmake")
 
 check_required_components(redev)
+
+include(CMakeFindDependencyMacro)
+
+enable_language(C) #required for MPI::MPI_C
+find_dependency(MPI)
+find_dependency(ADIOS2 CONFIG)
+
