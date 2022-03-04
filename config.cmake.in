@@ -8,5 +8,5 @@ include(CMakeFindDependencyMacro)
 
 enable_language(C) #required for MPI::MPI_C
 find_dependency(MPI)
-find_dependency(ADIOS2 CONFIG)
+find_dependency(ADIOS2 CONFIG HINTS @ADIOS2_DIR@)
 
