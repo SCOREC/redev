@@ -33,6 +33,90 @@ namespace {
 
 namespace redev {
 
+  //TODO consider moving the ClassPtn source to another file
+  ClassPtn::ClassPtn() {}
+
+  ClassPtn::ClassPtn(redev::LO dim_, std::vector<redev::LO>& ranks_, std::vector<redev::LO>& classIds_) {
+    assert(ranks_.size() == classIds_.size());
+    for(auto i=0; i<ranks_.size(); i++) {
+      auto id = classIds_[i];
+      auto rank = ranks_[i];
+      classIdToRank[id] = rank;
+    }
+  }
+
+  redev::LO ClassPtn::GetRank(redev::LO classId) {
+    REDEV_FUNCTION_TIMER;
+    assert(classIdToRank.size());
+    assert(classIdToRank.count(classId));
+    return classIdToRank[classId];
+  }
+
+  std::vector<redev::LO>& ClassPtn::GetRanks() {
+    REDEV_FUNCTION_TIMER;
+    std::vector<redev::LO> ranks(classIdToRank.size());
+    for(const auto& idRank : classIdToRank) {
+      ranks.push_back(idRank.second);
+    }
+    return ranks;
+  }
+
+  std::vector<redev::Real>& ClassPtn::GetClassIds() {
+    REDEV_FUNCTION_TIMER;
+    std::vector<redev::LO> classIds(classIdToRank.size());
+    for(const auto& idRank : classIdToRank) {
+      classIds.push_back(idRank.first);
+    }
+    return classIds;
+  }
+
+  void ClassPtn::Write(adios2::Engine& eng, adios2::IO& io) {
+    REDEV_FUNCTION_TIMER;
+    const auto len = classIdToRank.size();
+    assert(len>=1);
+    auto ranks = GetRanks();
+    auto classIds = GetClassIds();
+    auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
+    auto classIdsVar = io.DefineVariable<redev::LO>(classIdsVarName,{},{},{len});
+    eng.Put(ranksVar, ranks.data());
+    eng.Put(classIdsVar, classIds.data());
+  }
+
+  void ClassPtn::Read(adios2::Engine& eng, adios2::IO& io) {
+    REDEV_FUNCTION_TIMER;
+    const auto step = eng.CurrentStep();
+    auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
+    auto classIdsVar = io.InquireVariable<redev::LO>(classIdsVarName);
+    assert(ranksVar && classIdsVar);
+
+    auto blocksInfo = eng.BlocksInfo(ranksVar,step);
+    assert(blocksInfo.size()==1);
+    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    eng.Get(ranksVar, ranks);
+
+    blocksInfo = eng.BlocksInfo(ranksVar,step);
+    assert(blocksInfo.size()==1);
+    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    eng.Get(classIdsVar, classIds);
+    eng.PerformGets(); //default read mode is deferred
+
+    assert(ranks_.size() == classIds_.size());
+    for(auto i=0; i<ranks_.size(); i++) {
+      auto id = classIds_[i];
+      auto rank = ranks_[i];
+      classIdToRank[id] = rank;
+    }
+  }
+
+  void ClassPtn::Broadcast(MPI_Comm comm, int root) {
+    REDEV_FUNCTION_TIMER;
+    auto ranks = GetRanks();
+    auto classIds = GetClassIds();
+    redev::Broadcast(ranks.data(), ranks.size(), root, comm);
+    redev::Broadcast(classIds.data(), classIds.size(), root, comm);
+  }
+
+
   //TODO consider moving the RCBPtn source to another file
   RCBPtn::RCBPtn() {}
 
