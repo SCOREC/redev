@@ -204,6 +204,14 @@ namespace redev {
 
   void RCBPtn::Broadcast(MPI_Comm comm, int root) {
     REDEV_FUNCTION_TIMER;
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    int count = ranks.size();
+    redev::Broadcast(&count, 1, root, comm);
+    if(root != rank) {
+      ranks.resize(count);
+      cuts.resize(count);
+    }
     redev::Broadcast(ranks.data(), ranks.size(), root, comm);
     redev::Broadcast(cuts.data(), cuts.size(), root, comm);
   }
