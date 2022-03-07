@@ -36,7 +36,7 @@ namespace redev {
   //TODO consider moving the ClassPtn source to another file
   ClassPtn::ClassPtn() {}
 
-  ClassPtn::ClassPtn(redev::LO dim_, std::vector<redev::LO>& ranks_, std::vector<redev::LO>& classIds_) {
+  ClassPtn::ClassPtn(std::vector<redev::LO>& ranks_, std::vector<redev::LO>& classIds_) {
     assert(ranks_.size() == classIds_.size());
     for(auto i=0; i<ranks_.size(); i++) {
       auto id = classIds_[i];
@@ -52,7 +52,7 @@ namespace redev {
     return classIdToRank[classId];
   }
 
-  std::vector<redev::LO>& ClassPtn::GetRanks() {
+  std::vector<redev::LO> ClassPtn::GetRanks() {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> ranks(classIdToRank.size());
     for(const auto& idRank : classIdToRank) {
@@ -61,7 +61,7 @@ namespace redev {
     return ranks;
   }
 
-  std::vector<redev::Real>& ClassPtn::GetClassIds() {
+  std::vector<redev::LO> ClassPtn::GetClassIds() {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> classIds(classIdToRank.size());
     for(const auto& idRank : classIdToRank) {
@@ -92,26 +92,36 @@ namespace redev {
     auto blocksInfo = eng.BlocksInfo(ranksVar,step);
     assert(blocksInfo.size()==1);
     ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    redev::LOs ranks;
     eng.Get(ranksVar, ranks);
 
     blocksInfo = eng.BlocksInfo(ranksVar,step);
     assert(blocksInfo.size()==1);
     ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    redev::LOs classIds;
     eng.Get(classIdsVar, classIds);
     eng.PerformGets(); //default read mode is deferred
 
     assert(ranks_.size() == classIds_.size());
-    for(auto i=0; i<ranks_.size(); i++) {
-      auto id = classIds_[i];
-      auto rank = ranks_[i];
+    for(auto i=0; i<ranks.size(); i++) {
+      auto id = classIds[i];
+      auto rank = ranks[i];
       classIdToRank[id] = rank;
     }
   }
 
   void ClassPtn::Broadcast(MPI_Comm comm, int root) {
     REDEV_FUNCTION_TIMER;
+    int rank;
+    MPI_Comm_rank(comm, &rank);
     auto ranks = GetRanks();
     auto classIds = GetClassIds();
+    int count = ranks.size();
+    redev::Broadcast(&count, 1, root, comm);
+    if(root != rank) {
+      ranks.resize(count);
+      classIds.resize(count);
+    }
     redev::Broadcast(ranks.data(), ranks.size(), root, comm);
     redev::Broadcast(classIds.data(), classIds.size(), root, comm);
   }
