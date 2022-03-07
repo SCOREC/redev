@@ -9,10 +9,25 @@ namespace redev {
 
 class Partition {
   public:
-    virtual redev::LO GetRank(std::array<redev::Real,3>& pt) = 0;
     virtual void Write(adios2::Engine& eng, adios2::IO& io) = 0;
     virtual void Read(adios2::Engine& eng, adios2::IO& io) = 0;
     virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
+};
+
+class ClassPtn : public Partition {
+  public:
+    ClassPtn();
+    ClassPtn(std::vector<redev::LO>& ranks, std::vector<redev::LO>& classIds);
+    redev::LO GetRank(redev::LO classId);
+    void Write(adios2::Engine& eng, adios2::IO& io);
+    void Read(adios2::Engine& eng, adios2::IO& io);
+    void Broadcast(MPI_Comm comm, int root=0);
+    std::vector<redev::LO> GetRanks();
+    std::vector<redev::LO> GetClassIds();
+  private:
+    const std::string ranksVarName = "class partition ranks";
+    const std::string classIdsVarName = "class partition ids";
+    std::map<redev::LO, redev::LO> classIdToRank;
 };
 
 class RCBPtn : public Partition {

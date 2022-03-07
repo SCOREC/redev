@@ -12,7 +12,18 @@ int main(int argc, char** argv) {
   auto isRdv = true;
   auto noParticipant = true;
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
-  { //1D
+  { //classPtn
+    std::vector<redev::LO> ranks = {0,1,2,3};
+    std::vector<redev::LO> classIds = {2,1,0,3};
+    auto ptn = redev::ClassPtn(ranks,classIds);
+    redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
+    rdv.Setup();
+    assert(2 == ptn.GetRank(0));
+    assert(1 == ptn.GetRank(1));
+    assert(0 == ptn.GetRank(2));
+    assert(3 == ptn.GetRank(3));
+  }
+  { //1D RCB
     const auto dim = 1;
     std::vector<redev::LO> ranks = {0,1,2,3};
     std::vector<redev::Real> cuts = {0,0.5,0.25,0.75};
@@ -25,7 +36,7 @@ int main(int argc, char** argv) {
     pt[0] = 0.5;   assert(2 == ptn.GetRank(pt));
     pt[0] = 0.751; assert(3 == ptn.GetRank(pt));
   }
-  { //2D
+  { //2D RCB
     const auto dim = 2;
     std::vector<redev::LO> ranks = {0,1,2,3};
     std::vector<redev::Real> cuts = {0,0.5,0.75,0.25};
@@ -48,7 +59,7 @@ int main(int argc, char** argv) {
     pt[0] = 0.5; pt[1] = 0.0; assert(2 == ptn.GetRank(pt));
     pt[0] = 0.7; pt[1] = 0.9; assert(3 == ptn.GetRank(pt));
   }
-  { //3D
+  { //3D RCB
     const auto dim = 3;
     std::vector<redev::LO> ranks(8);
     std::iota(ranks.begin(),ranks.end(),0);
