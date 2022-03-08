@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstdlib>
-#include <cassert>
 #include <chrono>
 #include <thread>
 #include "redev.h"
@@ -29,15 +28,15 @@ int main(int argc, char** argv) {
     prof->Write(std::cout);
     auto t = prof->GetTime("Setup");
     auto cnt = prof->GetCallCount("Setup");
-    assert((t > 0 && t < 0.1) && cnt == 1);
+    REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
 
     t = prof->GetTime("Redev");
     cnt = prof->GetCallCount("Redev");
-    assert((t > 0 && t < 0.1) && cnt == 1);
+    REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
 
     t = prof->GetTime("GetRank");
     cnt = prof->GetCallCount("GetRank");
-    assert((t > 0 && t < 0.1) && cnt == numCalls);
+    REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == numCalls);
   }
   MPI_Finalize();
   return 0;

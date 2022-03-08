@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstdlib>
-#include <cassert>
 #include "redev.h"
 
 int main(int argc, char** argv) {
@@ -27,8 +26,8 @@ int main(int argc, char** argv) {
   if(!isRdv) {
     auto ptnRanks = ptn.GetRanks();
     auto ptnCuts = ptn.GetCuts();
-    assert(ptnRanks == expectedRanks);
-    assert(ptnCuts == expectedCuts);
+    REDEV_ALWAYS_ASSERT(ptnRanks == expectedRanks);
+    REDEV_ALWAYS_ASSERT(ptnCuts == expectedCuts);
   }
   }
   MPI_Finalize();

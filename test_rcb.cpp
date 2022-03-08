@@ -1,4 +1,3 @@
-#include <cassert>
 #include "redev.h"
 
 int main(int argc, char** argv) {
@@ -13,8 +12,8 @@ int main(int argc, char** argv) {
   const auto dim = 2;
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   ptn.Broadcast(MPI_COMM_WORLD);
-  assert(ptn.GetRanks() == expectedRanks);
-  assert(ptn.GetCuts() == expectedCuts);
+  REDEV_ALWAYS_ASSERT(ptn.GetRanks() == expectedRanks);
+  REDEV_ALWAYS_ASSERT(ptn.GetCuts() == expectedCuts);
   MPI_Finalize();
   return 0;
 }

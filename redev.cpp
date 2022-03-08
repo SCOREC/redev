@@ -128,8 +128,7 @@ namespace redev {
     redev::Broadcast(classIds.data(), classIds.size(), root, comm);
     for(auto i=0; i<ranks.size(); i++) {
       auto id = classIds[i];
-      auto rank = ranks[i];
-      classIdToRank[id] = rank;
+      classIdToRank[id] = ranks[i];
     }
   }
 
@@ -343,4 +342,8 @@ namespace redev {
     ptn.Broadcast(comm);
   }
 
+  void Redev_Assert_Fail(const char* msg) {
+    fprintf(stderr, "%s", msg);
+    abort();
+  }
 }

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstdlib>
-#include <cassert>
 #include "redev.h"
 #include "redev_comm.h"
 
@@ -64,20 +63,20 @@ int main(int argc, char** argv) {
     size_t msgStart, msgCount;
     const bool knownSizes = false;
     comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
-    assert(offsets == redev::GOs({0,7,11,21,27}));
-    assert(rdvSrcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
+    REDEV_ALWAYS_ASSERT(offsets == redev::GOs({0,7,11,21,27}));
+    REDEV_ALWAYS_ASSERT(rdvSrcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
     if(rank == 0) {
       redev::LOs msgVec(msgs, msgs+7);
-      assert(msgVec == redev::LOs({0,0,1,2,2,2,2}));
+      REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0,0,1,2,2,2,2}));
     } else if(rank == 1) {
       redev::LOs msgVec(msgs, msgs+4);
-      assert(msgVec == redev::LOs({1,1,1,2}));
+      REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({1,1,1,2}));
     } else if(rank == 2) {
       redev::LOs msgVec(msgs, msgs+10);
-      assert(msgVec == redev::LOs({0,0,0,0,1,1,1,1,2,2}));
+      REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0,0,0,0,1,1,1,1,2,2}));
     } else if(rank == 3) {
       redev::LOs msgVec(msgs, msgs+6);
-      assert(msgVec == redev::LOs({1,1,2,2,2,2}));
+      REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({1,1,2,2,2,2}));
     }
     delete [] msgs;
   }

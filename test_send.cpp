@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstdlib>
-#include <cassert>
 #include "redev.h"
 #include "redev_comm.h"
 

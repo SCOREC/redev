@@ -1,4 +1,3 @@
-#include <cassert>
 #include "redev.h"
 
 int main(int argc, char** argv) {
@@ -18,13 +17,13 @@ int main(int argc, char** argv) {
   ptn.Broadcast(MPI_COMM_WORLD);
 
   auto ptnRanks = ptn.GetRanks();
-  assert(ptnRanks.size() == expectedRanks.size());
+  REDEV_ALWAYS_ASSERT(ptnRanks.size() == expectedRanks.size());
   auto ptnClassIds = ptn.GetClassIds();
-  assert(ptnClassIds.size() == expectedClassIds.size());
+  REDEV_ALWAYS_ASSERT(ptnClassIds.size() == expectedClassIds.size());
   std::map<redev::LO, redev::LO> c2r;
   for(int i=0; i<ptnRanks.size(); i++)
     c2r[ptnClassIds[i]] = ptnRanks[i];
-  assert(c2r == expC2R);
+  REDEV_ALWAYS_ASSERT(c2r == expC2R);
 
   MPI_Finalize();
   return 0;

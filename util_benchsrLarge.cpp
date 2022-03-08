@@ -229,11 +229,12 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
     eng.BeginStep();
     auto msgs = io.InquireVariable<redev::LO>(name);
     assert(msgs);
-    const auto startRead = static_cast<size_t>(mbpr)*reductionFactor*rank;
+    const auto sizePerRank = static_cast<size_t>(mbpr)*reductionFactor;
+    const auto startRead = sizePerRank*rank;
     msgs.SetSelection({{static_cast<size_t>(startRead)},
                        {static_cast<size_t>(mbpr*reductionFactor)}
                       });
-    redev::LOs inMsgs(mbpr*reductionFactor);
+    redev::LOs inMsgs(sizePerRank);
     eng.Get(msgs, inMsgs.data());
     eng.PerformGets();
     eng.EndStep();
