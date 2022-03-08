@@ -15,6 +15,7 @@ jobs:
       matrix:
         compiler: [g++,clang++]
         language: ['cpp']
+        build_type: [Debug, Release]
     # Permissions needed for codeql analysis 
     # I think this is the minimal set needed for a public repo (https://github.com/github/codeql-action/pull/689).
     permissions:
@@ -70,6 +71,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build-redev
       run: cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DADIOS2_BPLS_PATH=${{runner.workspace}}/build-adios2/install/bin/bpls
            -DBUILD_TESTING=ON
