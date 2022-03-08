@@ -8,12 +8,24 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   const auto expectedRanks = redev::LOs({0,1,2,3});
   const auto expectedClassIds = redev::LOs({2,1,0,3});
+  std::map<redev::LO, redev::LO> expC2R;
+  for(int i=0; i<expectedRanks.size(); i++)
+    expC2R[expectedClassIds[i]] = expectedRanks[i];
+
   auto ranks = rank==0 ? expectedRanks : redev::LOs();
   auto classIds = rank==0 ? expectedClassIds : redev::LOs();
   auto ptn = redev::ClassPtn(ranks,classIds);
   ptn.Broadcast(MPI_COMM_WORLD);
-  assert(ptn.GetRanks() == expectedRanks);
-  assert(ptn.GetCuts() == expectedClassIds);
+
+  auto ptnRanks = ptn.GetRanks();
+  assert(ptnRanks.size() == expectedRanks.size());
+  auto ptnClassIds = ptn.GetClassIds();
+  assert(ptnClassIds.size() == expectedClassIds.size());
+  std::map<redev::LO, redev::LO> c2r;
+  for(int i=0; i<ptnRanks.size(); i++)
+    c2r[ptnClassIds[i]] = ptnRanks[i];
+  assert(c2r == expC2R);
+
   MPI_Finalize();
   return 0;
 }

@@ -55,8 +55,9 @@ namespace redev {
   std::vector<redev::LO> ClassPtn::GetRanks() {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> ranks(classIdToRank.size());
+    int i=0;
     for(const auto& idRank : classIdToRank) {
-      ranks.push_back(idRank.second);
+      ranks[i++]=idRank.second;
     }
     return ranks;
   }
@@ -64,8 +65,9 @@ namespace redev {
   std::vector<redev::LO> ClassPtn::GetClassIds() {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> classIds(classIdToRank.size());
+    int i=0;
     for(const auto& idRank : classIdToRank) {
-      classIds.push_back(idRank.first);
+      classIds[i++]=idRank.first;
     }
     return classIds;
   }
@@ -102,7 +104,7 @@ namespace redev {
     eng.Get(classIdsVar, classIds);
     eng.PerformGets(); //default read mode is deferred
 
-    assert(ranks_.size() == classIds_.size());
+    assert(ranks.size() == classIds.size());
     for(auto i=0; i<ranks.size(); i++) {
       auto id = classIds[i];
       auto rank = ranks[i];
@@ -124,6 +126,11 @@ namespace redev {
     }
     redev::Broadcast(ranks.data(), ranks.size(), root, comm);
     redev::Broadcast(classIds.data(), classIds.size(), root, comm);
+    for(auto i=0; i<ranks.size(); i++) {
+      auto id = classIds[i];
+      auto rank = ranks[i];
+      classIdToRank[id] = rank;
+    }
   }
 
 
