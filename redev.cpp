@@ -82,6 +82,7 @@ namespace redev {
     auto classIdsVar = io.DefineVariable<redev::LO>(classIdsVarName,{},{},{len});
     eng.Put(ranksVar, ranks.data());
     eng.Put(classIdsVar, classIds.data());
+    eng.PerformPuts();
   }
 
   void ClassPtn::Read(adios2::Engine& eng, adios2::IO& io) {
@@ -187,6 +188,7 @@ namespace redev {
     auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len});
     eng.Put(ranksVar, ranks.data());
     eng.Put(cutsVar, cuts.data());
+    eng.PerformPuts();
   }
 
   void RCBPtn::Read(adios2::Engine& eng, adios2::IO& io) {
@@ -277,7 +279,7 @@ namespace redev {
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
-    assert(isInitialized);
+    REDEV_ALWAYS_ASSERT(isInitialized);
     MPI_Comm_rank(comm, &rank);
     if(!rank) {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
