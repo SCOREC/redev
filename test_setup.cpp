@@ -14,21 +14,21 @@ int main(int argc, char** argv) {
   auto isRdv = atoi(argv[1]);
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   {
-  //dummy partition vector data: rcb partition
-  const auto expectedRanks = redev::LOs({0,1,2,3});
-  const auto expectedCuts = redev::Reals({0,0.5,0.75,0.25});
-  auto ranks = isRdv ? expectedRanks : redev::LOs(4);
-  auto cuts = isRdv ? expectedCuts : redev::Reals(4);
-  const auto dim = 2;
-  auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  rdv.Setup();
-  if(!isRdv) {
-    auto ptnRanks = ptn.GetRanks();
-    auto ptnCuts = ptn.GetCuts();
-    REDEV_ALWAYS_ASSERT(ptnRanks == expectedRanks);
-    REDEV_ALWAYS_ASSERT(ptnCuts == expectedCuts);
-  }
+    //dummy partition vector data: rcb partition
+    const auto expectedRanks = redev::LOs({0,1,2,3});
+    const auto expectedCuts = redev::Reals({0,0.5,0.75,0.25});
+    auto ranks = isRdv ? expectedRanks : redev::LOs(4);
+    auto cuts = isRdv ? expectedCuts : redev::Reals(4);
+    const auto dim = 2;
+    auto ptn = redev::RCBPtn(dim,ranks,cuts);
+    redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
+    rdv.Setup();
+    if(!isRdv) {
+      auto ptnRanks = ptn.GetRanks();
+      auto ptnCuts = ptn.GetCuts();
+      REDEV_ALWAYS_ASSERT(ptnRanks == expectedRanks);
+      REDEV_ALWAYS_ASSERT(ptnCuts == expectedCuts);
+    }
   }
   {
     //dummy partition vector data: class partition
