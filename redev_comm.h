@@ -142,7 +142,7 @@ class AdiosComm : public Communicator<T> {
           start = adios2::Dims{static_cast<size_t>(lStart)};
           count = adios2::Dims{static_cast<size_t>(lCount)};
           rdvVar.SetSelection({start,count});
-          eng.Put<T>(rdvVar, p.msgs);
+          eng.Put<T>(rdvVar, &(p.msgs[p.offsets[i]]));
         }
       }
 

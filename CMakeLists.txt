@@ -132,6 +132,18 @@ if(BUILD_TESTING)
       PASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2"
       REQUIRED_FILES "toRendezvous.bp/")
   endif()
+  add_exe(test_sendOneToTwo test_sendOneToTwo.cpp)
+  dual_mpi_test(test_sendOneToTwo_3p
+                2 ./test_sendOneToTwo 1
+                1 ./test_sendOneToTwo 0)
+  if(ADIOS2_BPLS_PATH)
+    #TODO somehow skip these tests (instead of 'not run') if SST is used...
+    add_test(NAME test_sendOneToTwo_3p_check_msgs
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 toRendezvous.bp/ foo)
+    set_tests_properties(test_sendOneToTwo_3p_check_msgs PROPERTIES
+      PASS_REGULAR_EXPRESSION "0 0 1 1 1 1"
+      REQUIRED_FILES "toRendezvous.bp/") #results in ctest reporting 'not run'
+  endif()
   add_exe(test_sendrecv test_sendrecv.cpp)
   dual_mpi_test(test_sendrecv_3p
                 4 ./test_sendrecv 1
