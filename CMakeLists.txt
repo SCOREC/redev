@@ -148,6 +148,10 @@ if(BUILD_TESTING)
   dual_mpi_test(test_sendrecv_3p
                 4 ./test_sendrecv 1
                 3 ./test_sendrecv 0)
+  add_exe(test_pingpong test_pingpong.cpp)
+  dual_mpi_test(test_pingpong
+                1 ./test_pingpong 1
+                1 ./test_pingpong 0)
 endif()
 
 ## export the library
