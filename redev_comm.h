@@ -6,27 +6,18 @@
 
 namespace redev {
 
-//TODO I think there is a cleaner way
-template<class T>
-MPI_Datatype getMpiType(T) {
-  REDEV_FUNCTION_TIMER;
-  MPI_Datatype mpitype;
-  //determine the type based on what is being sent
-  if( std::is_same<T, redev::Real>::value ) {
-    mpitype = MPI_DOUBLE;
-  } else if ( std::is_same<T, redev::CV>::value ) {
-    //https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node48.htm
-    mpitype = MPI_CXX_DOUBLE_COMPLEX;
-  } else if ( std::is_same<T, redev::GO>::value ) {
-    mpitype = MPI_INT64_T;
-  } else if ( std::is_same<T, redev::LO>::value ) {
-    mpitype = MPI_INT32_T;
-  } else {
-    assert(false);
-    fprintf(stderr, "Unknown type in %s... exiting\n", __func__);
-    exit(EXIT_FAILURE);
+  namespace detail {
+    template <typename... T> struct dependent_always_false : std::false_type {};
   }
-  return mpitype;
+
+template<class T>
+[[ nodiscard ]]
+constexpr MPI_Datatype getMpiType(T) noexcept {
+  if constexpr (std::is_same_v<T, double>) { return MPI_DOUBLE; }
+  else if constexpr (std::is_same_v<T, std::complex<double>>) { return MPI_DOUBLE_COMPLEX; }
+  else if constexpr (std::is_same_v<T, int64_t>) { return MPI_INT64_T; }
+  else if constexpr (std::is_same_v<T, int32_t>) { return MPI_INT32_T; }
+  else{ static_assert(detail::dependent_always_false<T>::value, "type has unkown map to MPI_Type"); return {}; }
 }
 
 template<typename T>
