@@ -4,6 +4,12 @@
 #include <numeric> // accumulate, esclusive_scan
 #include <type_traits> // is_same
 
+namespace {
+void checkStep(adios2::StepStatus status) {
+  REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+}
+}
+
 namespace redev {
 
   namespace detail {
@@ -99,7 +105,7 @@ class AdiosComm : public Communicator<T> {
       adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
       adios2::Dims srStart{static_cast<size_t>(rdvRanks*rank)};
       adios2::Dims srCount{static_cast<size_t>(rdvRanks)};
-      eng.BeginStep();
+      checkStep(eng.BeginStep());
 
       //send dest rank offsets array from rank 0
       auto offsets = gStart;
@@ -147,7 +153,7 @@ class AdiosComm : public Communicator<T> {
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       auto t1 = redev::getTime();
-      eng.BeginStep();
+      checkStep(eng.BeginStep());
       
       if(!knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");

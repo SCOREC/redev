@@ -309,7 +309,8 @@ namespace redev {
   void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     const auto hashVarName = "redev git hash";
-    eng.BeginStep();
+    auto status = eng.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app writes the version it has and other apps read
     if(isRendezvous) {
       auto varVersion = io.DefineVariable<std::string>(hashVarName);
@@ -323,7 +324,7 @@ namespace redev {
         eng.Get(varVersion, inHash);
         eng.PerformGets(); //default read mode is deferred
         std::cout << "inHash " << inHash << "\n";
-        assert(inHash == redevGitHash);
+        REDEV_ALWAYS_ASSERT(inHash == redevGitHash);
       }
     }
     eng.EndStep();
@@ -332,7 +333,8 @@ namespace redev {
   void Redev::Setup() {
     REDEV_FUNCTION_TIMER;
     CheckVersion(fromEng,io);
-    fromEng.BeginStep();
+    auto status = fromEng.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
       if(isRendezvous)
