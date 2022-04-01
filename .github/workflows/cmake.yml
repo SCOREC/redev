@@ -92,7 +92,7 @@ jobs:
     - name: Redev Test
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
-      run: ctest --timeout 5 --output-on-failure
+      run: ctest --timeout 10 --output-on-failure
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
