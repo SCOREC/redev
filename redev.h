@@ -82,7 +82,8 @@ class Redev {
     void Setup();
     adios2::Engine& getToEngine() { return toEng; }
     adios2::Engine& getFromEngine() { return fromEng; }
-    adios2::IO& getIO() { return io; }
+    adios2::IO& getToIO() { return toIo; }
+    adios2::IO& getFromIO() { return fromIo; }
   private:
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise
@@ -94,7 +95,8 @@ class Redev {
     adios2::ADIOS adios;
     adios2::Engine fromEng;
     adios2::Engine toEng;
-    adios2::IO io;
+    adios2::IO fromIo;
+    adios2::IO toIo;
     int rank;
     Partition& ptn;
 };

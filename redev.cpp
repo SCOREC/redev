@@ -232,21 +232,22 @@ namespace redev {
     REDEV_FUNCTION_TIMER;
     //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
     if(isRendezvous) {
-      fromEng = io.Open(bpFromName, adios2::Mode::Write);
+      fromEng = fromIo.Open(bpFromName, adios2::Mode::Write);
       assert(fromEng);
     } else {
-      toEng = io.Open(bpToName, adios2::Mode::Write);
+      toEng = toIo.Open(bpToName, adios2::Mode::Write);
       assert(toEng);
     }
-    waitForEngineCreation(io);
+    waitForEngineCreation(fromIo);
+    waitForEngineCreation(toIo);
     //create engines for reading
     if(isRendezvous) {
       if(noParticipant==false) { //support unit testing
-        toEng = io.Open(bpToName, adios2::Mode::Read);
+        toEng = toIo.Open(bpToName, adios2::Mode::Read);
         assert(toEng);
       }
     } else {
-      fromEng = io.Open(bpFromName, adios2::Mode::Read);
+      fromEng = fromIo.Open(bpFromName, adios2::Mode::Read);
       assert(fromEng);
     }
   }
@@ -258,18 +259,18 @@ namespace redev {
     REDEV_FUNCTION_TIMER;
     //create one engine's reader and writer pair at a time - SST blocks on open(read)
     if(isRendezvous) {
-      fromEng = io.Open(bpFromName, adios2::Mode::Write);
+      fromEng = fromIo.Open(bpFromName, adios2::Mode::Write);
     } else {
-      fromEng = io.Open(bpFromName, adios2::Mode::Read);
+      fromEng = fromIo.Open(bpFromName, adios2::Mode::Read);
     }
     assert(fromEng);
     if(isRendezvous) {
       if(noParticipant==false) { //support unit testing
-        toEng = io.Open(bpToName, adios2::Mode::Read);
+        toEng = toIo.Open(bpToName, adios2::Mode::Read);
         assert(toEng);
       }
     } else {
-      toEng = io.Open(bpToName, adios2::Mode::Write);
+      toEng = toIo.Open(bpToName, adios2::Mode::Write);
       assert(toEng);
     }
   }
@@ -284,15 +285,21 @@ namespace redev {
     if(!rank) {
       std::cout << "Redev Git Hash: " << redevGitHash << "\n";
     }
-    io = adios.DeclareIO("rendezvous"); //this will likely change
-    if(noParticipant) io.SetEngine("BP4"); //SST hangs if there is no reader
-    if( isSameCi(io.EngineType(), "SST") ) {
+    fromIo = adios.DeclareIO("fromRendezvous");
+    toIo = adios.DeclareIO("toRendezvous");
+    REDEV_ALWAYS_ASSERT(fromIo.EngineType() == toIo.EngineType());
+    if(noParticipant) {
+      //SST hangs if there is no reader
+      fromIo.SetEngine("BP4");
+      toIo.SetEngine("BP4");
+    }
+    if( isSameCi(fromIo.EngineType(), "SST") ) {
       openEnginesSST(noParticipant);
-    } else if( isSameCi(io.EngineType(), "BP4") ) {
+    } else if( isSameCi(fromIo.EngineType(), "BP4") ) {
       openEnginesBP4(noParticipant);
     } else {
       if(!rank) {
-        std::cerr << "ERROR: redev does not support ADIOS2 engine " << io.EngineType() << "\n";
+        std::cerr << "ERROR: redev does not support ADIOS2 engine " << fromIo.EngineType() << "\n";
       }
       exit(EXIT_FAILURE);
     }
@@ -332,15 +339,15 @@ namespace redev {
 
   void Redev::Setup() {
     REDEV_FUNCTION_TIMER;
-    CheckVersion(fromEng,io);
+    CheckVersion(fromEng,fromIo);
     auto status = fromEng.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
       if(isRendezvous)
-        ptn.Write(fromEng,io);
+        ptn.Write(fromEng,fromIo);
       else
-        ptn.Read(fromEng,io);
+        ptn.Read(fromEng,fromIo);
     }
     fromEng.EndStep();
     ptn.Broadcast(comm);

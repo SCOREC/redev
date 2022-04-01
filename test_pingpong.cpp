@@ -26,8 +26,8 @@ int main(int argc, char** argv) {
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   rdv.Setup();
-  redev::AdiosComm<redev::LO> commA2R(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getIO(), "foo_A2R");
-  redev::AdiosComm<redev::LO> commR2A(MPI_COMM_WORLD, ranks.size(), rdv.getFromEngine(), rdv.getIO(), "foo_R2A");
+  redev::AdiosComm<redev::LO> commA2R(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), "foo_A2R");
+  redev::AdiosComm<redev::LO> commR2A(MPI_COMM_WORLD, ranks.size(), rdv.getFromEngine(), rdv.getFromIO(), "foo_R2A");
   size_t msgStart, msgCount;
   for(int iter=0; iter<2; iter++) {
     // the non-rendezvous app sends to the rendezvous app
