@@ -30,12 +30,12 @@ class ClassPtn : public Partition {
   public:
     ClassPtn();
     ClassPtn(std::vector<redev::LO>& ranks, std::vector<redev::LO>& classIds);
-    redev::LO GetRank(redev::LO classId);
+    redev::LO GetRank(redev::LO classId) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
     void Broadcast(MPI_Comm comm, int root=0);
-    std::vector<redev::LO> GetRanks();
-    std::vector<redev::LO> GetClassIds();
+    std::vector<redev::LO> GetRanks() const;
+    std::vector<redev::LO> GetClassIds() const;
   private:
     const std::string ranksVarName = "class partition ranks";
     const std::string classIdsVarName = "class partition ids";
@@ -61,12 +61,12 @@ class RCBPtn : public Partition {
      */
     RCBPtn(redev::LO dim);
     RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
-    redev::LO GetRank(std::array<redev::Real,3>& pt);
+    redev::LO GetRank(std::array<redev::Real,3>& pt) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
     void Broadcast(MPI_Comm comm, int root=0);
-    std::vector<redev::LO>& GetRanks();
-    std::vector<redev::Real>& GetCuts();
+    std::vector<redev::LO> GetRanks() const;
+    std::vector<redev::Real> GetCuts() const;
   private:
     const std::string ranksVarName = "rcb partition ranks";
     const std::string cutsVarName = "rcb partition cuts";

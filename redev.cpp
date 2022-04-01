@@ -45,14 +45,14 @@ namespace redev {
     }
   }
 
-  redev::LO ClassPtn::GetRank(redev::LO classId) {
+  redev::LO ClassPtn::GetRank(redev::LO classId) const {
     REDEV_FUNCTION_TIMER;
     assert(classIdToRank.size());
     assert(classIdToRank.count(classId));
-    return classIdToRank[classId];
+    return classIdToRank.at(classId);
   }
 
-  std::vector<redev::LO> ClassPtn::GetRanks() {
+  std::vector<redev::LO> ClassPtn::GetRanks() const {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> ranks(classIdToRank.size());
     int i=0;
@@ -62,7 +62,7 @@ namespace redev {
     return ranks;
   }
 
-  std::vector<redev::LO> ClassPtn::GetClassIds() {
+  std::vector<redev::LO> ClassPtn::GetClassIds() const {
     REDEV_FUNCTION_TIMER;
     std::vector<redev::LO> classIds(classIdToRank.size());
     int i=0;
@@ -147,7 +147,7 @@ namespace redev {
     assert(dim>0 && dim<=3);
   }
 
-  redev::LO RCBPtn::GetRank(std::array<redev::Real,3>& pt) { //TODO better name?
+  redev::LO RCBPtn::GetRank(std::array<redev::Real,3>& pt) const { //TODO better name?
     REDEV_FUNCTION_TIMER;
     assert(ranks.size() && cuts.size());
     assert(dim>0 && dim<=3);
@@ -157,7 +157,7 @@ namespace redev {
     auto idx = 1;
     auto d = 0;
     while(lvl < levels) {
-      if(pt[d]<cuts[idx])
+      if(pt[d]<cuts.at(idx))
         idx = idx*2;
       else
         idx = idx*2+1;
@@ -166,15 +166,15 @@ namespace redev {
     }
     auto rankIdx = idx-std::pow(2,lvl);
     assert(rankIdx < ranks.size());
-    return ranks[rankIdx];
+    return ranks.at(rankIdx);
   }
 
-  std::vector<redev::LO>& RCBPtn::GetRanks() {
+  std::vector<redev::LO> RCBPtn::GetRanks() const {
     REDEV_FUNCTION_TIMER;
     return ranks;
   }
 
-  std::vector<redev::Real>& RCBPtn::GetCuts() {
+  std::vector<redev::Real> RCBPtn::GetCuts() const {
     REDEV_FUNCTION_TIMER;
     return cuts;
   }
