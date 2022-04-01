@@ -60,7 +60,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
   std::string name = "foo";
   std::stringstream ss;
   ss << mbpr << " B rdv ";
-  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     //dest and offets define a CSR for which ranks the array of messages get sent to
@@ -110,7 +110,7 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const in
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   //get adios objs
-  auto io = rdv.getIO();
+  auto io = rdv.getToIO();
   auto eng = rdv.getToEngine();
   std::string name = "mapped";
   std::stringstream ss;

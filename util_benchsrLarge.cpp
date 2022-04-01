@@ -80,7 +80,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";
-  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   size_t msgStart, msgCount;
   for(int i=0; i<3; i++) {
@@ -143,7 +143,7 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvFanOut ";
-  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   size_t msgStart, msgCount;
   for(int i=0; i<3; i++) {
@@ -200,7 +200,7 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   //get adios objs
-  auto io = rdv.getIO();
+  auto io = rdv.getToIO();
   auto eng = rdv.getToEngine();
   std::string name = "mapped";
   std::stringstream ss;

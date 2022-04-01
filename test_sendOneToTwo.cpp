@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   rdv.Setup();
   std::string name = "foo";
-  redev::AdiosComm<redev::LO> comm(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getIO(), name);
+  redev::AdiosComm<redev::LO> comm(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     redev::LOs dest;
