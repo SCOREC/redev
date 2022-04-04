@@ -1,6 +1,8 @@
-#pragma once
+#ifndef REDEV_TYPES_H
+#define REDEV_TYPES_H
 #include <cstdint>
 #include <complex>
+#include <vector>
 
 namespace redev {
 typedef std::int32_t LO;
@@ -12,3 +14,4 @@ using Reals = std::vector<Real>;
 typedef std::complex<double> CV;
 using CVs = std::vector<CV>;
 }
+#endif
