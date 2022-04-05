@@ -38,7 +38,15 @@ class Communicator {
   public:
     virtual void Pack(LOs& dest, LOs& offsets, T* msgs) = 0;
     virtual void Send() = 0;
-    virtual void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) = 0;
+    virtual std::vector<T> Unpack() = 0;
+};
+
+struct InMessageLayout {
+  redev::GOs srcRanks;
+  redev::GOs offset;
+  bool knownSizes;
+  size_t start;
+  size_t count;
 };
 
 template<typename T>
@@ -147,7 +155,7 @@ class AdiosComm : public Communicator<T> {
       eng.EndStep();
       packed.clear();
     }
-    void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) {
+    std::vector<T> Unpack() {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
@@ -155,7 +163,7 @@ class AdiosComm : public Communicator<T> {
       auto t1 = redev::getTime();
       checkStep(eng.BeginStep());
       
-      if(!knownSizes) {
+      if(!inMsg.knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
         assert(rdvRanksVar);
         auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
@@ -164,31 +172,30 @@ class AdiosComm : public Communicator<T> {
         auto offsetsShape = offsetsVar.Shape();
         assert(offsetsShape.size() == 1);
         const auto offSz = offsetsShape[0];
-        offsets.resize(offSz);
+        inMsg.offset.resize(offSz);
         offsetsVar.SetSelection({{0}, {offSz}});
-        eng.Get(offsetsVar, offsets.data());
+        eng.Get(offsetsVar, inMsg.offset.data());
 
         auto rdvRanksShape = rdvRanksVar.Shape();
         assert(rdvRanksShape.size() == 1);
         const auto rsrSz = rdvRanksShape[0];
-        rdvSrcRanks.resize(rsrSz);
+        inMsg.srcRanks.resize(rsrSz);
         rdvRanksVar.SetSelection({{0},{rsrSz}});
-        eng.Get(rdvRanksVar, rdvSrcRanks.data());
+        eng.Get(rdvRanksVar, inMsg.srcRanks.data());
 
         eng.PerformGets();
+        inMsg.start = static_cast<size_t>(inMsg.offset[rank]);
+        inMsg.count = static_cast<size_t>(inMsg.offset[rank+1]-inMsg.start);
+        inMsg.knownSizes = true;
       }
       auto t2 = redev::getTime();
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      if(!knownSizes) {
-        start = static_cast<size_t>(offsets[rank]);
-        count = static_cast<size_t>(offsets[rank+1]-start);
-      }
-      assert(count);
-      msgs = new T[count];
-      msgsVar.SetSelection({{start}, {count}});
-      eng.Get(msgsVar, msgs);
+      assert(inMsg.count);
+      std::vector<T> msgs(inMsg.count);
+      msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
+      eng.Get(msgsVar, msgs.data());
 
       eng.PerformGets();
       eng.EndStep();
@@ -196,8 +203,13 @@ class AdiosComm : public Communicator<T> {
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
       if(!rank && verbose) {
-        fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n", knownSizes, r1.count(), r2.count());
+        fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n",
+            inMsg.knownSizes, r1.count(), r2.count());
       }
+      return msgs;
+    }
+    InMessageLayout GetInMessageLayout() {
+      return inMsg;
     }
     //the higher the value the more output is written
     //verbose=0 is silent
@@ -224,6 +236,8 @@ class AdiosComm : public Communicator<T> {
     };
     std::vector<Msg> packed;
     int verbose;
+    //receive side state
+    InMessageLayout inMsg;
 };
 
 }

@@ -80,13 +80,8 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     std::string str = ss.str();
     if(!rank) printTime(str, min, max, avg);
   } else {
-    redev::LO* msgs;
-    redev::GOs rdvSrcRanks;
-    redev::GOs offsets;
     auto start = std::chrono::steady_clock::now();
-    size_t msgStart, msgCount;
-    const bool knownSizes = false;
-    comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
+    comm.Unpack();
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
@@ -94,7 +89,6 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     ss << "read";
     std::string str = ss.str();
     if(!rank) printTime(str, min, max, avg);
-    delete [] msgs;
   }
 }
 
