@@ -7,7 +7,7 @@ rendezvous communication library
 
 - MPI
 - ADIOS2 v2.7.1 or newer
-- C++ compiler supporting C++20
+- C++ compiler supporting C++17
 
 # Install
 
