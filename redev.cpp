@@ -36,7 +36,7 @@ namespace redev {
   //TODO consider moving the ClassPtn source to another file
   ClassPtn::ClassPtn() {}
 
-  ClassPtn::ClassPtn(std::vector<redev::LO>& ranks_, std::vector<redev::LO>& classIds_) {
+  ClassPtn::ClassPtn(const redev::LOs& ranks_, const redev::LOs& classIds_) {
     assert(ranks_.size() == classIds_.size());
     for(auto i=0; i<ranks_.size(); i++) {
       auto id = classIds_[i];
