@@ -28,21 +28,21 @@ namespace redev {
       }
 
       ElapsedTime GetTime(std::string name) {
-        if( callTime.contains(name) )
+        if( callTime.count(name) )
           return callTime[name].second;
         else
           return 0;
       }
 
       ElapsedTime GetCallCount(std::string name) {
-        if( callTime.contains(name) )
+        if( callTime.count(name) )
           return callTime[name].first;
         else
           return 0;
       }
 
       void AddTime(std::string name, ElapsedTime t) {
-        if(!callTime.contains(name)) {
+        if(!callTime.count(name)) {
           callTime[name].first = 1;
           callTime[name].second = t;
         } else {
