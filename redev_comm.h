@@ -54,6 +54,7 @@ class AdiosComm : public Communicator<T> {
   public:
     AdiosComm(MPI_Comm comm_, int rdvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
       : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
+        inMsg.knownSizes = false;
     }
     void SetOutMessageLayout(LOs& dest_, LOs& offsets_) {
       REDEV_FUNCTION_TIMER;
