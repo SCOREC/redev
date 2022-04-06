@@ -36,9 +36,17 @@ void Broadcast(T* data, int count, int root, MPI_Comm comm) {
 template<typename T>
 class Communicator {
   public:
-    virtual void Pack(LOs& dest, LOs& offsets, T* msgs) = 0;
-    virtual void Send() = 0;
-    virtual void Unpack(GOs& rdvRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) = 0;
+    virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
+    virtual void Send(T* msgs) = 0;
+    virtual std::vector<T> Recv() = 0;
+};
+
+struct InMessageLayout {
+  redev::GOs srcRanks;
+  redev::GOs offset;
+  bool knownSizes;
+  size_t start;
+  size_t count;
 };
 
 template<typename T>
@@ -46,13 +54,13 @@ class AdiosComm : public Communicator<T> {
   public:
     AdiosComm(MPI_Comm comm_, int rdvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
       : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
+        inMsg.knownSizes = false;
     }
-    void Pack(LOs& dest_, LOs& offsets_, T* msgs_) {
+    void SetOutMessageLayout(LOs& dest_, LOs& offsets_) {
       REDEV_FUNCTION_TIMER;
-      Msg m(dest_, offsets_, msgs_);
-      packed.push_back(m);
+      outMsg = OutMessageLayout{dest_, offsets_};
     }
-    void Send() {
+    void Send(T* msgs) {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
@@ -66,12 +74,10 @@ class AdiosComm : public Communicator<T> {
       // allocating an array with length equal to the
       // rendevous communicator size is acceptable.
       GOs degree(rdvRanks,0);
-      for( auto p : packed ) {
-        for( auto i=0; i<p.dest.size(); i++) {
-          auto destRank = p.dest[i];
-          assert(destRank < rdvRanks);
-          degree[destRank] += p.offsets[i+1] - p.offsets[i];
-        }
+      for( auto i=0; i<outMsg.dest.size(); i++) {
+        auto destRank = outMsg.dest[i];
+        assert(destRank < rdvRanks);
+        degree[destRank] += outMsg.offsets[i+1] - outMsg.offsets[i];
       }
       GOs rdvRankStart(rdvRanks,0);
       auto ret = MPI_Exscan(degree.data(), rdvRankStart.data(), rdvRanks,
@@ -129,25 +135,22 @@ class AdiosComm : public Communicator<T> {
       }
 
       //assume one call to pack from each rank for now
-      assert(packed.size() == 1);
-      auto p = packed[0];
-      for( auto i=0; i<p.dest.size(); i++ ) {
-        const auto destRank = p.dest[i];
+      for( auto i=0; i<outMsg.dest.size(); i++ ) {
+        const auto destRank = outMsg.dest[i];
         const auto lStart = gStart[destRank]+rdvRankStart[destRank];
-        const auto lCount = p.offsets[i+1]-p.offsets[i];
+        const auto lCount = outMsg.offsets[i+1]-outMsg.offsets[i];
         if( lCount > 0 ) {
           start = adios2::Dims{static_cast<size_t>(lStart)};
           count = adios2::Dims{static_cast<size_t>(lCount)};
           rdvVar.SetSelection({start,count});
-          eng.Put<T>(rdvVar, &(p.msgs[p.offsets[i]]));
+          eng.Put<T>(rdvVar, &(msgs[outMsg.offsets[i]]));
         }
       }
 
       eng.PerformPuts();
       eng.EndStep();
-      packed.clear();
     }
-    void Unpack(GOs& rdvSrcRanks, GOs& offsets, T*& msgs, size_t& start, size_t& count, bool knownSizes) {
+    std::vector<T> Recv() {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
@@ -155,7 +158,7 @@ class AdiosComm : public Communicator<T> {
       auto t1 = redev::getTime();
       checkStep(eng.BeginStep());
       
-      if(!knownSizes) {
+      if(!inMsg.knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
         assert(rdvRanksVar);
         auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
@@ -164,31 +167,30 @@ class AdiosComm : public Communicator<T> {
         auto offsetsShape = offsetsVar.Shape();
         assert(offsetsShape.size() == 1);
         const auto offSz = offsetsShape[0];
-        offsets.resize(offSz);
+        inMsg.offset.resize(offSz);
         offsetsVar.SetSelection({{0}, {offSz}});
-        eng.Get(offsetsVar, offsets.data());
+        eng.Get(offsetsVar, inMsg.offset.data());
 
         auto rdvRanksShape = rdvRanksVar.Shape();
         assert(rdvRanksShape.size() == 1);
         const auto rsrSz = rdvRanksShape[0];
-        rdvSrcRanks.resize(rsrSz);
+        inMsg.srcRanks.resize(rsrSz);
         rdvRanksVar.SetSelection({{0},{rsrSz}});
-        eng.Get(rdvRanksVar, rdvSrcRanks.data());
+        eng.Get(rdvRanksVar, inMsg.srcRanks.data());
 
         eng.PerformGets();
+        inMsg.start = static_cast<size_t>(inMsg.offset[rank]);
+        inMsg.count = static_cast<size_t>(inMsg.offset[rank+1]-inMsg.start);
+        inMsg.knownSizes = true;
       }
       auto t2 = redev::getTime();
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      if(!knownSizes) {
-        start = static_cast<size_t>(offsets[rank]);
-        count = static_cast<size_t>(offsets[rank+1]-start);
-      }
-      assert(count);
-      msgs = new T[count];
-      msgsVar.SetSelection({{start}, {count}});
-      eng.Get(msgsVar, msgs);
+      assert(inMsg.count);
+      std::vector<T> msgs(inMsg.count);
+      msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
+      eng.Get(msgsVar, msgs.data());
 
       eng.PerformGets();
       eng.EndStep();
@@ -196,8 +198,13 @@ class AdiosComm : public Communicator<T> {
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
       if(!rank && verbose) {
-        fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n", knownSizes, r1.count(), r2.count());
+        fprintf(stderr, "recv knownSizes %d r1(sec.) r2(sec.) %f %f\n",
+            inMsg.knownSizes, r1.count(), r2.count());
       }
+      return msgs;
+    }
+    InMessageLayout GetInMessageLayout() {
+      return inMsg;
     }
     //the higher the value the more output is written
     //verbose=0 is silent
@@ -215,15 +222,13 @@ class AdiosComm : public Communicator<T> {
     adios2::Variable<redev::GO> offsetsVar;
     std::string name;
     //support only one call to pack for now...
-    struct Msg {
-      Msg(LOs& dest_, LOs& offsets_, T* msgs_)
-        : dest(dest_), offsets(offsets_), msgs(msgs_) { }
-      LOs& dest;
-      LOs& offsets;
-      T* msgs;
-    };
-    std::vector<Msg> packed;
+    struct OutMessageLayout {
+      LOs dest;
+      LOs offsets;
+    } outMsg;
     int verbose;
+    //receive side state
+    InMessageLayout inMsg;
 };
 
 }

@@ -29,7 +29,7 @@ class Partition {
 class ClassPtn : public Partition {
   public:
     ClassPtn();
-    ClassPtn(std::vector<redev::LO>& ranks, std::vector<redev::LO>& classIds);
+    ClassPtn(const redev::LOs& ranks, const redev::LOs& classIds);
     redev::LO GetRank(redev::LO classId) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);

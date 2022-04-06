@@ -54,31 +54,22 @@ int main(int argc, char** argv) {
       offsets = redev::LOs{0,4,5,7,11};
       msgs = redev::LOs(11,2);
     }
-    comm.Pack(dest, offsets, msgs.data());
-    comm.Send();
+    comm.SetOutMessageLayout(dest, offsets);
+    comm.Send(msgs.data());
   } else {
-    redev::LO* msgs;
-    redev::GOs rdvSrcRanks;
-    redev::GOs offsets;
-    size_t msgStart, msgCount;
-    const bool knownSizes = false;
-    comm.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
-    REDEV_ALWAYS_ASSERT(offsets == redev::GOs({0,7,11,21,27}));
-    REDEV_ALWAYS_ASSERT(rdvSrcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
+    auto msgVec = comm.Recv();
+    auto inMsg = comm.GetInMessageLayout();
+    REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
+    REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
     if(rank == 0) {
-      redev::LOs msgVec(msgs, msgs+7);
       REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0,0,1,2,2,2,2}));
     } else if(rank == 1) {
-      redev::LOs msgVec(msgs, msgs+4);
       REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({1,1,1,2}));
     } else if(rank == 2) {
-      redev::LOs msgVec(msgs, msgs+10);
       REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0,0,0,0,1,1,1,1,2,2}));
     } else if(rank == 3) {
-      redev::LOs msgVec(msgs, msgs+6);
       REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({1,1,2,2,2,2}));
     }
-    delete [] msgs;
   }
   }
   MPI_Finalize();

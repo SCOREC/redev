@@ -28,51 +28,46 @@ int main(int argc, char** argv) {
   rdv.Setup();
   redev::AdiosComm<redev::LO> commA2R(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), "foo_A2R");
   redev::AdiosComm<redev::LO> commR2A(MPI_COMM_WORLD, ranks.size(), rdv.getFromEngine(), rdv.getFromIO(), "foo_R2A");
-  size_t msgStart, msgCount;
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
-      redev::LOs dest = redev::LOs{0};
-      redev::LOs offsets = redev::LOs{0,1};
-      redev::LOs msgs = redev::LOs(1,42);
-      commA2R.Pack(dest, offsets, msgs.data());
-      commA2R.Send();
-    } else {
-      redev::LO* msgs;
-      redev::GOs rdvSrcRanks;
-      redev::GOs offsets;
-      const bool knownSizes = (iter==0) ? false : true;
-      commA2R.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
-      if(iter == 0) {
-        REDEV_ALWAYS_ASSERT(offsets == redev::GOs({0,1}));
-        REDEV_ALWAYS_ASSERT(rdvSrcRanks == redev::GOs({0}));
+      if(iter==0) {
+        redev::LOs dest = redev::LOs{0};
+        redev::LOs offsets = redev::LOs{0,1};
+        commA2R.SetOutMessageLayout(dest, offsets);
       }
-      REDEV_ALWAYS_ASSERT(msgStart == 0);
-      REDEV_ALWAYS_ASSERT(msgCount == 1);
+      redev::LOs msgs = redev::LOs(1,42);
+      commA2R.Send(msgs.data());
+    } else {
+      auto msgs = commA2R.Recv();
+      if(iter == 0) {
+        auto inMsg = commA2R.GetInMessageLayout();
+        REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+        REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+        REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+        REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+      }
       REDEV_ALWAYS_ASSERT(msgs[0] == 42);
-      delete [] msgs;
     }
     // the rendezvous app sends to the non-rendezvous app
     if(isRdv) {
-      redev::LOs dest = redev::LOs{0};
-      redev::LOs offsets = redev::LOs{0,1};
-      redev::LOs msgs = redev::LOs(1,1337);
-      commR2A.Pack(dest, offsets, msgs.data());
-      commR2A.Send();
-    } else {
-      redev::LO* msgs;
-      redev::GOs rdvSrcRanks;
-      redev::GOs offsets;
-      const bool knownSizes = (iter==0) ? false : true;
-      commR2A.Unpack(rdvSrcRanks,offsets,msgs,msgStart,msgCount,knownSizes);
       if(iter==0) {
-        REDEV_ALWAYS_ASSERT(offsets == redev::GOs({0,1}));
-        REDEV_ALWAYS_ASSERT(rdvSrcRanks == redev::GOs({0}));
+        redev::LOs dest = redev::LOs{0};
+        redev::LOs offsets = redev::LOs{0,1};
+        commR2A.SetOutMessageLayout(dest, offsets);
       }
-      REDEV_ALWAYS_ASSERT(msgStart == 0);
-      REDEV_ALWAYS_ASSERT(msgCount == 1);
+      redev::LOs msgs = redev::LOs(1,1337);
+      commR2A.Send(msgs.data());
+    } else {
+      auto msgs = commR2A.Recv();
+      if(iter==0) {
+        auto inMsg = commR2A.GetInMessageLayout();
+        REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+        REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+        REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+        REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+      }
       REDEV_ALWAYS_ASSERT(msgs[0] == 1337);
-      delete [] msgs;
     }
   }
   }
