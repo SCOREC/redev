@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
       offsets = redev::LOs{0,4,5,7,11};
       msgs = redev::LOs(11,2);
     }
-    comm.Pack(dest, offsets, msgs.data());
-    comm.Send();
+    comm.SetOutMessageLayout(dest, offsets);
+    comm.Send(msgs.data());
   } else {
     auto msgVec = comm.Unpack();
     auto inMsg = comm.GetInMessageLayout();

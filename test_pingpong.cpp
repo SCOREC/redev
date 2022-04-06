@@ -31,11 +31,13 @@ int main(int argc, char** argv) {
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
-      redev::LOs dest = redev::LOs{0};
-      redev::LOs offsets = redev::LOs{0,1};
+      if(iter==0) {
+        redev::LOs dest = redev::LOs{0};
+        redev::LOs offsets = redev::LOs{0,1};
+        commA2R.SetOutMessageLayout(dest, offsets);
+      }
       redev::LOs msgs = redev::LOs(1,42);
-      commA2R.Pack(dest, offsets, msgs.data());
-      commA2R.Send();
+      commA2R.Send(msgs.data());
     } else {
       auto msgs = commA2R.Unpack();
       if(iter == 0) {
@@ -49,11 +51,13 @@ int main(int argc, char** argv) {
     }
     // the rendezvous app sends to the non-rendezvous app
     if(isRdv) {
-      redev::LOs dest = redev::LOs{0};
-      redev::LOs offsets = redev::LOs{0,1};
+      if(iter==0) {
+        redev::LOs dest = redev::LOs{0};
+        redev::LOs offsets = redev::LOs{0,1};
+        commR2A.SetOutMessageLayout(dest, offsets);
+      }
       redev::LOs msgs = redev::LOs(1,1337);
-      commR2A.Pack(dest, offsets, msgs.data());
-      commR2A.Send();
+      commR2A.Send(msgs.data());
     } else {
       auto msgs = commR2A.Unpack();
       if(iter==0) {

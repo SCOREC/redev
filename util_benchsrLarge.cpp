@@ -82,18 +82,19 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   ss << mbpr << " B rdvMapped ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
-  size_t msgStart, msgCount;
   for(int i=0; i<3; i++) {
     if(!isRdv) {
       //dest and offets define a CSR for which ranks the array of messages get sent to
-      const int destRank = rank/reductionFactor;
-      redev::LOs dest = {destRank};
-      redev::LOs offsets;
-      constructCsrOffsetsMapped(destRank, mbpr, offsets);
+      if(i==0) {
+        const int destRank = rank/reductionFactor;
+        redev::LOs dest = {destRank};
+        redev::LOs offsets;
+        constructCsrOffsetsMapped(destRank, mbpr, offsets);
+        comm.SetOutMessageLayout(dest, offsets);
+      }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      comm.Pack(dest, offsets, msgs.data());
-      comm.Send();
+      comm.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -140,18 +141,19 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   ss << mbpr << " B rdvFanOut ";
   redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app
-  size_t msgStart, msgCount;
   for(int i=0; i<3; i++) {
     if(!isRdv) {
       //dest and offets define a CSR for which ranks the array of messages get sent to
-      redev::LOs dest(rdvRanks);
-      std::iota(dest.begin(),dest.end(),0);
-      redev::LOs offsets(mbpr);
-      constructCsrOffsetsFanOut(mbpr,rdvRanks,offsets);
+      if(i==0) {
+        redev::LOs dest(rdvRanks);
+        std::iota(dest.begin(),dest.end(),0);
+        redev::LOs offsets(mbpr);
+        constructCsrOffsetsFanOut(mbpr,rdvRanks,offsets);
+        comm.SetOutMessageLayout(dest, offsets);
+      }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      comm.Pack(dest, offsets, msgs.data());
-      comm.Send();
+      comm.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
