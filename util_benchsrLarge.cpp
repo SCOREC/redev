@@ -104,7 +104,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      auto msgs = comm.Unpack();
+      auto msgs = comm.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -163,7 +163,7 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      comm.Unpack();
+      comm.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;

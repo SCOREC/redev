@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     comm.SetOutMessageLayout(dest, offsets);
     comm.Send(msgs.data());
   } else {
-    auto msgVec = comm.Unpack();
+    auto msgVec = comm.Recv();
     auto inMsg = comm.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));

@@ -38,7 +38,7 @@ class Communicator {
   public:
     virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
     virtual void Send(T* msgs) = 0;
-    virtual std::vector<T> Unpack() = 0;
+    virtual std::vector<T> Recv() = 0;
 };
 
 struct InMessageLayout {
@@ -150,7 +150,7 @@ class AdiosComm : public Communicator<T> {
       eng.PerformPuts();
       eng.EndStep();
     }
-    std::vector<T> Unpack() {
+    std::vector<T> Recv() {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
@@ -198,7 +198,7 @@ class AdiosComm : public Communicator<T> {
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
       if(!rank && verbose) {
-        fprintf(stderr, "unpack knownSizes %d r1(sec.) r2(sec.) %f %f\n",
+        fprintf(stderr, "recv knownSizes %d r1(sec.) r2(sec.) %f %f\n",
             inMsg.knownSizes, r1.count(), r2.count());
       }
       return msgs;

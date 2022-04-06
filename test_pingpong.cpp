@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
       redev::LOs msgs = redev::LOs(1,42);
       commA2R.Send(msgs.data());
     } else {
-      auto msgs = commA2R.Unpack();
+      auto msgs = commA2R.Recv();
       if(iter == 0) {
         auto inMsg = commA2R.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
       redev::LOs msgs = redev::LOs(1,1337);
       commR2A.Send(msgs.data());
     } else {
-      auto msgs = commR2A.Unpack();
+      auto msgs = commR2A.Recv();
       if(iter==0) {
         auto inMsg = commR2A.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));

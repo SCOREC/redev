@@ -81,7 +81,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     if(!rank) printTime(str, min, max, avg);
   } else {
     auto start = std::chrono::steady_clock::now();
-    comm.Unpack();
+    comm.Recv();
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
