@@ -4,25 +4,26 @@
 
 void classPtnTest(int rank, bool isRdv) {
   //dummy partition vector data: class partition
-  const auto expectedRanks = redev::LOs({0,1,2,3});
-  const auto expectedClassIds = redev::LOs({2,1,0,3});
-  std::map<redev::LO, redev::LO> expC2R;
+  const redev::LOs expectedRanks = {0,1,2,3};
+  const redev::ClassPtn::ModelEntVec expectedEnts {{0,0},{1,0},{2,0},{2,1}};
+  typedef std::map<redev::ClassPtn::ModelEnt,redev::LO> EntToRank;
+  EntToRank expectedE2R;
   for(int i=0; i<expectedRanks.size(); i++)
-    expC2R[expectedClassIds[i]] = expectedRanks[i];
+    expectedE2R[expectedEnts[i]] = expectedRanks[i];
   auto ranks = isRdv ? expectedRanks : redev::LOs();
-  auto classIds = isRdv ? expectedClassIds : redev::LOs();
-  auto ptn = redev::ClassPtn(ranks,classIds);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
+  auto ents = isRdv ? expectedEnts : redev::ClassPtn::ModelEntVec();
+  auto partition = redev::ClassPtn(ranks,ents);
+  redev::Redev rdv(MPI_COMM_WORLD,partition,isRdv);
   rdv.Setup();
   if(!isRdv) {
-    auto ptnRanks = ptn.GetRanks();
-    auto ptnClassIds = ptn.GetClassIds();
-    REDEV_ALWAYS_ASSERT(ptnRanks.size() == 4);
-    REDEV_ALWAYS_ASSERT(ptnClassIds.size() == 4);
-    std::map<redev::LO, redev::LO> c2r;
-    for(int i=0; i<ptnRanks.size(); i++)
-      c2r[ptnClassIds[i]] = ptnRanks[i];
-    REDEV_ALWAYS_ASSERT(c2r == expC2R);
+    auto p_ranks = partition.GetRanks();
+    auto p_modelEnts = partition.GetModelEnts();
+    REDEV_ALWAYS_ASSERT(p_ranks.size() == 4);
+    REDEV_ALWAYS_ASSERT(p_modelEnts.size() == 4);
+    EntToRank e2r;
+    for(int i=0; i<p_ranks.size(); i++)
+      e2r[p_modelEnts[i]] = p_ranks[i];
+    REDEV_ALWAYS_ASSERT(e2r == expectedE2R);
   }
 }
 

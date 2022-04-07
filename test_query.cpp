@@ -13,14 +13,15 @@ int main(int argc, char** argv) {
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   { //classPtn
     std::vector<redev::LO> ranks = {0,1,2,3};
-    std::vector<redev::LO> classIds = {2,1,0,3};
-    auto ptn = redev::ClassPtn(ranks,classIds);
+    const redev::ClassPtn::ModelEntVec modelEnts {{0,0},{1,0},{2,0},{2,1}};
+    auto ptn = redev::ClassPtn(ranks,modelEnts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
     rdv.Setup();
-    REDEV_ALWAYS_ASSERT(2 == ptn.GetRank(0));
-    REDEV_ALWAYS_ASSERT(1 == ptn.GetRank(1));
-    REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(2));
-    REDEV_ALWAYS_ASSERT(3 == ptn.GetRank(3));
+    using ModelEnt = redev::ClassPtn::ModelEnt;
+    REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(ModelEnt({0,0})) );
+    REDEV_ALWAYS_ASSERT(1 == ptn.GetRank(ModelEnt({1,0})) );
+    REDEV_ALWAYS_ASSERT(2 == ptn.GetRank(ModelEnt({2,0})) );
+    REDEV_ALWAYS_ASSERT(3 == ptn.GetRank(ModelEnt({2,1})) );
   }
   { //1D RCB
     const auto dim = 1;

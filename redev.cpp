@@ -36,100 +36,124 @@ namespace redev {
   //TODO consider moving the ClassPtn source to another file
   ClassPtn::ClassPtn() {}
 
-  ClassPtn::ClassPtn(const redev::LOs& ranks_, const redev::LOs& classIds_) {
-    assert(ranks_.size() == classIds_.size());
+  ClassPtn::ClassPtn(const redev::LOs& ranks_, const ModelEntVec& ents) {
+    assert(ranks_.size() == ents.size());
+    if( ! ModelEntDimsValid(ents) ) exit(EXIT_FAILURE);
     for(auto i=0; i<ranks_.size(); i++) {
-      auto id = classIds_[i];
-      auto rank = ranks_[i];
-      classIdToRank[id] = rank;
+      modelEntToRank[ents[i]] = ranks_[i];
     }
   }
 
-  redev::LO ClassPtn::GetRank(redev::LO classId) const {
-    REDEV_FUNCTION_TIMER;
-    assert(classIdToRank.size());
-    assert(classIdToRank.count(classId));
-    return classIdToRank.at(classId);
+  bool ClassPtn::ModelEntDimsValid(const ClassPtn::ModelEntVec& ents) const {
+    auto badDim = [](ModelEnt e){ return (e.first<0 || e.first>3); };
+    auto res = std::find_if(begin(ents), end(ents), badDim);
+    if (res != std::end(ents)) {
+      std::stringstream ss;
+      ss << "ERROR: a ModelEnt contains an invalid dimension: "
+         << res->first << "... exiting\n";
+      std::cerr << ss.str();
+    }
+    return (res == std::end(ents));
   }
 
-  std::vector<redev::LO> ClassPtn::GetRanks() const {
+  redev::LO ClassPtn::GetRank(ModelEnt ent) const {
     REDEV_FUNCTION_TIMER;
-    std::vector<redev::LO> ranks(classIdToRank.size());
+    assert(modelEntToRank.size());
+    assert(modelEntToRank.count(ent));
+    return modelEntToRank.at(ent);
+  }
+
+  redev::LOs ClassPtn::GetRanks() const {
+    REDEV_FUNCTION_TIMER;
+    redev::LOs ranks(modelEntToRank.size());
     int i=0;
-    for(const auto& idRank : classIdToRank) {
-      ranks[i++]=idRank.second;
+    for(const auto& iter : modelEntToRank) {
+      ranks[i++]=iter.second;
     }
     return ranks;
   }
 
-  std::vector<redev::LO> ClassPtn::GetClassIds() const {
+  ClassPtn::ModelEntVec ClassPtn::GetModelEnts() const {
     REDEV_FUNCTION_TIMER;
-    std::vector<redev::LO> classIds(classIdToRank.size());
+    ModelEntVec ents(modelEntToRank.size());
     int i=0;
-    for(const auto& idRank : classIdToRank) {
-      classIds[i++]=idRank.first;
+    for(const auto& iter : modelEntToRank) {
+      ents[i++]=iter.first;
     }
-    return classIds;
+    return ents;
+  }
+
+  redev::LOs ClassPtn::SerializeModelEntsAndRanks() const {
+    REDEV_FUNCTION_TIMER;
+    const auto stride = 3;
+    const auto numEnts = modelEntToRank.size();
+    redev::LOs entsAndRanks;
+    entsAndRanks.reserve(numEnts*stride);
+    for(const auto& iter : modelEntToRank) {
+      auto ent = iter.first;
+      entsAndRanks.push_back(ent.first);   //dim
+      entsAndRanks.push_back(ent.second);  //id
+      entsAndRanks.push_back(iter.second); //rank
+    }
+    REDEV_ALWAYS_ASSERT(entsAndRanks.size()==numEnts*stride);
+    return entsAndRanks;
+  }
+
+  ClassPtn::ModelEntToRank ClassPtn::DeserializeModelEntsAndRanks(const redev::LOs& serialized) const {
+    REDEV_FUNCTION_TIMER;
+    const auto stride = 3;
+    REDEV_ALWAYS_ASSERT(serialized.size()%stride==0);
+    ModelEntToRank me2r;
+    for(size_t i=0; i<serialized.size(); i+=stride) {
+      const auto dim=serialized[i];
+      REDEV_ALWAYS_ASSERT(dim>=0 && dim<=3);
+      const auto id=serialized[i+1];
+      const auto rank=serialized[i+2];
+      ModelEnt ent(dim,id);
+      assert(!me2r.count(ent)); //does not exist
+      me2r[ModelEnt(dim,id)] = rank;
+    }
+    return me2r;
   }
 
   void ClassPtn::Write(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
-    const auto len = classIdToRank.size();
-    assert(len>=1);
-    auto ranks = GetRanks();
-    auto classIds = GetClassIds();
-    auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
-    auto classIdsVar = io.DefineVariable<redev::LO>(classIdsVarName,{},{},{len});
-    eng.Put(ranksVar, ranks.data());
-    eng.Put(classIdsVar, classIds.data());
+    auto serialized = SerializeModelEntsAndRanks();
+    const auto len = serialized.size();
+    auto entsAndRanksVar = io.DefineVariable<redev::LO>(entsAndRanksVarName,{},{},{len});
+    eng.Put(entsAndRanksVar, serialized.data());
     eng.PerformPuts();
   }
 
   void ClassPtn::Read(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     const auto step = eng.CurrentStep();
-    auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
-    auto classIdsVar = io.InquireVariable<redev::LO>(classIdsVarName);
-    assert(ranksVar && classIdsVar);
+    auto entsAndRanksVar = io.InquireVariable<redev::LO>(entsAndRanksVarName);
+    assert(entsAndRanksVar);
 
-    auto blocksInfo = eng.BlocksInfo(ranksVar,step);
+    auto blocksInfo = eng.BlocksInfo(entsAndRanksVar,step);
     assert(blocksInfo.size()==1);
-    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
-    redev::LOs ranks;
-    eng.Get(ranksVar, ranks);
-
-    blocksInfo = eng.BlocksInfo(ranksVar,step);
-    assert(blocksInfo.size()==1);
-    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
-    redev::LOs classIds;
-    eng.Get(classIdsVar, classIds);
+    entsAndRanksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    redev::LOs serialized;
+    eng.Get(entsAndRanksVar, serialized);
     eng.PerformGets(); //default read mode is deferred
 
-    assert(ranks.size() == classIds.size());
-    for(auto i=0; i<ranks.size(); i++) {
-      auto id = classIds[i];
-      auto rank = ranks[i];
-      classIdToRank[id] = rank;
-    }
+    modelEntToRank = DeserializeModelEntsAndRanks(serialized);
   }
 
   void ClassPtn::Broadcast(MPI_Comm comm, int root) {
     REDEV_FUNCTION_TIMER;
     int rank;
     MPI_Comm_rank(comm, &rank);
-    auto ranks = GetRanks();
-    auto classIds = GetClassIds();
-    int count = ranks.size();
-    redev::Broadcast(&count, 1, root, comm);
+    auto serialized = SerializeModelEntsAndRanks();
+    int len = static_cast<int>(serialized.size());
+    redev::Broadcast(&len, 1, root, comm);
     if(root != rank) {
-      ranks.resize(count);
-      classIds.resize(count);
+      serialized.resize(len);
     }
-    redev::Broadcast(ranks.data(), ranks.size(), root, comm);
-    redev::Broadcast(classIds.data(), classIds.size(), root, comm);
-    for(auto i=0; i<ranks.size(); i++) {
-      auto id = classIds[i];
-      classIdToRank[id] = ranks[i];
+    redev::Broadcast(serialized.data(), serialized.size(), root, comm);
+    if(root != rank) {
+      modelEntToRank = DeserializeModelEntsAndRanks(serialized);
     }
   }
 
