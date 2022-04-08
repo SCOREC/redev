@@ -58,6 +58,7 @@ namespace redev {
 
   redev::LO ClassPtn::GetRank(ModelEnt ent) const {
     REDEV_FUNCTION_TIMER;
+    REDEV_ALWAYS_ASSERT(ent.first>=0 && ent.first <=3); //check for valid dimension
     assert(modelEntToRank.size());
     assert(modelEntToRank.count(ent));
     return modelEntToRank.at(ent);
