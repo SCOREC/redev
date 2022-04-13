@@ -1,7 +1,7 @@
 #pragma once
 #include "redev.h"
 #include "redev_profile.h"
-#include <numeric> // accumulate, esclusive_scan
+#include <numeric> // accumulate, exclusive_scan
 #include <type_traits> // is_same
 
 namespace {
