@@ -30,12 +30,14 @@ class ClassPtn : public Partition {
   public:
     typedef std::pair<redev::LO, redev::LO> ModelEnt; //dim, id
     typedef std::vector<ModelEnt> ModelEntVec;
+    typedef std::map<ModelEnt,redev::LO> ModelEntToRank;
     ClassPtn();
     ClassPtn(const redev::LOs& ranks, const ModelEntVec& ents);
     redev::LO GetRank(ModelEnt ent) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
     void Broadcast(MPI_Comm comm, int root=0);
+    void Gather(MPI_Comm comm, int root=0);
     redev::LOs GetRanks() const;
     ModelEntVec GetModelEnts() const;
   private:
@@ -45,7 +47,6 @@ class ClassPtn : public Partition {
      * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      */
     redev::LOs SerializeModelEntsAndRanks() const;
-    typedef std::map<ModelEnt,redev::LO> ModelEntToRank;
     /**
      * Given a vector that contains:
      * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]

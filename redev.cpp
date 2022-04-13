@@ -142,6 +142,27 @@ namespace redev {
     modelEntToRank = DeserializeModelEntsAndRanks(serialized);
   }
 
+  void ClassPtn::Gather(MPI_Comm comm, int root) {
+    REDEV_FUNCTION_TIMER;
+    int rank, commSize;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &commSize);
+    auto degree = !rank ? redev::LOs(commSize+1) : redev::LOs();
+    auto serialized = SerializeModelEntsAndRanks();
+    int len = static_cast<int>(serialized.size());
+    MPI_Gather(&len,1,MPI_INT,degree.data(),1,MPI_INT,root,comm);
+    if(root==rank) {
+      auto offset = redev::LOs(commSize+1);
+      std::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
+      auto allSerialized = redev::LOs(offset.back());
+      MPI_Gatherv(serialized.data(), len, MPI_INT, allSerialized.data(),
+          degree.data(), offset.data(), MPI_INT, root, MPI_COMM_WORLD);
+      modelEntToRank = DeserializeModelEntsAndRanks(allSerialized);
+    } else {
+      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, MPI_COMM_WORLD);
+    }
+  }
+
   void ClassPtn::Broadcast(MPI_Comm comm, int root) {
     REDEV_FUNCTION_TIMER;
     int rank;
