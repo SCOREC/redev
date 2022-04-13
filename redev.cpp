@@ -111,9 +111,10 @@ namespace redev {
       const auto id=serialized[i+1];
       const auto rank=serialized[i+2];
       ModelEnt ent(dim,id);
-      if(me2r.count(ent))
-        REDEV_ALWAYS_ASSERT(me2r[ent] == rank);
-      me2r[ModelEnt(dim,id)] = rank;
+      const auto hasEnt = me2r.count(ent);
+      if( (hasEnt && rank < me2r[ent]) || !hasEnt ) {
+        me2r[ModelEnt(dim,id)] = rank;
+      }
     }
     return me2r;
   }
