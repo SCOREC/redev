@@ -187,10 +187,12 @@ class AdiosComm : public Communicator<T> {
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      assert(inMsg.count);
       std::vector<T> msgs(inMsg.count);
-      msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
-      eng.Get(msgsVar, msgs.data());
+      if(inMsg.count) {
+        //only call Get with non-zero sized reads
+        msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
+        eng.Get(msgsVar, msgs.data());
+      }
 
       eng.PerformGets();
       eng.EndStep();
