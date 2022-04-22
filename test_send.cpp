@@ -33,7 +33,6 @@ int main(int argc, char** argv) {
   auto cuts = isRdv ? redev::Reals({0,0.5,0.75,0.25}) : redev::Reals(4);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  rdv.Setup();
   std::string name = "foo";
   redev::AdiosComm<redev::LO> comm(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
   // the non-rendezvous app sends to the rendezvous app

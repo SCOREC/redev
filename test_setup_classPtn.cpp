@@ -14,7 +14,6 @@ void classPtnTest(int rank, bool isRdv) {
   auto ents = isRdv ? expectedEnts : redev::ClassPtn::ModelEntVec();
   auto partition = redev::ClassPtn(ranks,ents);
   redev::Redev rdv(MPI_COMM_WORLD,partition,isRdv);
-  rdv.Setup();
   if(!isRdv) {
     auto p_ranks = partition.GetRanks();
     auto p_modelEnts = partition.GetModelEnts();

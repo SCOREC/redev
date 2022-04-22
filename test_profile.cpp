@@ -18,7 +18,6 @@ int main(int argc, char** argv) {
     std::vector<redev::Real> cuts = {0,0.5,0.25,0.75};
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
     const int numCalls = 10;
     for(auto i=0; i<numCalls; i++)

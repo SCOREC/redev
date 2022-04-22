@@ -56,7 +56,6 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
-  rdv.Setup();
   std::string name = "foo";
   std::stringstream ss;
   ss << mbpr << " B rdv ";

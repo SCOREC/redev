@@ -76,7 +76,6 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
-  rdv.Setup();
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";
@@ -135,7 +134,6 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
-  rdv.Setup();
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvFanOut ";

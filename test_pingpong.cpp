@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  rdv.Setup();
   redev::AdiosComm<redev::LO> commA2R(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), "foo_A2R");
   redev::AdiosComm<redev::LO> commR2A(MPI_COMM_WORLD, ranks.size(), rdv.getFromEngine(), rdv.getFromIO(), "foo_R2A");
   for(int iter=0; iter<3; iter++) {

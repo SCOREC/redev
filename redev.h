@@ -97,12 +97,12 @@ class Redev {
   public:
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noParticipant=false);
     ~Redev();
-    void Setup();
     adios2::Engine& getToEngine() { return toEng; }
     adios2::Engine& getFromEngine() { return fromEng; }
     adios2::IO& getToIO() { return toIo; }
     adios2::IO& getFromIO() { return fromIo; }
   private:
+    void Setup();
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise
     void openEnginesBP4(bool noParticipant);

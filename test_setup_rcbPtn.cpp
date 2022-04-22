@@ -11,7 +11,6 @@ void rcbPtnTest(int rank, bool isRdv) {
   const auto dim = 2;
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  rdv.Setup();
   if(!isRdv) {
     auto ptnRanks = ptn.GetRanks();
     auto ptnCuts = ptn.GetCuts();

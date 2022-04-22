@@ -351,7 +351,25 @@ namespace redev {
       }
       exit(EXIT_FAILURE);
     }
+    Setup();
   }
+
+  void Redev::Setup() {
+    REDEV_FUNCTION_TIMER;
+    CheckVersion(fromEng,fromIo);
+    auto status = fromEng.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    //rendezvous app rank 0 writes partition info and other apps read
+    if(!rank) {
+      if(isRendezvous)
+        ptn.Write(fromEng,fromIo);
+      else
+        ptn.Read(fromEng,fromIo);
+    }
+    fromEng.EndStep();
+    ptn.Broadcast(comm);
+  }
+
 
   Redev::~Redev() {
     REDEV_FUNCTION_TIMER;
@@ -383,22 +401,6 @@ namespace redev {
       }
     }
     eng.EndStep();
-  }
-
-  void Redev::Setup() {
-    REDEV_FUNCTION_TIMER;
-    CheckVersion(fromEng,fromIo);
-    auto status = fromEng.BeginStep();
-    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
-    //rendezvous app rank 0 writes partition info and other apps read
-    if(!rank) {
-      if(isRendezvous)
-        ptn.Write(fromEng,fromIo);
-      else
-        ptn.Read(fromEng,fromIo);
-    }
-    fromEng.EndStep();
-    ptn.Broadcast(comm);
   }
 
   void Redev_Assert_Fail(const char* msg) {
