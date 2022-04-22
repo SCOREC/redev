@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   { //classPtn
     std::vector<redev::LO> ranks = {0,1,2,3};
     const redev::ClassPtn::ModelEntVec modelEnts {{0,0},{1,0},{2,0},{2,1}};
-    auto ptn = redev::ClassPtn(ranks,modelEnts);
+    auto ptn = redev::ClassPtn(MPI_COMM_WORLD,ranks,modelEnts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
     using ModelEnt = redev::ClassPtn::ModelEnt;
     REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(ModelEnt({0,0})) );

@@ -32,15 +32,15 @@ class ClassPtn : public Partition {
     typedef std::vector<ModelEnt> ModelEntVec;
     typedef std::map<ModelEnt,redev::LO> ModelEntToRank;
     ClassPtn();
-    ClassPtn(const redev::LOs& ranks, const ModelEntVec& ents);
+    ClassPtn(MPI_Comm comm, const redev::LOs& ranks, const ModelEntVec& ents);
     redev::LO GetRank(ModelEnt ent) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
     void Read(adios2::Engine& eng, adios2::IO& io);
     void Broadcast(MPI_Comm comm, int root=0);
-    void Gather(MPI_Comm comm, int root=0);
     redev::LOs GetRanks() const;
     ModelEntVec GetModelEnts() const;
   private:
+    void Gather(MPI_Comm comm, int root=0);
     const std::string entsAndRanksVarName = "class partition ents and ranks";
     /**
      * return a vector that writes the ModelEntToRank map as:

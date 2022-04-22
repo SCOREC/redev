@@ -36,11 +36,33 @@ namespace redev {
   //TODO consider moving the ClassPtn source to another file
   ClassPtn::ClassPtn() {}
 
-  ClassPtn::ClassPtn(const redev::LOs& ranks_, const ModelEntVec& ents) {
+  ClassPtn::ClassPtn(MPI_Comm comm, const redev::LOs& ranks_, const ModelEntVec& ents) {
     assert(ranks_.size() == ents.size());
     if( ! ModelEntDimsValid(ents) ) exit(EXIT_FAILURE);
     for(auto i=0; i<ranks_.size(); i++) {
       modelEntToRank[ents[i]] = ranks_[i];
+    }
+    Gather(comm);
+  }
+
+  void ClassPtn::Gather(MPI_Comm comm, int root) {
+    REDEV_FUNCTION_TIMER;
+    int rank, commSize;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &commSize);
+    auto degree = !rank ? redev::LOs(commSize+1) : redev::LOs();
+    auto serialized = SerializeModelEntsAndRanks();
+    int len = static_cast<int>(serialized.size());
+    MPI_Gather(&len,1,MPI_INT,degree.data(),1,MPI_INT,root,comm);
+    if(root==rank) {
+      auto offset = redev::LOs(commSize+1);
+      std::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
+      auto allSerialized = redev::LOs(offset.back());
+      MPI_Gatherv(serialized.data(), len, MPI_INT, allSerialized.data(),
+          degree.data(), offset.data(), MPI_INT, root, MPI_COMM_WORLD);
+      modelEntToRank = DeserializeModelEntsAndRanks(allSerialized);
+    } else {
+      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, MPI_COMM_WORLD);
     }
   }
 
@@ -144,27 +166,6 @@ namespace redev {
     modelEntToRank = DeserializeModelEntsAndRanks(serialized);
   }
 
-  void ClassPtn::Gather(MPI_Comm comm, int root) {
-    REDEV_FUNCTION_TIMER;
-    int rank, commSize;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &commSize);
-    auto degree = !rank ? redev::LOs(commSize+1) : redev::LOs();
-    auto serialized = SerializeModelEntsAndRanks();
-    int len = static_cast<int>(serialized.size());
-    MPI_Gather(&len,1,MPI_INT,degree.data(),1,MPI_INT,root,comm);
-    if(root==rank) {
-      auto offset = redev::LOs(commSize+1);
-      std::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
-      auto allSerialized = redev::LOs(offset.back());
-      MPI_Gatherv(serialized.data(), len, MPI_INT, allSerialized.data(),
-          degree.data(), offset.data(), MPI_INT, root, MPI_COMM_WORLD);
-      modelEntToRank = DeserializeModelEntsAndRanks(allSerialized);
-    } else {
-      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, MPI_COMM_WORLD);
-    }
-  }
-
   void ClassPtn::Broadcast(MPI_Comm comm, int root) {
     REDEV_FUNCTION_TIMER;
     int rank;
@@ -230,7 +231,7 @@ namespace redev {
   void RCBPtn::Write(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     const auto len = ranks.size();
-    assert(len>=1);
+    if(!len) return; //don't attempt zero length write
     assert(len==cuts.size());
     auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
     auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len});
