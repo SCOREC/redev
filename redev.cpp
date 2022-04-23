@@ -371,6 +371,34 @@ namespace redev {
     ptn.Broadcast(comm);
   }
 
+  redev::LO Redev::GetClientCommSize() {
+    return 0;
+  }
+
+  redev::LO Redev::GetServerCommSize() {
+    REDEV_FUNCTION_TIMER;
+    int rank, commSize;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &commSize);
+    const auto varName = "redev server communicator size";
+    auto status = eng.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    redev::LO serverCommSz;
+    if(isRendezvous) {
+      auto var = io.DefineVariable<redev::LO>(varName);
+      if(!rank)
+        eng.Put(var, commSize);
+    } else {
+      auto var = io.InquireVariable<redev::LO>(varName);
+      if(var && !rank) {
+        eng.Get(var, serverCommSz);
+        eng.PerformGets(); //default read mode is deferred
+      }
+      redev::Broadcast(&serverCommSz,1,0,comm);
+    }
+    eng.EndStep();
+    return serverCommSz;
+  }
 
   Redev::~Redev() {
     REDEV_FUNCTION_TIMER;

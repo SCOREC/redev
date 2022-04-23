@@ -101,6 +101,8 @@ class Redev {
     adios2::Engine& getFromEngine() { return fromEng; }
     adios2::IO& getToIO() { return toIo; }
     adios2::IO& getFromIO() { return fromIo; }
+    redev::LO GetClientCommSize();
+    redev::LO GetServerCommSize();
   private:
     void Setup();
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
