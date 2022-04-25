@@ -8,8 +8,8 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   redev::RCBPtn ptn;
   auto isRendezvous=true;
-  auto noParticipant=true;
-  redev::Redev(MPI_COMM_WORLD,ptn,isRendezvous,noParticipant);
+  auto noClients=true;
+  redev::Redev(MPI_COMM_WORLD,ptn,isRendezvous,noClients);
   MPI_Finalize();
   return 0;
 }

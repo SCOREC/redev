@@ -1,7 +1,7 @@
 #include <redev.h>
 #include <cassert>
 #include "redev_git_version.h"
-#include "redev_comm.h"
+#include "redev.h"
 #include "redev_profile.h"
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
@@ -277,135 +277,167 @@ namespace redev {
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
   // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
-  void Redev::openEnginesBP4(bool noParticipant) {
+  void Redev::openEnginesBP4(bool noClients,
+      std::string s2cName, std::string c2sName,
+      adios2::IO& s2cIO, adios2::IO& c2sIO,
+      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
     if(isRendezvous) {
-      fromEng = fromIo.Open(bpFromName, adios2::Mode::Write);
-      assert(fromEng);
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
+      assert(s2cEngine);
     } else {
-      toEng = toIo.Open(bpToName, adios2::Mode::Write);
-      assert(toEng);
+      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
+      assert(c2sEngine);
     }
-    waitForEngineCreation(fromIo);
-    waitForEngineCreation(toIo);
+    waitForEngineCreation(s2cIO);
+    waitForEngineCreation(c2sIO);
     //create engines for reading
     if(isRendezvous) {
-      if(noParticipant==false) { //support unit testing
-        toEng = toIo.Open(bpToName, adios2::Mode::Read);
-        assert(toEng);
+      if(noClients==false) { //support unit testing
+        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
+        assert(c2sEngine);
       }
     } else {
-      fromEng = fromIo.Open(bpFromName, adios2::Mode::Read);
-      assert(fromEng);
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
+      assert(s2cEngine);
     }
   }
 
   // SST support
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
-  void Redev::openEnginesSST(bool noParticipant) {
+  void Redev::openEnginesSST(bool noClients,
+      std::string s2cName, std::string c2sName,
+      adios2::IO& s2cIO, adios2::IO& c2sIO,
+      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     //create one engine's reader and writer pair at a time - SST blocks on open(read)
     if(isRendezvous) {
-      fromEng = fromIo.Open(bpFromName, adios2::Mode::Write);
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
     } else {
-      fromEng = fromIo.Open(bpFromName, adios2::Mode::Read);
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
     }
-    assert(fromEng);
+    assert(s2cEngine);
     if(isRendezvous) {
-      if(noParticipant==false) { //support unit testing
-        toEng = toIo.Open(bpToName, adios2::Mode::Read);
-        assert(toEng);
+      if(noClients==false) { //support unit testing
+        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
+        assert(c2sEngine);
       }
     } else {
-      toEng = toIo.Open(bpToName, adios2::Mode::Write);
-      assert(toEng);
+      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
+      assert(c2sEngine);
     }
   }
 
-  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noParticipant)
-    : comm(comm_), adios("adios2.yaml", comm), ptn(ptn_), isRendezvous(isRendezvous_) {
+  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noClients_)
+    : comm(comm_), adios("adios2.yaml", comm), ptn(ptn_), isRendezvous(isRendezvous_), noClients(noClients_) {
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
     REDEV_ALWAYS_ASSERT(isInitialized);
-    MPI_Comm_rank(comm, &rank);
-    if(!rank) {
-      std::cout << "Redev Git Hash: " << redevGitHash << "\n";
-    }
-    fromIo = adios.DeclareIO("fromRendezvous");
-    toIo = adios.DeclareIO("toRendezvous");
-    REDEV_ALWAYS_ASSERT(fromIo.EngineType() == toIo.EngineType());
-    if(noParticipant) {
-      //SST hangs if there is no reader
-      fromIo.SetEngine("BP4");
-      toIo.SetEngine("BP4");
-    }
-    if( isSameCi(fromIo.EngineType(), "SST") ) {
-      openEnginesSST(noParticipant);
-    } else if( isSameCi(fromIo.EngineType(), "BP4") ) {
-      openEnginesBP4(noParticipant);
-    } else {
-      if(!rank) {
-        std::cerr << "ERROR: redev does not support ADIOS2 engine " << fromIo.EngineType() << "\n";
-      }
-      exit(EXIT_FAILURE);
-    }
-    Setup();
   }
 
-  void Redev::Setup() {
+  void Redev::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
-    CheckVersion(fromEng,fromIo);
-    auto status = fromEng.BeginStep();
+    CheckVersion(s2cEngine,s2cIO);
+    auto status = s2cEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
       if(isRendezvous)
-        ptn.Write(fromEng,fromIo);
+        ptn.Write(s2cEngine,s2cIO);
       else
-        ptn.Read(fromEng,fromIo);
+        ptn.Read(s2cEngine,s2cIO);
     }
-    fromEng.EndStep();
+    s2cEngine.EndStep();
     ptn.Broadcast(comm);
   }
 
-  redev::LO Redev::GetClientCommSize() {
-    return 0;
+  template<typename T>
+  Redev::CommPair<T> Redev::CreateAdiosClient(std::string_view name) {
+    auto s2cName = std::string(name)+"_s2c";
+    auto c2sName = std::string(name)+"_c2s";
+    auto s2cIO = adios.DeclareIO(s2cName);
+    auto c2sIO = adios.DeclareIO(c2sName);
+    REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
+    if(noClients) {
+      //SST hangs if there is no reader
+      s2cIO.SetEngine("BP4");
+      c2sIO.SetEngine("BP4");
+    }
+    adios2::Engine s2cEngine;
+    adios2::Engine c2sEngine;
+    if( isSameCi(s2cIO.EngineType(), "SST") ) {
+      openEnginesSST(noClients,s2cName,c2sName,
+          s2cIO,c2sIO,s2cEngine,c2sEngine);
+    } else if( isSameCi(s2cIO.EngineType(), "BP4") ) {
+      openEnginesBP4(noClients,s2cName,c2sName,
+          s2cIO,c2sIO,s2cEngine,c2sEngine);
+    } else {
+      if(!rank) {
+        std::cerr << "ERROR: redev does not support ADIOS2 engine " << s2cIO.EngineType() << "\n";
+      }
+      exit(EXIT_FAILURE);
+    }
+    Setup(s2cIO,s2cEngine);
+    const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine); //NOT TESTED
+    const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine); //NOT TESTED
+    return Redev::CommPair{
+      AdiosComm<T>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c"),
+      AdiosComm<T>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s")};
   }
 
-  redev::LO Redev::GetServerCommSize() {
+  redev::LO Redev::GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
+    REDEV_FUNCTION_TIMER;
+    int rank, commSize;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &commSize);
+    const auto varName = "redev client communicator size";
+    auto status = c2sEngine.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    redev::LO clientCommSz;
+    if(!isRendezvous) {
+      auto var = c2sIO.DefineVariable<redev::LO>(varName);
+      if(!rank)
+        c2sEngine.Put(var, commSize);
+    } else {
+      auto var = c2sIO.InquireVariable<redev::LO>(varName);
+      if(var && !rank) {
+        c2sEngine.Get(var, clientCommSz);
+        c2sEngine.PerformGets(); //default read mode is deferred
+      }
+    }
+    c2sEngine.EndStep();
+    if(isRendezvous)
+      redev::Broadcast(&clientCommSz,1,0,comm);
+    return clientCommSz;
+  }
+
+  redev::LO Redev::GetServerCommSize(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
     int rank, commSize;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &commSize);
     const auto varName = "redev server communicator size";
-    auto status = eng.BeginStep();
+    auto status = s2cEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     redev::LO serverCommSz;
     if(isRendezvous) {
-      auto var = io.DefineVariable<redev::LO>(varName);
+      auto var = s2cIO.DefineVariable<redev::LO>(varName);
       if(!rank)
-        eng.Put(var, commSize);
+        s2cEngine.Put(var, commSize);
     } else {
-      auto var = io.InquireVariable<redev::LO>(varName);
+      auto var = s2cIO.InquireVariable<redev::LO>(varName);
       if(var && !rank) {
-        eng.Get(var, serverCommSz);
-        eng.PerformGets(); //default read mode is deferred
+        s2cEngine.Get(var, serverCommSz);
+        s2cEngine.PerformGets(); //default read mode is deferred
       }
-      redev::Broadcast(&serverCommSz,1,0,comm);
     }
-    eng.EndStep();
+    s2cEngine.EndStep();
+    if(!isRendezvous)
+      redev::Broadcast(&serverCommSz,1,0,comm);
     return serverCommSz;
-  }
-
-  Redev::~Redev() {
-    REDEV_FUNCTION_TIMER;
-    if(toEng)
-      toEng.Close();
-    if(fromEng)
-      fromEng.Close();
   }
 
   void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
@@ -430,10 +462,5 @@ namespace redev {
       }
     }
     eng.EndStep();
-  }
-
-  void Redev_Assert_Fail(const char* msg) {
-    fprintf(stderr, "%s", msg);
-    abort();
   }
 }

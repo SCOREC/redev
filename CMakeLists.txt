@@ -24,12 +24,14 @@ set(REDEV_HEADERS
   redev_comm.h
   redev_profile.h
   redev_time.h
+  redev_assert.h
   )
 
 set(REDEV_SOURCES
   redev.cpp
   redev_profile.cpp
   redev_time.cpp
+  redev_assert.cpp
   )
 
 add_library(redev ${REDEV_SOURCES})

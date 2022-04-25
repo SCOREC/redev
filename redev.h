@@ -1,23 +1,12 @@
 #pragma once
 #include <adios2.h>
 #include <mpi.h>
-#include <cassert>
 #include "redev_types.h"
+#include "redev_assert.h"
+#include "redev_comm.h"
 #include <array>          // std::array
 
-#define REDEV_ALWAYS_ASSERT(cond) do {          \
-  if (! (cond)) {                               \
-    char omsg[2048];                            \
-    sprintf(omsg, "%s failed at %s + %d \n",    \
-      #cond, __FILE__, __LINE__);               \
-    redev::Redev_Assert_Fail(omsg);             \
-  }                                             \
-} while (0)
-
 namespace redev {
-
-//from scorec/core/pcu_fail.h
-void Redev_Assert_Fail(const char* msg) __attribute__ ((noreturn));
 
 class Partition {
   public:
@@ -95,28 +84,27 @@ class RCBPtn : public Partition {
 
 class Redev {
   public:
-    Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noParticipant=false);
-    ~Redev();
-    adios2::Engine& getToEngine() { return toEng; }
-    adios2::Engine& getFromEngine() { return fromEng; }
-    adios2::IO& getToIO() { return toIo; }
-    adios2::IO& getFromIO() { return fromIo; }
-    redev::LO GetClientCommSize();
-    redev::LO GetServerCommSize();
+    Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noClients=false);
+    template <class T>
+    using CommPair = std::pair<redev::Communicator<T>, redev::Communicator<T>>;
+    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name);
   private:
-    void Setup();
+    void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     bool isRendezvous; // true: the rendezvous application, false: otherwise
-    void openEnginesBP4(bool noParticipant);
-    void openEnginesSST(bool noParticipant);
-    const char* bpFromName = "fromRendezvous.bp";
-    const char* bpToName = "toRendezvous.bp";
+    bool noClients; // true: no clients will be connected, false: otherwise
+    void openEnginesBP4(bool noClients,
+        std::string s2cName, std::string c2sName,
+        adios2::IO& s2cIO, adios2::IO& c2sIO,
+        adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
+    void openEnginesSST(bool noClients,
+        std::string s2cName, std::string c2sName,
+        adios2::IO& s2cIO, adios2::IO& c2sIO,
+        adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
+    redev::LO GetServerCommSize(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
+    redev::LO GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
     MPI_Comm comm;
     adios2::ADIOS adios;
-    adios2::Engine fromEng;
-    adios2::Engine toEng;
-    adios2::IO fromIo;
-    adios2::IO toIo;
     int rank;
     Partition& ptn;
 };
