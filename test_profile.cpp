@@ -25,12 +25,8 @@ int main(int argc, char** argv) {
 
     auto prof = redev::Profiling::GetInstance();
     prof->Write(std::cout);
-    auto t = prof->GetTime("Setup");
-    auto cnt = prof->GetCallCount("Setup");
-    REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
-
-    t = prof->GetTime("Redev");
-    cnt = prof->GetCallCount("Redev");
+    auto t = prof->GetTime("Redev");
+    auto cnt = prof->GetCallCount("Redev");
     REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
 
     t = prof->GetTime("GetRank");
