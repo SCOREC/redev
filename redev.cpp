@@ -6,26 +6,17 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 #include <string>         // std::stoi
-#include <algorithm>      // std::transform
 
 namespace {
-  //Ci = case insensitive
-  bool isSameCi(std::string s1, std::string s2) {
-    REDEV_FUNCTION_TIMER;
-    std::transform(s1.begin(), s1.end(), s1.begin(), ::toupper);
-    std::transform(s2.begin(), s2.end(), s2.begin(), ::toupper);
-    return s1 == s2;
-  }
-
   //Wait for the file to be created by the writer.
   //Assuming that if 'Streaming' and 'OpenTimeoutSecs' are set then we are in
   //BP4 mode.  SST blocks on Open by default.
   void waitForEngineCreation(adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     auto params = io.Parameters();
-    bool isStreaming = params.count("Streaming") && isSameCi(params["Streaming"],"ON");
+    bool isStreaming = params.count("Streaming") && redev::isSameCi(params["Streaming"],"ON");
     bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
-    bool isSST = isSameCi(io.EngineType(),"SST");
+    bool isSST = redev::isSameCi(io.EngineType(),"SST");
     if( (isStreaming && timeoutSet) || isSST ) return;
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
@@ -331,7 +322,7 @@ namespace redev {
   }
 
   Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noClients_)
-    : comm(comm_), adios("adios2.yaml", comm), ptn(ptn_), isRendezvous(isRendezvous_), noClients(noClients_) {
+    : comm(comm_), adios(comm), ptn(ptn_), isRendezvous(isRendezvous_), noClients(noClients_) {
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
@@ -352,40 +343,6 @@ namespace redev {
     }
     s2cEngine.EndStep();
     ptn.Broadcast(comm);
-  }
-
-  template<typename T>
-  Redev::CommPair<T> Redev::CreateAdiosClient(std::string_view name) {
-    auto s2cName = std::string(name)+"_s2c";
-    auto c2sName = std::string(name)+"_c2s";
-    auto s2cIO = adios.DeclareIO(s2cName);
-    auto c2sIO = adios.DeclareIO(c2sName);
-    REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
-    if(noClients) {
-      //SST hangs if there is no reader
-      s2cIO.SetEngine("BP4");
-      c2sIO.SetEngine("BP4");
-    }
-    adios2::Engine s2cEngine;
-    adios2::Engine c2sEngine;
-    if( isSameCi(s2cIO.EngineType(), "SST") ) {
-      openEnginesSST(noClients,s2cName,c2sName,
-          s2cIO,c2sIO,s2cEngine,c2sEngine);
-    } else if( isSameCi(s2cIO.EngineType(), "BP4") ) {
-      openEnginesBP4(noClients,s2cName,c2sName,
-          s2cIO,c2sIO,s2cEngine,c2sEngine);
-    } else {
-      if(!rank) {
-        std::cerr << "ERROR: redev does not support ADIOS2 engine " << s2cIO.EngineType() << "\n";
-      }
-      exit(EXIT_FAILURE);
-    }
-    Setup(s2cIO,s2cEngine);
-    const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine); //NOT TESTED
-    const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine); //NOT TESTED
-    return Redev::CommPair{
-      AdiosComm<T>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c"),
-      AdiosComm<T>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s")};
   }
 
   redev::LO Redev::GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {

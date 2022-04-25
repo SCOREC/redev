@@ -25,6 +25,7 @@ set(REDEV_HEADERS
   redev_profile.h
   redev_time.h
   redev_assert.h
+  redev_strings.h
   )
 
 set(REDEV_SOURCES
@@ -32,6 +33,7 @@ set(REDEV_SOURCES
   redev_profile.cpp
   redev_time.cpp
   redev_assert.cpp
+  redev_strings.cpp
   )
 
 add_library(redev ${REDEV_SOURCES})

@@ -4,6 +4,7 @@
 #include "redev_types.h"
 #include "redev_assert.h"
 #include "redev_comm.h"
+#include "redev_strings.h"
 #include <array>          // std::array
 
 namespace redev {
@@ -82,12 +83,16 @@ class RCBPtn : public Partition {
     std::vector<redev::Real> cuts;
 };
 
+template <class T>
+struct CommPair {
+  redev::AdiosComm<T> s2c;
+  redev::AdiosComm<T> c2s;
+};
+
 class Redev {
   public:
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noClients=false);
-    template <class T>
-    using CommPair = std::pair<redev::Communicator<T>, redev::Communicator<T>>;
-    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name);
+    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params);
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
@@ -108,5 +113,41 @@ class Redev {
     int rank;
     Partition& ptn;
 };
+
+template<typename T>
+CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params) {
+  auto s2cName = std::string(name)+"_s2c";
+  auto c2sName = std::string(name)+"_c2s";
+  auto s2cIO = adios.DeclareIO(s2cName);
+  s2cIO.SetParameters(params);
+  auto c2sIO = adios.DeclareIO(c2sName);
+  c2sIO.SetParameters(params);
+  REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
+  if(noClients) {
+    //SST hangs if there is no reader
+    s2cIO.SetEngine("BP4");
+    c2sIO.SetEngine("BP4");
+  }
+  adios2::Engine s2cEngine;
+  adios2::Engine c2sEngine;
+  if( isSameCi(s2cIO.EngineType(), "SST") ) {
+    openEnginesSST(noClients,s2cName,c2sName,
+        s2cIO,c2sIO,s2cEngine,c2sEngine);
+  } else if( isSameCi(s2cIO.EngineType(), "BP4") ) {
+    openEnginesBP4(noClients,s2cName,c2sName,
+        s2cIO,c2sIO,s2cEngine,c2sEngine);
+  } else {
+    if(!rank) {
+      std::cerr << "ERROR: redev does not support ADIOS2 engine " << s2cIO.EngineType() << "\n";
+    }
+    exit(EXIT_FAILURE);
+  }
+  Setup(s2cIO,s2cEngine);
+  const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine); //NOT TESTED
+  const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine); //NOT TESTED
+  return CommPair<T>{
+    AdiosComm<T>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c"),
+    AdiosComm<T>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s")};
+}
 
 }

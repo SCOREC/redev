@@ -14,6 +14,8 @@ void classPtnTest(int rank, bool isRdv) {
   auto ents = isRdv ? expectedEnts : redev::ClassPtn::ModelEntVec();
   auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   redev::Redev rdv(MPI_COMM_WORLD,partition,isRdv);
+  adios2::Params params{ {"Type", "BP4"}, {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params);
   if(!isRdv) {
     auto p_ranks = partition.GetRanks();
     auto p_modelEnts = partition.GetModelEnts();
