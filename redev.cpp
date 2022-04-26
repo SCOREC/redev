@@ -345,6 +345,9 @@ namespace redev {
     ptn.Broadcast(comm);
   }
 
+  /*
+   * return the number of processes in the client's MPI communicator
+   */
   redev::LO Redev::GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     int rank, commSize;
@@ -371,6 +374,9 @@ namespace redev {
     return clientCommSz;
   }
 
+  /*
+   * return the number of processes in the server's MPI communicator
+   */
   redev::LO Redev::GetServerCommSize(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
     int rank, commSize;
