@@ -136,7 +136,7 @@ CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params param
     openEnginesSST(noClients,s2cName,c2sName,
         s2cIO,c2sIO,s2cEngine,c2sEngine);
   } else if( isSameCi(s2cIO.EngineType(), "BP4") ) {
-    openEnginesBP4(noClients,s2cName,c2sName,
+    openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
         s2cIO,c2sIO,s2cEngine,c2sEngine);
   } else {
     if(!rank) {
