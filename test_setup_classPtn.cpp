@@ -14,8 +14,13 @@ void classPtnTest(int rank, bool isRdv) {
   auto ents = isRdv ? expectedEnts : redev::ClassPtn::ModelEntVec();
   auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   redev::Redev rdv(MPI_COMM_WORLD,partition,isRdv);
-  adios2::Params params{ {"Type", "BP4"}, {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params);
+  const bool isSST = false;
+  //adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "8"}};
+  adios2::Params params;
+  std::cerr << "0.1\n";
+  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,isSST);
+  std::cerr << "0.2\n";
+  /*
   if(!isRdv) {
     auto p_ranks = partition.GetRanks();
     auto p_modelEnts = partition.GetModelEnts();
@@ -26,6 +31,7 @@ void classPtnTest(int rank, bool isRdv) {
       e2r[p_modelEnts[i]] = p_ranks[i];
     REDEV_ALWAYS_ASSERT(e2r == expectedE2R);
   }
+  */
 }
 
 int main(int argc, char** argv) {
@@ -40,6 +46,7 @@ int main(int argc, char** argv) {
   auto isRdv = atoi(argv[1]);
   std::cout << "comm rank " << rank << " size " << nproc << " isRdv " << isRdv << "\n";
   classPtnTest(rank,isRdv);
+  std::cerr << "done\n";
   MPI_Finalize();
   return 0;
 }
