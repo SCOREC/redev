@@ -8,7 +8,7 @@ X,X,test_setup_rcbPtn.cpp
 X,X,test_rcb.cpp
 X,X,test_classPtn.cpp
 X,X,test_classPtnGather.cpp
- , ,test_send.cpp
+X,X,test_send.cpp
  , ,test_sendrecv.cpp
  , ,test_sendOneToTwo.cpp
  , ,util_benchsr.cpp

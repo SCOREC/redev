@@ -123,20 +123,20 @@ if(BUILD_TESTING)
   if(ADIOS2_BPLS_PATH)
     #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_send_check_msgs
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 toRendezvous.bp/ foo)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 foo_c2s.bp/ foo_c2s)
     set_tests_properties(test_send_check_msgs PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2"
-      REQUIRED_FILES "toRendezvous.bp/") #results in ctest reporting 'not run'
+      REQUIRED_FILES "foo_c2s.bp/") #results in ctest reporting 'not run'
     add_test(NAME test_send_check_offsets
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 5 toRendezvous.bp/ foo_offsets)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 5 foo_c2s.bp/ foo_c2s_offsets)
     set_tests_properties(test_send_check_offsets PROPERTIES
       PASS_REGULAR_EXPRESSION "0 7 11 21 27"
-      REQUIRED_FILES "toRendezvous.bp/")
+      REQUIRED_FILES "foo_c2s.bp/")
     add_test(NAME test_send_check_srcRanks
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 12 toRendezvous.bp/ foo_srcRanks)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 12 foo_c2s.bp/ foo_c2s_srcRanks)
     set_tests_properties(test_send_check_srcRanks PROPERTIES
-      PASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2"
-      REQUIRED_FILES "toRendezvous.bp/")
+      ASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2"
+      REQUIRED_FILES "foo_c2s.bp/")
   endif()
   add_exe(test_sendOneToTwo test_sendOneToTwo.cpp)
   dual_mpi_test(test_sendOneToTwo_3p
