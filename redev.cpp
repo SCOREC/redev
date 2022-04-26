@@ -327,6 +327,7 @@ namespace redev {
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
     REDEV_ALWAYS_ASSERT(isInitialized);
+    MPI_Comm_rank(comm, &rank); //set member var
   }
 
   void Redev::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
@@ -350,8 +351,7 @@ namespace redev {
    */
   redev::LO Redev::GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
-    int rank, commSize;
-    MPI_Comm_rank(comm, &rank);
+    int commSize;
     MPI_Comm_size(comm, &commSize);
     const auto varName = "redev client communicator size";
     auto status = c2sEngine.BeginStep();
@@ -379,8 +379,7 @@ namespace redev {
    */
   redev::LO Redev::GetServerCommSize(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
-    int rank, commSize;
-    MPI_Comm_rank(comm, &rank);
+    int commSize;
     MPI_Comm_size(comm, &commSize);
     const auto varName = "redev server communicator size";
     auto status = s2cEngine.BeginStep();

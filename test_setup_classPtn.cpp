@@ -15,12 +15,10 @@ void classPtnTest(int rank, bool isRdv) {
   auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   redev::Redev rdv(MPI_COMM_WORLD,partition,isRdv);
   const bool isSST = false;
-  //adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "8"}};
-  adios2::Params params;
+  adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   std::cerr << "0.1\n";
   auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,isSST);
   std::cerr << "0.2\n";
-  /*
   if(!isRdv) {
     auto p_ranks = partition.GetRanks();
     auto p_modelEnts = partition.GetModelEnts();
@@ -31,7 +29,6 @@ void classPtnTest(int rank, bool isRdv) {
       e2r[p_modelEnts[i]] = p_ranks[i];
     REDEV_ALWAYS_ASSERT(e2r == expectedE2R);
   }
-  */
 }
 
 int main(int argc, char** argv) {
