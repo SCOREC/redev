@@ -9,7 +9,7 @@ X,X,test_rcb.cpp
 X,X,test_classPtn.cpp
 X,X,test_classPtnGather.cpp
 X,X,test_send.cpp
- , ,test_sendrecv.cpp
+X,X,test_sendrecv.cpp
  , ,test_sendOneToTwo.cpp
  , ,util_benchsr.cpp
  , ,util_benchsrLarge.cpp
