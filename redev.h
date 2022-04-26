@@ -92,7 +92,7 @@ struct CommPair {
 class Redev {
   public:
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noClients=false);
-    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params);
+    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params, bool isSST=false);
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
@@ -115,12 +115,14 @@ class Redev {
 };
 
 template<typename T>
-CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params) {
+CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params, bool isSST) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
   auto s2cIO = adios.DeclareIO(s2cName);
-  s2cIO.SetParameters(params);
   auto c2sIO = adios.DeclareIO(c2sName);
+  s2cIO.SetEngine( isSST ? "SST" : "BP4");
+  c2sIO.SetEngine( isSST ? "SST" : "BP4");
+  s2cIO.SetParameters(params);
   c2sIO.SetParameters(params);
   REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
   if(noClients) {
