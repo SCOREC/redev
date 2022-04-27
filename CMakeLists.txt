@@ -158,6 +158,7 @@ if(BUILD_TESTING)
   dual_mpi_test(test_pingpong
                 1 ./test_pingpong 1
                 1 ./test_pingpong 0)
+  add_exe(test_twoClients test_twoClients.cpp)
 endif()
 
 ## export the library
