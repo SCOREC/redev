@@ -5,6 +5,7 @@
 #include <thread> //this_thread
 #include "redev.h"
 #include "redev_comm.h"
+#include "util_support.h"
 
 #define MILLION 1024*1024
 
@@ -79,7 +80,9 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";
-  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
+  const bool isSST = false;
+  adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -89,11 +92,11 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
         redev::LOs dest = {destRank};
         redev::LOs offsets;
         constructCsrOffsetsMapped(destRank, mbpr, offsets);
-        comm.SetOutMessageLayout(dest, offsets);
+        commPair.c2s.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      comm.Send(msgs.data());
+      commPair.c2s.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -103,7 +106,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      auto msgs = comm.Recv();
+      auto msgs = commPair.c2s.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -137,7 +140,9 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvFanOut ";
-  redev::AdiosComm<redev::LO> comm(mpiComm, ranks.size(), rdv.getToEngine(), rdv.getToIO(), name);
+  const bool isSST = false;
+  adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -147,11 +152,11 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
         std::iota(dest.begin(),dest.end(),0);
         redev::LOs offsets(mbpr);
         constructCsrOffsetsFanOut(mbpr,rdvRanks,offsets);
-        comm.SetOutMessageLayout(dest, offsets);
+        commPair.c2s.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      comm.Send(msgs.data());
+      commPair.c2s.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -161,7 +166,7 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      comm.Recv();
+      commPair.c2s.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -174,7 +179,8 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
 }
 
 void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
-    const int rdvRanks, const int reductionFactor) {
+    const int rdvRanks, const int reductionFactor,
+    const bool isSST, adios2::Params params) {
   int rank, nproc;
   MPI_Comm_rank(mpiComm, &rank);
   MPI_Comm_size(mpiComm, &nproc);
@@ -190,9 +196,18 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(mpiComm,ptn,isRdv);
   //get adios objs
-  auto io = rdv.getToIO();
-  auto eng = rdv.getToEngine();
   std::string name = "mapped";
+  adios2::ADIOS adios(mpiComm);
+  auto io = adios.DeclareIO(name);
+  io.SetEngine( isSST ? "SST" : "BP4");
+  io.SetParameters(params);
+  adios2::Engine eng;
+  if(!isSST) {
+    support::openEnginesBP4(isRdv,name+".bp",io,eng);
+  } else {
+    support::openEnginesSST(isRdv,name,io,eng);
+  }
+
   std::stringstream ss;
   ss << mbpr << " B " << name;
   if(!isRdv) { //sender
@@ -268,7 +283,9 @@ int main(int argc, char** argv) {
   std::this_thread::sleep_for(std::chrono::seconds(2));
   sendRecvRdvFanOut(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
   std::this_thread::sleep_for(std::chrono::seconds(2));
-  sendRecvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor);
+  bool isSST = false;
+  adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  sendRecvMapped(MPI_COMM_WORLD, isRdv, mbpr, rdvRanks, reductionFactor, isSST, params);
   MPI_Finalize();
   return 0;
 }

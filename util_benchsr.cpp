@@ -5,6 +5,7 @@
 #include <thread> //this_thread
 #include "redev.h"
 #include "redev_comm.h"
+#include "util_support.h"
 
 #define MILLION 1024*1024
 
@@ -16,32 +17,6 @@
 //   - the sender and receiver have the same number of ranks and data layout to
 //     emulate matching partitions
 //   - sender rank i sends to receiver rank i mbpr data
-
-namespace {
-  void openEnginesBP4(bool isRendezvous, std::string c2sName, adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
-    //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
-    if(!isRendezvous) {
-      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
-      assert(c2sEngine);
-    }
-    //create engines for reading
-    if(isRendezvous) {
-      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-      assert(c2sEngine);
-    }
-  }
-
-  void openEnginesSST(bool isRendezvous, std::string c2sName, adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
-    //create one engine's reader and writer pair at a time - SST blocks on open(read)
-    if(isRendezvous) {
-      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-      assert(c2sEngine);
-    } else {
-      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
-      assert(c2sEngine);
-    }
-  }
-} //end anonymous namespace
 
 void constructCsrOffsets(int tot, int n, std::vector<int>& offsets) {
   //produces an uniform distribution of values
@@ -134,14 +109,14 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const in
   //get adios objs
   std::string name = "mapped";
   adios2::ADIOS adios(mpiComm);
-  adios2::Engine eng;
   auto io = adios.DeclareIO(name);
   io.SetEngine( isSST ? "SST" : "BP4");
   io.SetParameters(params);
+  adios2::Engine eng;
   if(!isSST) {
-    openEnginesBP4(isRdv,name+".bp",io,eng);
+    support::openEnginesBP4(isRdv,name+".bp",io,eng);
   } else {
-    openEnginesSST(isRdv,name,io,eng);
+    support::openEnginesSST(isRdv,name,io,eng);
   }
   std::stringstream ss;
   ss << mbpr << " B " << name;
