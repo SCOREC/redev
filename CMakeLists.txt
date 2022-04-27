@@ -145,10 +145,10 @@ if(BUILD_TESTING)
   if(ADIOS2_BPLS_PATH)
     #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_sendOneToTwo_3p_check_msgs
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 toRendezvous.bp/ foo)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 foo_c2s.bp/ foo_c2s)
     set_tests_properties(test_sendOneToTwo_3p_check_msgs PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 1 1 1"
-      REQUIRED_FILES "toRendezvous.bp/") #results in ctest reporting 'not run'
+      REQUIRED_FILES "foo_c2s.bp/") #results in ctest reporting 'not run'
   endif()
   add_exe(test_sendrecv test_sendrecv.cpp)
   dual_mpi_test(test_sendrecv_3p

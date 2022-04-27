@@ -10,7 +10,7 @@ X,X,test_classPtn.cpp
 X,X,test_classPtnGather.cpp
 X,X,test_send.cpp
 X,X,test_sendrecv.cpp
- , ,test_sendOneToTwo.cpp
+X,X,test_sendOneToTwo.cpp
  , ,util_benchsr.cpp
  , ,util_benchsrLarge.cpp
  , ,test_pingpong.cpp
