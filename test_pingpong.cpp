@@ -25,22 +25,24 @@ int main(int argc, char** argv) {
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  redev::AdiosComm<redev::LO> commA2R(MPI_COMM_WORLD, ranks.size(), rdv.getToEngine(), rdv.getToIO(), "foo_A2R");
-  redev::AdiosComm<redev::LO> commR2A(MPI_COMM_WORLD, ranks.size(), rdv.getFromEngine(), rdv.getFromIO(), "foo_R2A");
+  std::string name = "foo";
+  const bool isSST = false;
+  adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
       if(iter==0) {
         redev::LOs dest = redev::LOs{0};
         redev::LOs offsets = redev::LOs{0,1};
-        commA2R.SetOutMessageLayout(dest, offsets);
+        commPair.c2s.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,42);
-      commA2R.Send(msgs.data());
+      commPair.c2s.Send(msgs.data());
     } else {
-      auto msgs = commA2R.Recv();
+      auto msgs = commPair.c2s.Recv();
       if(iter == 0) {
-        auto inMsg = commA2R.GetInMessageLayout();
+        auto inMsg = commPair.c2s.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
@@ -53,14 +55,14 @@ int main(int argc, char** argv) {
       if(iter==0) {
         redev::LOs dest = redev::LOs{0};
         redev::LOs offsets = redev::LOs{0,1};
-        commR2A.SetOutMessageLayout(dest, offsets);
+        commPair.s2c.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,1337);
-      commR2A.Send(msgs.data());
+      commPair.s2c.Send(msgs.data());
     } else {
-      auto msgs = commR2A.Recv();
+      auto msgs = commPair.s2c.Recv();
       if(iter==0) {
-        auto inMsg = commR2A.GetInMessageLayout();
+        auto inMsg = commPair.s2c.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
