@@ -3,15 +3,91 @@
 #include "redev.h"
 #include "redev_comm.h"
 
+//void pingpong() {
+//  for(int iter=0; iter<3; iter++) {
+//    // the non-rendezvous app sends to the rendezvous app
+//    if(!isRdv) {
+//      if(iter==0) {
+//        redev::LOs dest = redev::LOs{0};
+//        redev::LOs offsets = redev::LOs{0,1};
+//        commPair.c2s.SetOutMessageLayout(dest, offsets);
+//      }
+//      redev::LOs msgs = redev::LOs(1,42);
+//      commPair.c2s.Send(msgs.data());
+//    } else {
+//      auto msgs = commPair.c2s.Recv();
+//      if(iter == 0) {
+//        auto inMsg = commPair.c2s.GetInMessageLayout();
+//        REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+//        REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+//        REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+//        REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+//      }
+//      REDEV_ALWAYS_ASSERT(msgs[0] == 42);
+//    }
+//    // the rendezvous app sends to the non-rendezvous app
+//    if(isRdv) {
+//      if(iter==0) {
+//        redev::LOs dest = redev::LOs{0};
+//        redev::LOs offsets = redev::LOs{0,1};
+//        commPair.s2c.SetOutMessageLayout(dest, offsets);
+//      }
+//      redev::LOs msgs = redev::LOs(1,1337);
+//      commPair.s2c.Send(msgs.data());
+//    } else {
+//      auto msgs = commPair.s2c.Recv();
+//      if(iter==0) {
+//        auto inMsg = commPair.s2c.GetInMessageLayout();
+//        REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+//        REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+//        REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+//        REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+//      }
+//      REDEV_ALWAYS_ASSERT(msgs[0] == 1337);
+//    }
+//  }
+//}
+
 void client(redev::Redev& rdv, const int clientId, adios2::Params params, const bool isSST) {
   std::stringstream clientName;
   clientName << "client" << clientId;
   auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,isSST);
+
+  //setup outbound message
+  redev::LOs dest = redev::LOs{0};
+  redev::LOs offsets = redev::LOs{0,1};
+  commPair.c2s.SetOutMessageLayout(dest, offsets);
+
+  //first outbound send
+  redev::LOs msgs = redev::LOs(1,42+clientId);
+  commPair.c2s.Send(msgs.data());
 }
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,isSST);
   auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,isSST);
+
+  //first incoming message from client0
+  auto msgs0 = client0.c2s.Recv();
+  //sanity check layout
+  {
+    auto inMsg = client0.c2s.GetInMessageLayout();
+    REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+    REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+    REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+    REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+    REDEV_ALWAYS_ASSERT(msgs0[0] == 42);
+  }
+  //first incoming message from client1
+  auto msgs1 = client1.c2s.Recv();
+  {
+    auto inMsg = client1.c2s.GetInMessageLayout();
+    REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+    REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+    REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+    REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+    REDEV_ALWAYS_ASSERT(msgs1[0] == 43);
+  }
 }
 
 int main(int argc, char** argv) {
