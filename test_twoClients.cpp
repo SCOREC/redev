@@ -54,6 +54,7 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,isSST);
 
   //setup outbound message
+  std::cout << "sending to server\n";
   redev::LOs dest = redev::LOs{0};
   redev::LOs offsets = redev::LOs{0,1};
   commPair.c2s.SetOutMessageLayout(dest, offsets);
@@ -61,15 +62,25 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   //first outbound send
   redev::LOs msgs = redev::LOs(1,42+clientId);
   commPair.c2s.Send(msgs.data());
+
+  //first inbound message from server
+  std::cout << "recieving from server\n";
+  auto msgFromServer = commPair.s2c.Recv();
+  auto inMsg = commPair.s2c.GetInMessageLayout();
+  REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
+  REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
+  REDEV_ALWAYS_ASSERT(inMsg.start == 0);
+  REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+  REDEV_ALWAYS_ASSERT(msgFromServer[0] == 1337+clientId);
 }
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,isSST);
   auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,isSST);
 
-  //first incoming message from client0
+  //first inbound message from client0
+  std::cout << "recieving from client0\n";
   auto msgs0 = client0.c2s.Recv();
-  //sanity check layout
   {
     auto inMsg = client0.c2s.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
@@ -78,7 +89,9 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
     REDEV_ALWAYS_ASSERT(inMsg.count == 1);
     REDEV_ALWAYS_ASSERT(msgs0[0] == 42);
   }
-  //first incoming message from client1
+
+  //first inbound message from client1
+  std::cout << "recieving from client1\n";
   auto msgs1 = client1.c2s.Recv();
   {
     auto inMsg = client1.c2s.GetInMessageLayout();
@@ -88,6 +101,20 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
     REDEV_ALWAYS_ASSERT(inMsg.count == 1);
     REDEV_ALWAYS_ASSERT(msgs1[0] == 43);
   }
+
+  //first outbound message to client0
+  std::cout << "sending to client0\n";
+  redev::LOs dest = redev::LOs{0};
+  redev::LOs offsets = redev::LOs{0,1};
+  client0.s2c.SetOutMessageLayout(dest, offsets);
+  redev::LOs msgs = redev::LOs(1,1337);
+  client0.s2c.Send(msgs.data());
+
+  //first outbound message to client1
+  std::cout << "sending to client1\n";
+  client1.s2c.SetOutMessageLayout(dest, offsets);
+  msgs = redev::LOs(1,1338);
+  client1.s2c.Send(msgs.data());
 }
 
 int main(int argc, char** argv) {
