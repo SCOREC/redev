@@ -77,20 +77,38 @@ if(BUILD_TESTING)
     )
   endfunction(mpi_test)
 
-  function(dual_mpi_test TESTNAME PROCS1 EXE1 ARGS1 PROCS2 EXE2 ARGS2)
+  function(dual_mpi_test TESTNAME TIMEOUT
+      NAME1 PROCS1 EXE1 ARGS1 
+      NAME2 PROCS2 EXE2 ARGS2)
     removeBpFiles(${TESTNAME}_cleanup)
     add_test(NAME ${TESTNAME}
-      COMMAND ${CMAKE_COMMAND}
-      -DMPIEXEC_EXECUTABLE=${MPIEXEC_EXECUTABLE}
-      -DMPIEXEC_NUMPROC_FLAG=${MPIEXEC_NUMPROC_FLAG}
-      -DPROCS1=${PROCS1} -DEXE1=${EXE1} -DARGS1=${ARGS1}
-      -DPROCS2=${PROCS2} -DEXE2=${EXE2} -DARGS2=${ARGS2}
-      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runTwoMpiJobs.cmake)
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runMultipleMpiJobs.sh 
+      ${MPIEXEC_EXECUTABLE}
+      ${MPIEXEC_NUMPROC_FLAG}
+      ${NAME1} ${PROCS1} ${EXE1} ${ARGS1}
+      ${NAME2} ${PROCS2} ${EXE2} ${ARGS2})
+    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT ${TIMEOUT})
   endfunction(dual_mpi_test)
+
+  function(tri_mpi_test TESTNAME TIMEOUT
+      NAME1 PROCS1 EXE1 ARGS1
+      NAME2 PROCS2 EXE2 ARGS2
+      NAME3 PROCS3 EXE3 ARGS3)
+    removeBpFiles(${TESTNAME}_cleanup)
+    add_test(NAME ${TESTNAME}
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runMultipleMpiJobs.sh 
+      ${MPIEXEC_EXECUTABLE}
+      ${MPIEXEC_NUMPROC_FLAG}
+      ${NAME1} ${PROCS1} ${EXE1} ${ARGS1}
+      ${NAME2} ${PROCS2} ${EXE2} ${ARGS2}
+      ${NAME3} ${PROCS3} ${EXE3} ${ARGS3})
+    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT ${TIMEOUT})
+  endfunction(tri_mpi_test)
 
   add_exe(util_benchsr util_benchsr.cpp)
   add_exe(util_benchsrLarge util_benchsrLarge.cpp)
 
+  set(test_timeout 12)
   add_exe(test_1d test_1d.cpp)
   mpi_test(test_1d_2p 2 ./test_1d)
   add_exe(test_rcb test_rcb.cpp)
@@ -102,17 +120,21 @@ if(BUILD_TESTING)
   add_exe(test_init test_init.cpp)
   mpi_test(test_init_1p 1 ./test_init)
   add_exe(test_setup_rcbPtn test_setup_rcbPtn.cpp)
-  dual_mpi_test(test_setup_rcbPtn_1p 1 ./test_setup_rcbPtn 1 1 ./test_setup_rcbPtn 0)
+  dual_mpi_test(test_setup_rcbPtn_1p ${test_timeout}
+    rdv 1 ./test_setup_rcbPtn 1
+    app 1 ./test_setup_rcbPtn 0)
   add_exe(test_setup_classPtn test_setup_classPtn.cpp)
-  dual_mpi_test(test_setup_classPtn_1p 1 ./test_setup_classPtn 1 1 ./test_setup_classPtn 0)
+  dual_mpi_test(test_setup_classPtn_1p ${test_timeout}
+    rdv 1 ./test_setup_classPtn 1
+    app 1 ./test_setup_classPtn 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
   add_exe(test_profile test_profile.cpp)
   mpi_test(test_profile_1p 1 ./test_profile)
   add_exe(test_send test_send.cpp)
-  dual_mpi_test(test_send_3p
-                4 ./test_send 1
-                3 ./test_send 0)
+  dual_mpi_test(test_send_3p ${test_timeout}
+                rdv 4 ./test_send 1
+                app 3 ./test_send 0)
   if(ADIOS2_BPLS_PATH)
     #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_send_check_msgs
@@ -132,9 +154,9 @@ if(BUILD_TESTING)
       REQUIRED_FILES "foo_c2s.bp/")
   endif()
   add_exe(test_sendOneToTwo test_sendOneToTwo.cpp)
-  dual_mpi_test(test_sendOneToTwo_3p
-                2 ./test_sendOneToTwo 1
-                1 ./test_sendOneToTwo 0)
+  dual_mpi_test(test_sendOneToTwo_3p ${test_timeout}
+                rdv 2 ./test_sendOneToTwo 1
+                app 1 ./test_sendOneToTwo 0)
   if(ADIOS2_BPLS_PATH)
     #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_sendOneToTwo_3p_check_msgs
@@ -144,14 +166,18 @@ if(BUILD_TESTING)
       REQUIRED_FILES "foo_c2s.bp/") #results in ctest reporting 'not run'
   endif()
   add_exe(test_sendrecv test_sendrecv.cpp)
-  dual_mpi_test(test_sendrecv_3p
-                4 ./test_sendrecv 1
-                3 ./test_sendrecv 0)
+  dual_mpi_test(test_sendrecv_3p ${test_timeout}
+                rdv 4 ./test_sendrecv 1
+                app 3 ./test_sendrecv 0)
   add_exe(test_pingpong test_pingpong.cpp)
-  dual_mpi_test(test_pingpong
-                1 ./test_pingpong 1
-                1 ./test_pingpong 0)
+  dual_mpi_test(test_pingpong ${test_timeout}
+                rdv 1 ./test_pingpong 1
+                app 1 ./test_pingpong 0)
   add_exe(test_twoClients test_twoClients.cpp)
+  tri_mpi_test(test_twoClients ${test_timeout}
+                client0 1 ./test_twoClients 0
+                client1 1 ./test_twoClients 1
+                rdv     1 ./test_twoClients none)
 endif()
 
 ## export the library
