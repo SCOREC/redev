@@ -145,8 +145,8 @@ CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params param
     exit(EXIT_FAILURE);
   }
   Setup(s2cIO,s2cEngine);
-  const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine); //NOT TESTED
-  const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine); //NOT TESTED
+  const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine);
+  const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine);
   return CommPair<T>{
     AdiosComm<T>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c"),
     AdiosComm<T>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s")};
