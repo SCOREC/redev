@@ -119,6 +119,10 @@ if(BUILD_TESTING)
   mpi_test(test_classPtnGather_2p 2 ./test_classPtnGather)
   add_exe(test_init test_init.cpp)
   mpi_test(test_init_1p 1 ./test_init)
+  add_exe(test_initPtnObjOwnership test_initPtnObjOwnership.cpp)
+  dual_mpi_test(test_initPtnObjOwnership ${test_timeout}
+    rdv 1 ./test_initPtnObjOwnership 1
+    app 1 ./test_initPtnObjOwnership 0)
   add_exe(test_setup_rcbPtn test_setup_rcbPtn.cpp)
   dual_mpi_test(test_setup_rcbPtn_1p ${test_timeout}
     rdv 1 ./test_setup_rcbPtn 1
