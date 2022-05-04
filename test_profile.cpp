@@ -18,7 +18,6 @@ int main(int argc, char** argv) {
     std::vector<redev::Real> cuts = {0,0.5,0.25,0.75};
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
     const int numCalls = 10;
     for(auto i=0; i<numCalls; i++)
@@ -26,12 +25,8 @@ int main(int argc, char** argv) {
 
     auto prof = redev::Profiling::GetInstance();
     prof->Write(std::cout);
-    auto t = prof->GetTime("Setup");
-    auto cnt = prof->GetCallCount("Setup");
-    REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
-
-    t = prof->GetTime("Redev");
-    cnt = prof->GetCallCount("Redev");
+    auto t = prof->GetTime("Redev");
+    auto cnt = prof->GetCallCount("Redev");
     REDEV_ALWAYS_ASSERT((t > 0 && t < 1) && cnt == 1);
 
     t = prof->GetTime("GetRank");

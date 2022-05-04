@@ -14,9 +14,8 @@ int main(int argc, char** argv) {
   { //classPtn
     std::vector<redev::LO> ranks = {0,1,2,3};
     const redev::ClassPtn::ModelEntVec modelEnts {{0,0},{1,0},{2,0},{2,1}};
-    auto ptn = redev::ClassPtn(ranks,modelEnts);
+    auto ptn = redev::ClassPtn(MPI_COMM_WORLD,ranks,modelEnts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     using ModelEnt = redev::ClassPtn::ModelEnt;
     REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(ModelEnt({0,0})) );
     REDEV_ALWAYS_ASSERT(1 == ptn.GetRank(ModelEnt({1,0})) );
@@ -29,7 +28,6 @@ int main(int argc, char** argv) {
     std::vector<redev::Real> cuts = {0,0.5,0.25,0.75};
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
     pt[0] = 0.6;   REDEV_ALWAYS_ASSERT(2 == ptn.GetRank(pt));
     pt[0] = 0.01;  REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(pt));
@@ -52,7 +50,6 @@ int main(int argc, char** argv) {
      */
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     std::array<redev::Real,3> pt{0.1, 0.7, 0.0};
     pt[0] = 0.1, pt[1] = 0.7; REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(pt));
     pt[0] = 0.1; pt[1] = 0.8; REDEV_ALWAYS_ASSERT(1 == ptn.GetRank(pt));
@@ -66,7 +63,6 @@ int main(int argc, char** argv) {
     std::vector<redev::Real> cuts = {0,/*x*/0.5,/*y*/0.75,0.25,/*z*/0.1,0.4,0.8,0.3};
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
     redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv,noParticipant);
-    rdv.Setup();
     using Point = std::array<redev::Real,3>;
     { Point pt{0.1, 0.7, 0.01}; REDEV_ALWAYS_ASSERT(0 == ptn.GetRank(pt)); }
     { Point pt{0.1, 0.7, 0.1};  REDEV_ALWAYS_ASSERT(1 == ptn.GetRank(pt)); }

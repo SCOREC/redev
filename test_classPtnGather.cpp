@@ -22,8 +22,7 @@ void check(const redev::ClassPtn& partition, const EntToRank& expectedE2R) {
 void test1(const int rank, const EntToRank& expectedE2R) {
   auto ranks = rank==0 ? redev::LOs({0,1}) : redev::LOs({2,3});
   auto ents = rank==0 ? MdlEntVec({{0,0},{1,0}}) : MdlEntVec({{2,0},{2,1}}) ;
-  auto partition = redev::ClassPtn(ranks,ents);
-  partition.Gather(MPI_COMM_WORLD);
+  auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   if(!rank) check(partition,expectedE2R);
 }
 
@@ -33,8 +32,7 @@ void test1(const int rank, const EntToRank& expectedE2R) {
 void test2(const int rank, const EntToRank& expectedE2R) {
   auto ranks = rank==0 ? redev::LOs({0,1,2,3}) : redev::LOs();
   auto ents = rank==0 ? MdlEntVec({{0,0},{1,0},{2,0},{2,1}}) : MdlEntVec() ;
-  auto partition = redev::ClassPtn(ranks,ents);
-  partition.Gather(MPI_COMM_WORLD);
+  auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   if(!rank) check(partition,expectedE2R);
 }
 
@@ -44,8 +42,7 @@ void test2(const int rank, const EntToRank& expectedE2R) {
 void test3(const int rank, const EntToRank& expectedE2R) {
   auto ranks = rank!=0 ? redev::LOs({0,1,2,3}) : redev::LOs();
   auto ents = rank!=0 ? MdlEntVec({{0,0},{1,0},{2,0},{2,1}}) : MdlEntVec() ;
-  auto partition = redev::ClassPtn(ranks,ents);
-  partition.Gather(MPI_COMM_WORLD);
+  auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   if(!rank) check(partition,expectedE2R);
 }
 

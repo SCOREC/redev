@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
   auto ranks = rank==0 ? expectedRanks : redev::LOs();
   auto ents = rank==0 ? expectedEnts : redev::ClassPtn::ModelEntVec();
-  auto partition = redev::ClassPtn(ranks,ents);
+  auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
   partition.Broadcast(MPI_COMM_WORLD);
 
   auto p_ranks = partition.GetRanks();
