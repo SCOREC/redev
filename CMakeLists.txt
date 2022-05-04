@@ -123,6 +123,7 @@ if(BUILD_TESTING)
   dual_mpi_test(test_initPtnObjOwnership ${test_timeout}
     rdv 1 ./test_initPtnObjOwnership 1
     app 1 ./test_initPtnObjOwnership 0)
+  set_property(TEST test_initPtnObjOwnership PROPERTY WILL_FAIL TRUE)
   add_exe(test_setup_rcbPtn test_setup_rcbPtn.cpp)
   dual_mpi_test(test_setup_rcbPtn_1p ${test_timeout}
     rdv 1 ./test_setup_rcbPtn 1
