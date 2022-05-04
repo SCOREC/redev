@@ -34,8 +34,8 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
     redev::LOs outMsg = redev::LOs(1,42+clientId);
     commPair.c2s.Send(outMsg.data());
     //inbound message from server
-    auto inMsg = commPair.s2c.Recv();
-    REDEV_ALWAYS_ASSERT(inMsg[0] == 1337+clientId);
+    auto msg = commPair.s2c.Recv();
+    REDEV_ALWAYS_ASSERT(msg[0] == 1337+clientId);
   }
 }
 

@@ -356,7 +356,7 @@ namespace redev {
     const auto varName = "redev client communicator size";
     auto status = c2sEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
-    redev::LO clientCommSz;
+    redev::LO clientCommSz = 0;
     if(!isRendezvous) {
       auto var = c2sIO.DefineVariable<redev::LO>(varName);
       if(!rank)
@@ -384,7 +384,7 @@ namespace redev {
     const auto varName = "redev server communicator size";
     auto status = s2cEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
-    redev::LO serverCommSz;
+    redev::LO serverCommSz = 0;
     if(isRendezvous) {
       auto var = s2cIO.DefineVariable<redev::LO>(varName);
       if(!rank)
