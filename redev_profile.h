@@ -38,7 +38,7 @@ namespace redev {
 
       /**
        * \brief Get the time spent in the specified function.
-       * @param name the function name, case sensitive
+       * @param[in] name the function name, case sensitive
        */
       ElapsedTime GetTime(std::string name) {
         if( callTime.count(name) )
@@ -49,7 +49,7 @@ namespace redev {
 
       /**
        * \brief Get the call count of the specified function.
-       * @param name the function name, case sensitive
+       * @param[in] name the function name, case sensitive
        */
       ElapsedTime GetCallCount(std::string name) {
         if( callTime.count(name) )
@@ -61,8 +61,8 @@ namespace redev {
       /**
        * \brief Increment the call count and increase the recorded time for the
        * specified function by t.
-       * @param name the function name, case sensitive
-       * @param t recorded time in the function
+       * @param[in] name the function name, case sensitive
+       * @param[in] t recorded time in the function
        */
       void AddTime(std::string name, ElapsedTime t) {
         if(!callTime.count(name)) {
@@ -76,7 +76,7 @@ namespace redev {
 
       /**
        * \brief Write profiling data to the specified stream.
-       * @param os stream object
+       * @param[in/out] os stream object
        */
       void Write(std::ostream& os) const {
         os << "Profiling\n";
@@ -118,7 +118,7 @@ namespace redev {
     //! \}
     /**
      * \brief Time the callers scope and store it with the given name.
-     * @param inName function name
+     * @param[in] inName function name
      */
     ScopedTimer(std::string inName)
       : name(inName), start(getTime()) {
