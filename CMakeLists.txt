@@ -44,6 +44,23 @@ if(HAS_ASAN)
   target_compile_options(redev PRIVATE -fsanitize=address -fno-omit-frame-pointer)
 endif()
 
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    # set input and output files - WHY NOT HARDCODE THIS AND SKIP CONFIGURE_FILE?
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.out)
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+
+    # Note: do not put "ALL" - this builds docs together with application EVERY TIME!
+    add_custom_target(docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM )
+else (DOXYGEN_FOUND)
+  message("Doxygen need to be installed to generate the doxygen documentation")
+endif (DOXYGEN_FOUND)
+
 include(CTest)
 if(BUILD_TESTING)
   message(STATUS "MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}")
@@ -183,7 +200,7 @@ if(BUILD_TESTING)
                 client0 1 ./test_twoClients 0
                 client1 1 ./test_twoClients 1
                 rdv     1 ./test_twoClients none)
-endif()
+endif(BUILD_TESTING)
 
 ## export the library
 set_target_properties(redev PROPERTIES
