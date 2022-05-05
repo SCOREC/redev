@@ -184,7 +184,9 @@ class RCBPtn : public Partition {
  */
 template <class T>
 struct CommPair {
+  /// server-to-client
   redev::AdiosComm<T> s2c;
+  /// client-to-server
   redev::AdiosComm<T> c2s;
 };
 
