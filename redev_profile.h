@@ -28,7 +28,7 @@ namespace redev {
       //! \}
 
       /**
-       * \brief Get the handle to the Profiling singleton instance.
+       * Get the handle to the Profiling singleton instance.
        */
       static Profiling *GetInstance() {
         if (global_singleton_profiling == nullptr)
@@ -37,7 +37,7 @@ namespace redev {
       }
 
       /**
-       * \brief Get the time spent in the specified function.
+       * Get the time spent in the specified function.
        * @param[in] name the function name, case sensitive
        */
       ElapsedTime GetTime(std::string name) {
@@ -48,7 +48,7 @@ namespace redev {
       }
 
       /**
-       * \brief Get the call count of the specified function.
+       * Get the call count of the specified function.
        * @param[in] name the function name, case sensitive
        */
       ElapsedTime GetCallCount(std::string name) {
@@ -59,7 +59,7 @@ namespace redev {
       }
 
       /**
-       * \brief Increment the call count and increase the recorded time for the
+       * Increment the call count and increase the recorded time for the
        * specified function by t.
        * @param[in] name the function name, case sensitive
        * @param[in] t recorded time in the function
@@ -75,8 +75,8 @@ namespace redev {
       }
 
       /**
-       * \brief Write profiling data to the specified stream.
-       * @param[in/out] os stream object
+       * Write profiling data to the specified stream.
+       * @param[in,out] os stream object
        */
       void Write(std::ostream& os) const {
         os << "Profiling\n";
@@ -92,13 +92,13 @@ namespace redev {
   };
 
   /**
-   * \brief Called at the beginning of an instrumented function.
+   * Called at the beginning of an instrumented function.
    */
   inline void begin_code(std::string name) {
   }
 
   /**
-   * \brief Called at the end of an instrumented function.
+   * Called at the end of an instrumented function.
    */
   inline void end_code(std::string name, redev::ElapsedTime time) {
      auto s = redev::Profiling::GetInstance();
@@ -117,7 +117,7 @@ namespace redev {
     std::string name;
     //! \}
     /**
-     * \brief Time the callers scope and store it with the given name.
+     * Time the callers scope and store it with the given name.
      * @param[in] inName function name
      */
     ScopedTimer(std::string inName)
