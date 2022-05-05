@@ -9,6 +9,16 @@
 
 namespace redev {
 
+/**
+ * The Partition class provides an abstract interface that is used by Redev for
+ * sharing partition information among the server and client processes.
+ * Instances of the Partition class define an interface (i.e., GetRank(...)) to query
+ * which process owns a point in the domain (RCBPtn) or a given geometric model entity
+ * (ClassPtn).
+ * Defining the cut tree for RCB or the assignment of ranks to geometric model entities
+ * is not the purpose/responsiblity of this class or the RCBPtn and ClassPtn
+ * derived classes.
+ */
 class Partition {
   public:
     /**
@@ -33,6 +43,7 @@ class Partition {
 
 /**
  * The ClassPtn class supports a domain partition defined by the ownership of geometric model entities.
+ * The user passes to the constructor the assignment of ranks to geometric model entities.
  * The 'Class' in the name is from the 'classification' term used to define the
  * association of mesh entities with a geometric model entity.
  * The concepts of classification are described in Section 2.2.2 of the PUMI
@@ -57,7 +68,8 @@ class ClassPtn : public Partition {
     /**
      * Create a ClassPtn object from a vector of owning ranks and geometric model entities.
      * @param comm MPI communicator containing the ranks that need the partition information
-     * @param root the source rank that sends the partition information
+     * @param ranks vector of ranks owning each geometric model entity
+     * @param ents vector of geometric model entities
      */
     ClassPtn(MPI_Comm comm, const redev::LOs& ranks, const ModelEntVec& ents);
     /**
@@ -106,6 +118,8 @@ class ClassPtn : public Partition {
 
 /**
  * The RCBPtn class supports recursive coordinate bisection domain partitions.
+ * The user passes to the constructor the definition of the cut tree and the ranks owning each
+ * sub-domain.
  * The non-leaf levels of the partition tree have alternating cut dimensions associated
  * with the level starting with 'x'.
  * Each non-leaf node has a coordinate for the position of the cut along the dimension
