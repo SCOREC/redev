@@ -23,20 +23,20 @@ class Partition {
   public:
     /**
      * Write the partition to the provided ADIOS engine and io.
-     * @param eng an ADIOS2 Engine opened in write mode
-     * @param io the ADIOS2 IO object that created eng
+     * @param[in] eng an ADIOS2 Engine opened in write mode
+     * @param[in] io the ADIOS2 IO object that created eng
      */
     virtual void Write(adios2::Engine& eng, adios2::IO& io) = 0;
     /**
      * Read the partition to the provided ADIOS engine/io.
-     * @param eng an ADIOS2 Engine opened in read mode
-     * @param io the ADIOS2 IO object that created eng
+     * @param[in] eng an ADIOS2 Engine opened in read mode
+     * @param[in] io the ADIOS2 IO object that created eng
      */
     virtual void Read(adios2::Engine& eng, adios2::IO& io) = 0;
     /**
      * Send the partition information from the root rank to all other ranks in comm.
-     * @param comm MPI communicator containing the ranks that need the partition information
-     * @param root the source rank that sends the partition information
+     * @param[in] comm MPI communicator containing the ranks that need the partition information
+     * @param[in] root the source rank that sends the partition information
      */
     virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
 };
@@ -67,14 +67,14 @@ class ClassPtn : public Partition {
     ClassPtn();
     /**
      * Create a ClassPtn object from a vector of owning ranks and geometric model entities.
-     * @param comm MPI communicator containing the ranks that need the partition information
-     * @param ranks vector of ranks owning each geometric model entity
-     * @param ents vector of geometric model entities
+     * @param[in] comm MPI communicator containing the ranks that need the partition information
+     * @param[in] ranks vector of ranks owning each geometric model entity
+     * @param[in] ents vector of geometric model entities
      */
     ClassPtn(MPI_Comm comm, const redev::LOs& ranks, const ModelEntVec& ents);
     /**
      * Return the rank owning the given geometric model entity.
-     * @param ent the geometric model entity
+     * @param[in] ent the geometric model entity
      */
     redev::LO GetRank(ModelEnt ent) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
@@ -91,17 +91,17 @@ class ClassPtn : public Partition {
   private:
     const std::string entsAndRanksVarName = "class partition ents and ranks";
     /**
-     * \brief return a vector with the contents of the ModelEntToRank map
+     * return a vector with the contents of the ModelEntToRank map
      * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      */
     void Gather(MPI_Comm comm, int root=0);
     /**
-     * \brief return a vector with the contents of the ModelEntToRank map
+     * return a vector with the contents of the ModelEntToRank map
      * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      */
     redev::LOs SerializeModelEntsAndRanks() const;
     /**
-     * \brief Given a vector that contains the owning ranks and geometric model entities
+     * Given a vector that contains the owning ranks and geometric model entities
      * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      * construct the ModelEntToRank map
      */
@@ -137,18 +137,23 @@ class ClassPtn : public Partition {
 class RCBPtn : public Partition {
   public:
     RCBPtn();
+    /**
+     * Create a RCBPtn object with only the dimension specified.  The cuts and ranks will be filled
+     * in during Redev creation.
+     * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length of each cut vector
+     */
     RCBPtn(redev::LO dim);
     /**
      * Create a RCBPtn object from a vector of owning ranks and cut vectors.
-     * @param dim the dimension of the domain (2=2d,3=3d); defines the length of each cut vector
-     * @param ranks vector of ranks owning each sub-domain in the cut tree
-     * @param cuts vector of 2-vectors or 3-vectors, for 2d and 3d domains respectively, defining the cut tree.
+     * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length of each cut vector
+     * @param[in] ranks vector of ranks owning each sub-domain in the cut tree
+     * @param[in] cuts vector of 2-vectors or 3-vectors, for 2d and 3d domains respectively, defining the cut tree.
      *             The 2-vectors (3-vectors) are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
      */
     RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
     /**
      * Return the rank owning the given point.
-     * @param pt the cartesian point in space. The 3rd value is ignored for 2d domains.
+     * @param[in] pt the cartesian point in space. The 3rd value is ignored for 2d domains.
      */
     redev::LO GetRank(std::array<redev::Real,3>& pt) const;
     void Write(adios2::Engine& eng, adios2::IO& io);
@@ -193,20 +198,20 @@ struct CommPair {
 class Redev {
   public:
     /**
-     * \brief Create a Redev object
-     * @param comm MPI communicator containing the ranks that are part of the server/client
-     * @param ptn Partition object defining the redezvous domain partition
-     * @param isRendezvous true for the server processes and false otherwise
-     * @param noClients for testing without any clients present
+     * Create a Redev object
+     * @param[in] comm MPI communicator containing the ranks that are part of the server/client
+     * @param[in] ptn Partition object defining the redezvous domain partition
+     * @param[in] isRendezvous true for the server processes and false otherwise
+     * @param[in] noClients for testing without any clients present
      */
     Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noClients=false);
     /**
-     * \brief Create a ADIOS2-based CommPair between the server and one client
-     * @param name name for the communication channel, each CommPair must have a unique name
-     * @param params list of ADIOS2 parameters controlling IO and Engine creation, see
+     * Create a ADIOS2-based CommPair between the server and one client
+     * @param[in] name name for the communication channel, each CommPair must have a unique name
+     * @param[in] params list of ADIOS2 parameters controlling IO and Engine creation, see
      * https://adios2.readthedocs.io/en/latest/engines/engines.html for the list
      * of applicable parameters for the SST and BP4 engines
-     * @param isSST by default the BP4 Engine is used, setting this to true
+     * @param[in] isSST by default the BP4 Engine is used, setting this to true
      * enables use of the SST engine
      */
     template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params, bool isSST=false);
