@@ -34,15 +34,49 @@ void Broadcast(T* data, int count, int root, MPI_Comm comm) {
   MPI_Bcast(data, count, type, root, comm);
 }
 
+/**
+ * The Communicator class provides an abstract interface for sending and
+ * receiving messages to/from the client and server.
+ */
 template<typename T>
 class Communicator {
   public:
+    /**
+     * Set the arrangement of data in the messages array so that its segments,
+     * defined by the offsets array, are sent to the correct destination ranks,
+     * defined by the dest array.
+     * @param[in] dest array of integers specifying the destination rank for a
+     * portion of the msgs array
+     * @param[in] offsets array of length |dest|+1 defining the segment of the
+     * msgs array (passed to the Send function) being sent to each destination rank.
+     * the segment [ msgs[offsets[i]] : msgs[offsets[i+1]] } is sent to rank dest[i]
+     */
     virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
+    /**
+     * Send the array.
+     * @param[in] msgs array of data to be sent according to the layout specified 
+     *            with SetOutMessageLayout
+     */
     virtual void Send(T* msgs) = 0;
+    /**
+     * Receive an array. Use AdiosComm's GetInMessageLayout to retreive 
+     * an instance of the InMessageLayout struct containing the layout of
+     * the received array.
+     */
     virtual std::vector<T> Recv() = 0;
 };
 
+/**
+ * The InMessageLayout struct contains the arrays defining the arrangement of
+ * data in the array returned by Communicator::Recv.
+ */
 struct InMessageLayout {
+  /**
+   * Array of source ranks sized NumberOfClientRanks*NumberOfServerRanks.  Each
+   * rank reads the entire array once at the start of a communication round.
+   * A communication round is defined as a series of sends and receives using
+   * the same message layout.
+   */
   redev::GOs srcRanks;
   redev::GOs offset;
   bool knownSizes;
@@ -66,15 +100,7 @@ class AdiosComm : public Communicator<T> {
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
-      // The assumption here is that the communicator
-      // used by the rendezvous application is orders
-      // of magnitude smaller than the communicator
-      // used by the largest application.  For example,
-      // XGC may use 1024 ranks, GENE 16, and the coupler
-      // (the rendezvous application) 16. Given this,
-      // allocating an array with length equal to the
-      // rendevous communicator size is acceptable.
-      GOs degree(rdvRanks,0);
+      GOs degree(rdvRanks,0); //TODO ideally, this would not be needed
       for( auto i=0; i<outMsg.dest.size(); i++) {
         auto destRank = outMsg.dest[i];
         assert(destRank < rdvRanks);
