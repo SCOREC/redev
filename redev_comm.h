@@ -81,23 +81,23 @@ struct InMessageLayout {
   /**
    * Array of size NumberOfReceiverRanks+1 that indicates the segment of the
    * messages array each server rank should read. NumberOfReceiverRanks is
-   * defined as the number of ranks calling Recv.
+   * defined as the number of ranks calling Communicator::Recv.
    */
   redev::GOs offset;
   /**
-   * Set to true if the first Recv has been called and the message layout data set;
+   * Set to true if Communicator::Recv has been called and the message layout data set;
    * false otherwise.
    */
   bool knownSizes;
   /**
-   * Index into the messages array (returned by Recv) where the current process should start
+   * Index into the messages array (returned by Communicator::Recv) where the current process should start
    * reading.
    */
   size_t start;
   /**
    * Number of items (of the user specified type passed to the template
    * parameter of AdiosComm) that should be read from the messages array
-   * (returned by Recv).
+   * (returned by Communicator::Recv).
    */
   size_t count;
 };
