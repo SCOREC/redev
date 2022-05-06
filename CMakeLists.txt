@@ -44,17 +44,6 @@ if(HAS_ASAN)
   target_compile_options(redev PRIVATE -fsanitize=address -fno-omit-frame-pointer)
 endif()
 
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
-    add_custom_target(docs
-        COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM )
-else (DOXYGEN_FOUND)
-  message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
-
 include(CTest)
 if(BUILD_TESTING)
   message(STATUS "MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}")
