@@ -34,27 +34,99 @@ void Broadcast(T* data, int count, int root, MPI_Comm comm) {
   MPI_Bcast(data, count, type, root, comm);
 }
 
+/**
+ * The Communicator class provides an abstract interface for sending and
+ * receiving messages to/from the client and server.
+ */
 template<typename T>
 class Communicator {
   public:
+    /**
+     * Set the arrangement of data in the messages array so that its segments,
+     * defined by the offsets array, are sent to the correct destination ranks,
+     * defined by the dest array.
+     * @param[in] dest array of integers specifying the destination rank for a
+     * portion of the msgs array
+     * @param[in] offsets array of length |dest|+1 defining the segment of the
+     * msgs array (passed to the Send function) being sent to each destination rank.
+     * the segment [ msgs[offsets[i]] : msgs[offsets[i+1]] } is sent to rank dest[i]
+     */
     virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
+    /**
+     * Send the array.
+     * @param[in] msgs array of data to be sent according to the layout specified
+     *            with SetOutMessageLayout
+     */
     virtual void Send(T* msgs) = 0;
+    /**
+     * Receive an array. Use AdiosComm's GetInMessageLayout to retreive
+     * an instance of the InMessageLayout struct containing the layout of
+     * the received array.
+     */
     virtual std::vector<T> Recv() = 0;
 };
 
+/**
+ * The InMessageLayout struct contains the arrays defining the arrangement of
+ * data in the array returned by Communicator::Recv.
+ */
 struct InMessageLayout {
+  /**
+   * Array of source ranks sized NumberOfClientRanks*NumberOfServerRanks.  Each
+   * rank reads the entire array once at the start of a communication round.
+   * A communication round is defined as a series of sends and receives using
+   * the same message layout.
+   */
   redev::GOs srcRanks;
+  /**
+   * Array of size NumberOfReceiverRanks+1 that indicates the segment of the
+   * messages array each server rank should read. NumberOfReceiverRanks is
+   * defined as the number of ranks calling Communicator::Recv.
+   */
   redev::GOs offset;
+  /**
+   * Set to true if Communicator::Recv has been called and the message layout data set;
+   * false otherwise.
+   */
   bool knownSizes;
+  /**
+   * Index into the messages array (returned by Communicator::Recv) where the current process should start
+   * reading.
+   */
   size_t start;
+  /**
+   * Number of items (of the user specified type passed to the template
+   * parameter of AdiosComm) that should be read from the messages array
+   * (returned by Communicator::Recv).
+   */
   size_t count;
 };
 
+/**
+ * The AdiosComm class implements the Communicator interface to support sending
+ * messages between the clients and server via ADIOS2.  The BP4 and SST ADIOS2
+ * engines are currently supported.
+ * One AdiosComm object is required for each communication link direction.  For
+ * example, for a client and server to both send and receive messages one
+ * AdiosComm for client->server messaging and another AdiosComm for
+ * server->client messaging.
+ */
 template<typename T>
 class AdiosComm : public Communicator<T> {
   public:
-    AdiosComm(MPI_Comm comm_, int rdvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
-      : comm(comm_), rdvRanks(rdvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
+    /**
+     * Create an AdiosComm object.  Collective across sender and receiver ranks.
+     * Calls to the constructor from the sender and receiver ranks must be in
+     * the same order (i.e., first creating the client-to-server object then the
+     * server-to-client link).
+     * @param[in] comm_ MPI communicator for sender ranks
+     * @param[in] recvRanks_ number of ranks in the receivers MPI communicator
+     * @param[in] eng_ ADIOS2 engine for writing on the sender side
+     * @param[in] io_ ADIOS2 IO associated with eng_
+     * @param[in] name_ unique name among AdiosComm objects
+     */
+    AdiosComm(MPI_Comm comm_, int recvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
+      : comm(comm_), recvRanks(recvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
         inMsg.knownSizes = false;
     }
     void SetOutMessageLayout(LOs& dest_, LOs& offsets_) {
@@ -66,36 +138,28 @@ class AdiosComm : public Communicator<T> {
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
-      // The assumption here is that the communicator
-      // used by the rendezvous application is orders
-      // of magnitude smaller than the communicator
-      // used by the largest application.  For example,
-      // XGC may use 1024 ranks, GENE 16, and the coupler
-      // (the rendezvous application) 16. Given this,
-      // allocating an array with length equal to the
-      // rendevous communicator size is acceptable.
-      GOs degree(rdvRanks,0);
+      GOs degree(recvRanks,0); //TODO ideally, this would not be needed
       for( auto i=0; i<outMsg.dest.size(); i++) {
         auto destRank = outMsg.dest[i];
-        assert(destRank < rdvRanks);
+        assert(destRank < recvRanks);
         degree[destRank] += outMsg.offsets[i+1] - outMsg.offsets[i];
       }
-      GOs rdvRankStart(rdvRanks,0);
-      auto ret = MPI_Exscan(degree.data(), rdvRankStart.data(), rdvRanks,
+      GOs rdvRankStart(recvRanks,0);
+      auto ret = MPI_Exscan(degree.data(), rdvRankStart.data(), recvRanks,
           getMpiType(redev::GO()), MPI_SUM, comm);
       assert(ret == MPI_SUCCESS);
       if(!rank) {
         //on rank 0 the result of MPI_Exscan is undefined, set it to zero
-        rdvRankStart = GOs(rdvRanks,0);
+        rdvRankStart = GOs(recvRanks,0);
       }
 
-      GOs gDegree(rdvRanks,0);
-      ret = MPI_Allreduce(degree.data(), gDegree.data(), rdvRanks,
+      GOs gDegree(recvRanks,0);
+      ret = MPI_Allreduce(degree.data(), gDegree.data(), recvRanks,
           getMpiType(redev::GO()), MPI_SUM, comm);
       assert(ret == MPI_SUCCESS);
       const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), redev::GO(0)));
 
-      GOs gStart(rdvRanks,0);
+      GOs gStart(recvRanks,0);
       std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
 
       //The messages array has a different length on each rank ('irregular') so we don't
@@ -109,9 +173,9 @@ class AdiosComm : public Communicator<T> {
       assert(rdvVar);
       const auto srcRanksName = name+"_srcRanks";
       //The source rank offsets array is the same on each process ('regular').
-      adios2::Dims srShape{static_cast<size_t>(commSz*rdvRanks)};
-      adios2::Dims srStart{static_cast<size_t>(rdvRanks*rank)};
-      adios2::Dims srCount{static_cast<size_t>(rdvRanks)};
+      adios2::Dims srShape{static_cast<size_t>(commSz*recvRanks)};
+      adios2::Dims srStart{static_cast<size_t>(recvRanks*rank)};
+      adios2::Dims srCount{static_cast<size_t>(recvRanks)};
       checkStep(eng.BeginStep());
 
       //send dest rank offsets array from rank 0
@@ -158,7 +222,7 @@ class AdiosComm : public Communicator<T> {
       MPI_Comm_size(comm, &commSz);
       auto t1 = redev::getTime();
       checkStep(eng.BeginStep());
-      
+
       if(!inMsg.knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
         assert(rdvRanksVar);
@@ -206,18 +270,25 @@ class AdiosComm : public Communicator<T> {
       }
       return msgs;
     }
+    /**
+     * Return the InMessageLayout object.
+     * @todo should return const object
+     */
     InMessageLayout GetInMessageLayout() {
       return inMsg;
     }
-    //the higher the value the more output is written
-    //verbose=0 is silent
+    /**
+     * Control the amount of output from AdiosComm functions.  The higher the value the more output is written.
+     * @param[in] lvl valid values are [0:5] where 0 is silent and 5 is produces
+     *                the most output
+     */
     void SetVerbose(int lvl) {
       assert(lvl>=0 && lvl<=5);
       verbose = lvl;
     }
   private:
     MPI_Comm comm;
-    int rdvRanks;
+    int recvRanks;
     adios2::Engine eng;
     adios2::IO io;
     adios2::Variable<T> rdvVar;

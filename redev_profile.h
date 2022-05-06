@@ -7,6 +7,10 @@
 
 namespace redev {
   using ElapsedTime = double;
+  /**
+   * The Profiling class provides a basic capability to record the call count
+   * and time of functions.
+   */
   class Profiling {
     private:
       static Profiling *global_singleton_profiling;
@@ -16,17 +20,26 @@ namespace redev {
     public:
       //prevent calls to the copy and move assignment operators and ctors
       //rule of 5 - #c21 - https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines
+      //! \{ supress doxygen warning
       Profiling(const Profiling&) = delete;             // copy constructor
       Profiling& operator=(const Profiling&) = delete;  // copy assignment
       Profiling(Profiling&&) = delete;                  // move constructor
       Profiling& operator=(Profiling&&) = delete;       // move assignment
+      //! \}
 
+      /**
+       * Get the handle to the Profiling singleton instance.
+       */
       static Profiling *GetInstance() {
         if (global_singleton_profiling == nullptr)
           global_singleton_profiling = new Profiling;
         return global_singleton_profiling;
       }
 
+      /**
+       * Get the time spent in the specified function.
+       * @param[in] name the function name, case sensitive
+       */
       ElapsedTime GetTime(std::string name) {
         if( callTime.count(name) )
           return callTime[name].second;
@@ -34,6 +47,10 @@ namespace redev {
           return 0;
       }
 
+      /**
+       * Get the call count of the specified function.
+       * @param[in] name the function name, case sensitive
+       */
       ElapsedTime GetCallCount(std::string name) {
         if( callTime.count(name) )
           return callTime[name].first;
@@ -41,6 +58,12 @@ namespace redev {
           return 0;
       }
 
+      /**
+       * Increment the call count and increase the recorded time for the
+       * specified function by t.
+       * @param[in] name the function name, case sensitive
+       * @param[in] t recorded time in the function
+       */
       void AddTime(std::string name, ElapsedTime t) {
         if(!callTime.count(name)) {
           callTime[name].first = 1;
@@ -51,6 +74,10 @@ namespace redev {
         }
       }
 
+      /**
+       * Write profiling data to the specified stream.
+       * @param[in,out] os stream object
+       */
       void Write(std::ostream& os) const {
         os << "Profiling\n";
         os << "name, callCount, time(s)\n";
@@ -64,25 +91,40 @@ namespace redev {
       }
   };
 
-  //the following functions can be used to record
-  //the runtime or stack trace of a function
+  /**
+   * Called at the beginning of an instrumented function.
+   */
   inline void begin_code(std::string name) {
   }
 
+  /**
+   * Called at the end of an instrumented function.
+   */
   inline void end_code(std::string name, redev::ElapsedTime time) {
      auto s = redev::Profiling::GetInstance();
      s->AddTime(name,time);
   }
 
-  //This is heavily based on omega_h/src/Omega_h_profile.hpp.  Thanks Dan.
-  //https://github.com/sandialabs/omega_h/blob/a43850787b24f96d50807cee5688f09259e96b75/src/Omega_h_profile.hpp
+  /**
+   * ScopedTimer provides a simple mechanism to record the time spent in the
+   * calling scope.
+   * This is heavily based on omega_h/src/Omega_h_profile.hpp.  Thanks Dan.
+   * https://github.com/sandialabs/omega_h/blob/a43850787b24f96d50807cee5688f09259e96b75/src/Omega_h_profile.hpp
+   */
   struct ScopedTimer {
+    //! \{ suppress doxygen warning
     TimeType start;
     std::string name;
+    //! \}
+    /**
+     * Time the callers scope and store it with the given name.
+     * @param[in] inName function name
+     */
     ScopedTimer(std::string inName)
       : name(inName), start(getTime()) {
       begin_code(name);
     }
+    //! \{ suppress doxygen warning
     ~ScopedTimer() {
       std::chrono::duration<double> t = getTime()-start; //cannot be 'auto t'
       end_code(name,t.count());
@@ -91,6 +133,7 @@ namespace redev {
     ScopedTimer(ScopedTimer&&) = delete;
     ScopedTimer& operator=(ScopedTimer const&) = delete;
     ScopedTimer& operator=(ScopedTimer&&) = delete;
+    //! \}
   };
 
 } //end redev
