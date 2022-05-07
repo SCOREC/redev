@@ -6,7 +6,9 @@ containing class, struct, function, etc. documentation from Doxygen in
 restructured text (.rst) files.
 
 The `.nojekyll` file at the top level of the repo is required for the content
-to render correctly on Github pages.
+to render correctly on Github pages. See
+https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#static-site-generators
+for more info.
 
 ### Building
 
