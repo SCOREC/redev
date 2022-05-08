@@ -5,7 +5,7 @@ ReadTheDocs theme.  The breathe extension is used to access the xml output
 containing class, struct, function, etc. documentation from Doxygen in
 restructured text (.rst) files.
 
-The `.nojekyll` file at the top level of the repo is required for the content
+The `.nojekyll` file in the `docs` directory of the `gh-pages` branch is required for the content
 to render correctly on Github pages. See
 https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#static-site-generators
 for more info.
