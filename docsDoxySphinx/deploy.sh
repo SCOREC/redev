@@ -27,8 +27,8 @@ fi
 cd $SITE/docsDoxySphinx
 make html
 git checkout gh-pages
-cp -r build/html/* $SITE/docs
-git add -A $SITE/docs
+cp -r build/html/* ../docs
+git add -A ../docs
 git commit -m "Deploying the Redev documentation"
 git push
 
