@@ -28,3 +28,4 @@ Table of Contents
 
     self
     api/index
+    examples/index

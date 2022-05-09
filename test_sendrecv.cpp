@@ -3,6 +3,15 @@
 #include "redev.h"
 #include "redev_comm.h"
 
+/**
+ * \page test_sendrecv
+ * This example demonstrates the message layout needed for a send from the
+ * client to the server (a 'forward' send).
+ *
+ * \note
+ * alksdjalkdjal
+ */
+
 //If the name of the variable being sent ("foo"), the communication
 //pattern, or data being sent is changed then also update the cmake
 //test using the adios2 utility bpls to check the array.
