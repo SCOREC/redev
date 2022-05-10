@@ -3,9 +3,6 @@
 #include "redev.h"
 #include "redev_comm.h"
 
-
-// see [test_sendrecv](test_sendrecv).
-
 /**
  * \page test_twoclients
  *
