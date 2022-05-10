@@ -12,14 +12,11 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Requirements
-      run: brew install doxygen
-        && brew install sphinx-doc
-        && pip3 install sphinx-rtd-theme
-        && pip3 install breathe
-        && pip3 install sphinx-sitemap
     - name: Checkout repo
       uses: actions/checkout@1.0.0
+    - name: Requirements
+      run: brew install doxygen
+        && pip3 install -r docsDoxySphinx/requirements.txt
     - name: Build docs
       run: cd docsDoxySphinx
         && make html
