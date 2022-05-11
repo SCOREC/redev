@@ -30,6 +30,10 @@
  *
  * \par Client Setup
  *
+ * Client setup begins with creation of the redev::CommPair communication object.
+ *
+ *
+ *
  * \snippet{lineno} test_twoClients.cpp Client Setup
  *
  * \par Server Create Clients
