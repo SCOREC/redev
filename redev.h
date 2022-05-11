@@ -101,30 +101,29 @@ namespace redev {
  * The phases of the workflow are described below.
  * - _App. Setup_: The applications initialize its domain data
  *   by loading meshes, and associated partition data.
- *   The Coupler loads the geometric model of the domain and any prolem
- * Next, the coupler forms the 'Feature-based Partition' used for Rendezvous, and
- * sending a representation of the partition to an instance of
- * Redev embedded into each application in the 'Rdv. Setup' phase.
- * Once the applications can query the rendezvous partition they do so in a loop
- * over their mesh entities in the overlap sub-domain and create a map of mesh
- * entities to their destination rank in the Coupler.
- * Using a communication object established for the connection between
- * each application and the Coupler a **Forward** send is performed from the
- * applications to the Coupler.
- * This initial **Forward** send, and the meta data associated with it that
- * describes which application rank sent each portion of the data, enables the
- * construction of a **Reverse** send from the Coupler back to the appropriate
- * application processes.
- * In the last phase, marked Field Transfer, the **Forward** and **Reverse** sends are
- * repeatedly executed until the coupled simulation completes.
- * The figure depicts one of portion of a communication round that performs
- * a **Forward** send from application 'A' to the Coupler,
- * execution of a field transformation procedure marked 'mesh-to-mesh', and a
- * **Reverse** send from the Coupler to application 'B'.
- * The communication round would be completed with the mirror image of this
- * process; a **Forward** send from 'B' to the Coupler, another transformation, and
- * a **Reverse** send from the Coupler to 'A'.
- *
+ *   The Coupler loads the geometric model of the domain.
+ * - _Rdv. Setup_: The coupler forms the 'Feature-based Partition' used for Rendezvous, and
+ *   sends partition information to an instance of Redev embedded
+ *   into each application.
+ * - _Mesh Setup_: Each application queries the rendezvous partition in a loop
+ *   over their mesh entities in the overlap sub-domain and create a map of mesh
+ *   entities to their destination rank in the Coupler.
+ *   Using a communication object established for the connection between
+ *   each application and the Coupler a **Forward** send is performed from the
+ *   applications to the Coupler.
+ *   This initial **Forward** send, and the meta data associated with it that
+ *   describes which application rank sent each portion of the data, enables the
+ *   construction of a **Reverse** send from the Coupler back to the appropriate
+ *   application processes.
+ * - _Field Transfer_: The **Forward** and **Reverse** sends are
+ *   repeatedly executed until the coupled simulation completes.
+ *   The figure depicts one of portion of a communication round that performs
+ *   a **Forward** send from application 'A' to the Coupler,
+ *   execution of a field transformation procedure marked 'mesh-to-mesh', and a
+ *   **Reverse** send from the Coupler to application 'B'.
+ *   The communication round would be completed with the mirror image of this
+ *   process; a **Forward** send from 'B' to the Coupler, another transformation, and
+ *   a **Reverse** send from the Coupler to 'A'.
  *
  * \image xml redevWorkflow.png
  * 
