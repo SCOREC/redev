@@ -1,2 +1,2 @@
 <?xml version='1.0' encoding='utf-8'?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>/api/cpp_doxygen_sphinx.html</loc></url><url><loc>/api/index.html</loc></url><url><loc>/index.html</loc></url><url><loc>/genindex.html</loc></url><url><loc>/search.html</loc></url></urlset>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>/api/cpp_doxygen_sphinx.html</loc></url><url><loc>/api/index.html</loc></url><url><loc>/concepts/index.html</loc></url><url><loc>/examples/index.html</loc></url><url><loc>/examples/sendRecv.html</loc></url><url><loc>/examples/twoClients.html</loc></url><url><loc>/index.html</loc></url><url><loc>/genindex.html</loc></url><url><loc>/search.html</loc></url></urlset>

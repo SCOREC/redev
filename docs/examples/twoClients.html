@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two Clients and One Server &mdash; Redev 2.0.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Send-Recv" href="sendRecv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Redev
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../concepts/index.html">Core Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/cpp_doxygen_sphinx.html">C++17 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sendRecv.html">Send-Recv</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Two Clients and One Server</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Redev</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Examples</a> &raquo;</li>
+      <li>Two Clients and One Server</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/twoClients.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="two-clients-and-one-server">
+<h1>Two Clients and One Server<a class="headerlink" href="#two-clients-and-one-server" title="Permalink to this headline"></a></h1>
+<dl>
+<dt class="sig sig-object cpp">
+<span class="target" id="test_twoclients"></span><em><span class="pre">page</span></em> <span class="sig-name descname"><span class="pre">test_twoclients</span></span></dt>
+<dd><p><dt><strong>Summary</strong></dt><dd><p>This example demonstrates two clients connecting to a single server. Each client sends messages to, and receives messages from, the server. The code is broken up into a function for the client and a function for the server. The client and server code first sets up the inbound and outbound message layouts then enters into a loop that repeatedly sends and receives messages using the defined layouts.</p>
+</dd>
+<div class="remark admonition">
+<p class="admonition-title">Remark</p>
+<p>The message layouts in this example are trivial; only a single integer is being sent/receieved and the client and server only have a single process. For a more complete example discussing message layout see <a class="reference internal" href="sendRecv.html#test_sendrecv"><span class="std std-ref">test_sendrecv</span></a>.</p>
+</div>
+<dt><strong>Launching the client and server</strong></dt><dd><p>A dummy <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1RCBPtn"><span class="std std-ref">RCBPtn</span></a> object is created for construction of the <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> instance; the partition is <strong>not</strong> used for creating message layout arrays in the client and server code below. The ADIOS2 parameters for the <a class="reference external" href="https://adios2.readthedocs.io/en/latest/engines/engines.html#bp4">BP4</a> engine (the default when <code class="docutils literal notranslate"><span class="pre">isSST</span></code> is <code class="docutils literal notranslate"><span class="pre">false</span></code>) are then set and passed into the functions for the client and server. lineno} test_twoClients.cpp Main</p>
+</dd>
+<dt><strong>Client Setup</strong></dt><dd><p></p>
+</dd>
+
+Client setup begins with creation of the <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#structredev_1_1CommPair"><span class="std std-ref">redev::CommPair</span></a> communication object via the call to redev::CreateAdiosClient. Note, the string for each created <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#structredev_1_1CommPair"><span class="std std-ref">redev::CommPair</span></a> must match in the Server and Client calls.</p>
+<p>Given that the data being transferred is a single integer and each Client and Server is only running on a single process the data layout (<code class="docutils literal notranslate"><span class="pre">dest</span></code> and <code class="docutils literal notranslate"><span class="pre">offsets</span></code>) for the outbound and inbound messages are trivial.</p>
+<p>The first outbound message has a single entry in the <code class="docutils literal notranslate"><span class="pre">dest</span></code> vector, <code class="docutils literal notranslate"><span class="pre">0</span></code>, to specify that all messages are being sent to Server process zero. Likewise, the <code class="docutils literal notranslate"><span class="pre">offsets</span></code> array is set to <code class="docutils literal notranslate"><span class="pre">{0,1}</span></code> to denote that messages for the destination process start at position zero in the messages array and there is only a single entry (<code class="docutils literal notranslate"><span class="pre">offsets[1]-offsets[0]=1-0=1</span></code>). These vectors are passed into <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1a429580208d773997368533e2040beda1"><span class="std std-ref">redev::AdiosComm::SetOutMessageLayout</span></a> for the <code class="docutils literal notranslate"><span class="pre">c2s</span></code> (Client-to-Server) member of the <code class="docutils literal notranslate"><span class="pre">commPair</span></code> struct. As long as the layout remains the same, no additional calls to <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1a429580208d773997368533e2040beda1"><span class="std std-ref">redev::AdiosComm::SetOutMessageLayout</span></a> are needed.</p>
+<p>As with the outbound message, the inbound message layout defines a single entry coming from Server process zero.. <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1a429580208d773997368533e2040beda1"><span class="std std-ref">redev::AdiosComm::SetOutMessageLayout</span></a> is called to retrieve the layout of the message that was just read with the call to <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1abf2621a676a6eb059713f9a4eaf23ac9"><span class="std std-ref">redev::AdiosComm::Recv</span></a>. Note, that these methods are called on the <code class="docutils literal notranslate"><span class="pre">s2c</span></code> (Server-to-Client) member of the <code class="docutils literal notranslate"><span class="pre">commPair</span></code> struct.</p>
+<p>lineno} test_twoClients.cpp Client Setup</p>
+<p><dt><strong>Server Create Clients</strong></dt><dd><p></p>
+</dd>
+
+In the Client code only a single <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#structredev_1_1CommPair"><span class="std std-ref">redev::CommPair</span></a> is needed. As there are two Clients, the Server must call redev::CreateAdiosClient twice; once for “client0” and again for “client1”.</p>
+<p>lineno} test_twoClients.cpp Server Create Clients</p>
+<p><dt><strong>First Inbound Messages</strong></dt><dd><p></p>
+</dd>
+
+As was done in the Client code when receiving a message from the Server, the message layout is retrieved and checked that it defines a single entry coming from process zero of each Client. This sequence is repeated for both the message coming from each Client using the respective <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#structredev_1_1CommPair"><span class="std std-ref">redev::CommPair</span></a> <code class="docutils literal notranslate"><span class="pre">c2s</span></code> (Client-to-Server) struct member.</p>
+<p>lineno} test_twoClients.cpp Server First Inbound Messages from Clients</p>
+<p><dt><strong>First Outbound Messages</strong></dt><dd><p></p>
+</dd>
+
+Now that the first ‘Forward’ messages (Client-to-Server) have been received the layout of the ‘Reverse’ messages (Server-to-Client) can be constructed using the data returned from the call to <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1aab6cf16a20d8c0b7aff8b6aba2d5b093"><span class="std std-ref">redev::AdiosComm::GetInMessageLayout</span></a>. But, given that this example is only sending and receiving a single redev::LO between Client and Server, the layout of the Reverse message is hardcoded. See the wdmapp_coupling documentation for an example that constructs the Reverse message layout for data associated with an unstructured mesh.</p>
+<p>As with the outbound messages from the Client to the Server, the call to <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1AdiosComm_1a429580208d773997368533e2040beda1"><span class="std std-ref">redev::AdiosComm::SetOutMessageLayout</span></a> only needs to be made once for each Server-to-Client (<code class="docutils literal notranslate"><span class="pre">s2c</span></code> within the <code class="docutils literal notranslate"><span class="pre">client0</span></code> and <code class="docutils literal notranslate"><span class="pre">client1</span></code> <code class="docutils literal notranslate"><span class="pre">commPair</span></code> objects).</p>
+<p>lineno} test_twoClients.cpp Server Outbound Messages to Clients</p>
+<p><dt><strong>Client Loop</strong></dt><dd><p></p>
+</dd>
+
+With the outbound message layout setup for each Client-to-Server Send a loop over communication rounds is entered that reuses that layout. The round first packs and sends a message to the Server (using the <code class="docutils literal notranslate"><span class="pre">c2s</span></code> member of the <code class="docutils literal notranslate"><span class="pre">commPair</span></code> struct) then receives a message from the Server (using the <code class="docutils literal notranslate"><span class="pre">s2c</span></code> member).</p>
+<p>lineno} test_twoClients.cpp Client Loop</p>
+<p><dt><strong>Server Loop</strong></dt><dd><p></p>
+</dd>
+
+The Server loop over communication rounds begins by receiving messages from the Clients (via the <code class="docutils literal notranslate"><span class="pre">client[0|1].c2s</span></code> objects) then sends messages back to the Clients (via <code class="docutils literal notranslate"><span class="pre">client[0|1].s2c</span></code>).</p>
+<p>lineno} test_twoClients.cpp Server Loop </p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sendRecv.html" class="btn btn-neutral float-left" title="Send-Recv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Cameron W. Smith.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
