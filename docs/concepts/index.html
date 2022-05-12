@@ -70,10 +70,45 @@
              
   <section id="core-concepts">
 <span id="concepts-index"></span><h1>Core Concepts<a class="headerlink" href="#core-concepts" title="Permalink to this headline"></a></h1>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygenpage: Cannot find file: /lore/cwsmith/nightlyBuilds/redev/docsDoxySphinx/build/xml/index.xml</p>
-</div>
+<dl>
+<dt class="sig sig-object cpp">
+<span class="target" id="concepts"></span><em><span class="pre">page</span></em> <span class="sig-name descname"><span class="pre">concepts</span></span></dt>
+<dd><p><em>The Rendezvous Algorithm </em></p>
+<p>The Rendezvous algorithm <blockquote>
+<div><p>enables scalable algorithms which are most useful when processors neither know which other processors to send data to, nor which other processors will be sending data to them [1].</p>
+<p></p>
+</div></blockquote>
+It is used in LAMMPS [1], the PUMI unstructured mesh library for loading multi-billion element meshes from file [2,3], and in the Data Transfer Toolkit [4].</p>
+<p>The following figures from [1] depict two unstructured meshes of the same domain where information from one mesh is needed by the other but they have a different partitioning across the same set of processes. In Figure 4 the colored ovals depict the domain owned by a given process in the two meshes. Since the domains are not intersecting the Rendezvous method is used to efficiently exchange data between the processes that do have the intersecting portion of the domain. A common domain partition, depicted by the red structured grid in the bottom two figures, allows processes that own data within a given cell in grid to ‘rendezvous’ with the other processes that own data in that cell and perform an exchange.</p>
+<p>redevPartition.png</p>
+<p>The key to the Rendezvous algorithm is a partitioning of the common portion of the domain that (1) has a relatively low memory usage and (2) supports computationally efficient queries for membership within the partition given a entity within the domain (e.g., a mesh element or vertex). The structured grid from the above figure is one possible partition that satisfies these requirements.</p>
+<p><em>WDMApp Use Case </em></p>
+<p>The <a class="reference external" href="https://wdmapp.readthedocs.io/en/latest/">WDMApp project</a> combines an application that evolves the physics near the ‘edge’ of a fusion device (i.e., D3D, ITER, etc.) with another application that is responsible for the inner ‘core’ portion of the device near the magnetic axis.</p>
+<p>The following figure depicts a conceptual division of the D3D domain into core and edge sub-domains where the respective applications are operating and an overlap sub-domain where fields on the mesh are exchanged and transformed.</p>
+<p>overlap500.png</p>
+<p>The WDMApp Coupler is a set of procedures to support field transformations in the overlap sub-domain between application meshes and partitions that are different. For example, the following figure depicts a 16 process partition created with a geometric recursive bisection method on the left and a four process partition using groupings of geometric model faces. The Rendezvous algorithm allows the WDMApp Coupler to define its own partition of the domain and efficiently collect, and transform, field data from the core and edge applications.</p>
+<p>partitions400.png</p>
+<p><em> Design </em></p>
+<p><a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> is an implementation of the Rendezvous algorithm that is currently focused on supporting the WDMApp Coupler and its use of independent sets of MPI processes for the core and edge applications. Specifically, each of these applications is executed with its own <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> (or equivalent batch scheduler) command. Transferring data between these sets of processes is directly supported by the <a class="reference external" href="https://adios2.readthedocs.io/en/latest/">ADIOS2</a> library.</p>
+<p>Key to the <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> design is the concept of a Server and Clients. A Client is a set of processes that owns some portion of the overlap sub-domain and needs to exchange data in that domain with another Client. Clients query the <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> API to (1) determine which processes in the Server the data they own needs to be sent, (2) send the data, and (3) receive data back from the server in their portion of the domain. The Server is a set of processes that owns the Rendezvous partition of the overlap sub-domain, receives data from Clients, and supports sending the data back to the Clients.</p>
+<p>The following figure depicts an example <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> workflow for exchanging data between two applications (Clients) and the Coupler (the Server). The Rendezvous partition in this example is formed from groups of adjacent geometric model entities referred to as a ‘Feature-based <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Partition"><span class="std std-ref">Partition</span></a>’. Red colored boxes and text are operations supported by <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a>. The phases of the workflow are described below.<ul class="simple">
+<li><p><em>App. Setup</em>: The applications initialize its domain data by loading meshes, and associated partition data. The Coupler loads the geometric model of the domain.</p></li>
+<li><p><em>Rdv. Setup</em>: The coupler forms the ‘Feature-based <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Partition"><span class="std std-ref">Partition</span></a>’ used for Rendezvous, and sends partition information to an instance of <a class="reference internal" href="../api/cpp_doxygen_sphinx.html#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> embedded into each application.</p></li>
+<li><p><em>Mesh Setup</em>: Each application queries the rendezvous partition in a loop over their mesh entities in the overlap sub-domain and create a map of mesh entities to their destination rank in the Coupler. Using a communication object established for the connection between each application and the Coupler a <strong>Forward</strong> send is performed from the applications to the Coupler. This initial <strong>Forward</strong> send, and the meta data associated with it that describes which application rank sent each portion of the data, enables the construction of a <strong>Reverse</strong> send from the Coupler back to the appropriate application processes.</p></li>
+<li><p><em>Field Transfer</em>: The <strong>Forward</strong> and <strong>Reverse</strong> sends are repeatedly executed until the coupled simulation completes. The figure depicts one of portion of a communication round that performs a <strong>Forward</strong> send from application ‘A’ to the Coupler, execution of a field transformation procedure marked ‘mesh-to-mesh’, and a <strong>Reverse</strong> send from the Coupler to application ‘B’. The communication round would be completed with the mirror image of this process; a <strong>Forward</strong> send from ‘B’ to the Coupler, another transformation, and a <strong>Reverse</strong> send from the Coupler to ‘A’.</p></li>
+</ul>
+</p>
+<p>redevWorkflow500.png</p>
+<p><em>References </em></p>
+<p><ul class="simple">
+<li><p><a class="reference external" href="https://www.sciencedirect.com/science/article/abs/pii/S0743731520303622">[1] “Rendezvous algorithms for large-scale modeling and simulation”, Plimpton, et.al., JPDC, 2021.</a></p></li>
+<li><p><a class="reference external" href="https://github.com/SCOREC/core/issues/205">[2] PUMI Github Issue</a></p></li>
+<li><p><a class="reference external" href="http://sc14.supercomputing.org/sites/all/themes/sc14/files/archive/tech_poster/poster_files/post175s2-file3.pdf">[3] “Optimizing CAD and Mesh Generation Workflow for SeisSol”, Rettenberger, et.al., SC14, 2014.</a></p></li>
+<li><p><a class="reference external" href="https://www.osti.gov/biblio/22212795">[4] “The Data Transfer Kit: A geometric rendezvous-based tool for multiphysicsdata transfer”, Slattery et.al., M&amp;C * 2013</a> </p></li>
+</ul>
+</p>
+</dd></dl>
+
 </section>
 
 
