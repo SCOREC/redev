@@ -30,30 +30,82 @@
  *
  * \par Client Setup
  *
- * Client setup begins with creation of the redev::CommPair communication object.
+ * Client setup begins with creation of the redev::CommPair communication object via the call to redev::CreateAdiosClient.  Note, the string for each created redev::CommPair must match in the Server and Client calls.
  *
+ * Given that the data being transferred is a single integer and each Client and
+ * Server is only running on a single process the data layout (`dest` and
+ * `offsets`) for the outbound and inbound messages are trivial.
  *
+ * The first outbound message has a single entry in the `dest` vector, `0`, to specify
+ * that all messages are being sent to Server process zero.
+ * Likewise, the `offsets` array is set to `{0,1}` to denote that messages for
+ * the destination process start at position zero in the messages array and there
+ * is only a single entry (`offsets[1]-offsets[0]=1-0=1`).
+ * These vectors are passed into redev::AdiosComm::SetOutMessageLayout
+ * for the `c2s` (Client-to-Server) member of the `commPair` struct.
+ * As long as the layout remains the same, no additional calls to
+ * redev::AdiosComm::SetOutMessageLayout are needed.
+ *
+ * As with the outbound message, the inbound message layout defines a single
+ * entry coming from Server process zero..
+ * redev::AdiosComm::SetOutMessageLayout is called to retrieve the layout of the
+ * message that was just read with the call to redev::AdiosComm::Recv.
+ * Note, that these methods are called on the `s2c` (Server-to-Client) member
+ * of the `commPair` struct.
  *
  * \snippet{lineno} test_twoClients.cpp Client Setup
  *
  * \par Server Create Clients
- * haksjdhakjdhkda
+ *
+ * In the Client code only a single redev::CommPair is needed.
+ * As there are two Clients, the Server must call redev::CreateAdiosClient
+ * twice; once for "client0" and again for "client1".
+ *
  * \snippet{lineno} test_twoClients.cpp Server Create Clients
  *
  * \par First Inbound Messages
- * alskdjalk
+ *
+ * As was done in the Client code when receiving a message from the Server, the message layout
+ * is retrieved and checked that it defines a single entry coming from process zero of each Client.
+ * This sequence is repeated for both the message coming from each Client using
+ * the respective redev::CommPair `c2s` (Client-to-Server) struct member.
+ *
  * \snippet{lineno} test_twoClients.cpp Server First Inbound Messages from Clients
  *
  * \par First Outbound Messages
- * asldkjal
+ *
+ * Now that the first 'Forward' messages (Client-to-Server) have been received
+ * the layout of the 'Reverse' messages (Server-to-Client) can be constructed
+ * using the data returned from the call to
+ * redev::AdiosComm::GetInMessageLayout.
+ * But, given that this example is only sending and receiving a single redev::LO
+ * between Client and Server, the layout of the Reverse message is hardcoded.
+ * See the wdmapp_coupling documentation for an example that constructs the
+ * Reverse message layout for data associated with an unstructured mesh.
+ *
+ * As with the outbound messages from the Client to the Server, the call to
+ * redev::AdiosComm::SetOutMessageLayout only needs to be made once for each
+ * Server-to-Client (`s2c` within the `client0` and `client1`
+ * `commPair` objects).
+ *
  * \snippet{lineno} test_twoClients.cpp Server Outbound Messages to Clients
  *
  * \par Client Loop
- * alskdjalk
+ *
+ * With the outbound message layout setup for each Client-to-Server Send a loop
+ * over communication rounds is entered that reuses that layout.
+ * The round first packs and sends a message to the Server (using the `c2s`
+ * member of the `commPair` struct) then receives a message from the Server
+ * (using the `s2c` member).
+ *
  * \snippet{lineno} test_twoClients.cpp Client Loop
  *
  * \par Server Loop
- * alskdjalk
+ * 
+ * The Server loop over communication rounds begins by receiving messages from
+ * the Clients (via the `client[0|1].c2s` objects) then sends messages back to
+ * the Clients (via `client[0|1].s2c`).
+ *
  * \snippet{lineno} test_twoClients.cpp Server Loop
  */
 
