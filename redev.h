@@ -35,7 +35,7 @@ namespace redev {
  * 'rendezvous' with the other processes that own data in that cell and perform
  * an exchange.
  *
- * \image xml redevPartition.jpg
+ * \image xml redevPartition.png
  *
  * The key to the Rendezvous algorithm is a partitioning of the common portion
  * of the domain that (1) has a relatively low memory usage and (2) supports computationally
@@ -125,7 +125,7 @@ namespace redev {
  *   process; a **Forward** send from 'B' to the Coupler, another transformation, and
  *   a **Reverse** send from the Coupler to 'A'.
  *
- * \image xml redevWorkflow.png
+ * \image xml redevWorkflow500.png
  * 
  * References
  * ----------
