@@ -24,19 +24,22 @@ else
   source $pyEnv/bin/activate
 fi
 
+
+cd $SITE/docsDoxySphinx
+
 doxyVer=$(doxygen --version)
 echo "Doxygen version $doxyVer"
 if [[ $doxyVer == 1.8.5 ]]; then
   ln -s Doxyfile.185 Doxyfile
 elif [[ $doxyVer == 1.9.3 ]]; then
   ln -s Doxyfile.193 Doxyfile
-else 
+else
   echo "unsupported Doxygen version $doxyVer"
   exit 1
-else
+fi
 
-cd $SITE/docsDoxySphinx
 make html
+rm Doxyfile
 git checkout gh-pages
 cp -r build/html/* ../docs
 git add -A ../docs
