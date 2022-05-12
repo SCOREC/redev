@@ -9,7 +9,7 @@
  * client to the server (a 'forward' send).
  *
  * \note
- * alksdjalkdjal
+ * Coming soon...
  */
 
 //If the name of the variable being sent ("foo"), the communication
