@@ -26,5 +26,6 @@ Table of Contents
 .. toctree::
     :maxdepth: 2
 
-    self
+    concepts/index
     api/index
+    examples/index
