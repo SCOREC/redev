@@ -55,6 +55,10 @@ if(BUILD_TESTING)
   endif()
   message(STATUS "ADIOS2_BPLS_PATH: ${ADIOS2_BPLS_PATH}")
 
+  #workaround for now https://github.com/ornladios/ADIOS2/issues/3261
+  set(ADIOS2_HAVE_SST OFF CACHE BOOL "True if ADIOS2 was built with SST enabled")
+  message(STATUS "ADIOS2_HAVE_SST ${ADIOS2_HAVE_SST}")
+
   function(add_exe NAME)
     add_executable(${NAME} ${NAME}.cpp)
     target_link_libraries(${NAME} redev)
@@ -141,7 +145,6 @@ if(BUILD_TESTING)
                 rdv 4 ./test_send 1
                 app 3 ./test_send 0)
   if(ADIOS2_BPLS_PATH)
-    #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_send_check_msgs
       COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 foo_c2s.bp/ foo_c2s)
     set_tests_properties(test_send_check_msgs PROPERTIES
@@ -163,7 +166,6 @@ if(BUILD_TESTING)
                 rdv 2 ./test_sendOneToTwo 1
                 app 1 ./test_sendOneToTwo 0)
   if(ADIOS2_BPLS_PATH)
-    #TODO somehow skip these tests (instead of 'not run') if SST is used...
     add_test(NAME test_sendOneToTwo_3p_check_msgs
       COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 foo_c2s.bp/ foo_c2s)
     set_tests_properties(test_sendOneToTwo_3p_check_msgs PROPERTIES
@@ -186,12 +188,14 @@ if(BUILD_TESTING)
     NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
     NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
 
-  set(isSST 1)
-  tri_mpi_test(TESTNAME test_twoClients_sst
-    TIMEOUT 12
-    NAME1 client0 EXE1 ./test_twoClients PROCS1 1 ARGS1 ${isSST} 0
-    NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
-    NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
+  if(ADIOS2_HAVE_SST)
+    set(isSST 1)
+    tri_mpi_test(TESTNAME test_twoClients_sst
+      TIMEOUT 12
+      NAME1 client0 EXE1 ./test_twoClients PROCS1 1 ARGS1 ${isSST} 0
+      NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
+      NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
+  endif()
 endif(BUILD_TESTING)
 
 ## export the library
