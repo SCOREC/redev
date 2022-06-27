@@ -214,13 +214,14 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
 int main(int argc, char** argv) {
   int rank, nproc;
   MPI_Init(&argc, &argv);
-  if(argc > 2) {
-    std::cerr << "Usage: " << argv[0] << "<clientId=0|1>\n";
+  if(argc > 3) {
+    std::cerr << "Usage: " << argv[0] << "<enableSST=0|1> <clientId=0|1>\n";
     exit(EXIT_FAILURE);
   }
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-  const auto clientId = argc == 2 ? atoi(argv[1]) : -1;
+  const auto isSST = (atoi(argv[1]) == 1);
+  const auto clientId = atoi(argv[2]);
   REDEV_ALWAYS_ASSERT(clientId >= -1 && clientId <= 1);
   const auto isRdv = (clientId == -1);
   fprintf(stderr, "rank %d isRdv %d clientId %d\n", rank, isRdv, clientId);
@@ -236,7 +237,6 @@ int main(int argc, char** argv) {
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "6"}};
   if(!isRdv) {
     client(rdv,clientId,params,isSST);

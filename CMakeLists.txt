@@ -90,19 +90,19 @@ if(BUILD_TESTING)
     set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT ${TIMEOUT})
   endfunction(dual_mpi_test)
 
-  function(tri_mpi_test TESTNAME TIMEOUT
-      NAME1 PROCS1 EXE1 ARGS1
-      NAME2 PROCS2 EXE2 ARGS2
-      NAME3 PROCS3 EXE3 ARGS3)
-    removeBpFiles(${TESTNAME}_cleanup)
-    add_test(NAME ${TESTNAME}
+  function(tri_mpi_test)
+    set(oneValueArgs TESTNAME TIMEOUT NAME1 NAME2 NAME3 EXE1 EXE2 EXE3 PROCS1 PROCS2 PROCS3)
+    set(multiValueArgs ARGS1 ARGS2 ARGS3)
+    cmake_parse_arguments(TRITEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+    removeBpFiles(${TRITEST_TESTNAME}_cleanup)
+    add_test(NAME ${TRITEST_TESTNAME}
       COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runMultipleMpiJobs.sh 
       ${MPIEXEC_EXECUTABLE}
       ${MPIEXEC_NUMPROC_FLAG}
-      ${NAME1} ${PROCS1} ${EXE1} ${ARGS1}
-      ${NAME2} ${PROCS2} ${EXE2} ${ARGS2}
-      ${NAME3} ${PROCS3} ${EXE3} ${ARGS3})
-    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT ${TIMEOUT})
+      ${TRITEST_NAME1} ${TRITEST_PROCS1} ${TRITEST_EXE1} "${TRITEST_ARGS1}"
+      ${TRITEST_NAME2} ${TRITEST_PROCS2} ${TRITEST_EXE2} "${TRITEST_ARGS2}"
+      ${TRITEST_NAME3} ${TRITEST_PROCS3} ${TRITEST_EXE3} "${TRITEST_ARGS3}")
+    set_tests_properties(${TRITEST_TESTNAME} PROPERTIES TIMEOUT ${TRITEST_TIMEOUT})
   endfunction(tri_mpi_test)
 
   add_exe(util_benchsr util_benchsr.cpp)
@@ -179,10 +179,19 @@ if(BUILD_TESTING)
                 rdv 1 ./test_pingpong 1
                 app 1 ./test_pingpong 0)
   add_exe(test_twoClients test_twoClients.cpp)
-  tri_mpi_test(test_twoClients ${test_timeout}
-                client0 1 ./test_twoClients 0
-                client1 1 ./test_twoClients 1
-                rdv     1 ./test_twoClients none)
+  set(isSST 0)
+  tri_mpi_test(TESTNAME test_twoClients
+    TIMEOUT 12
+    NAME1 client0 EXE1 ./test_twoClients PROCS1 1 ARGS1 ${isSST} 0
+    NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
+    NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
+
+  set(isSST 1)
+  tri_mpi_test(TESTNAME test_twoClients_sst
+    TIMEOUT 12
+    NAME1 client0 EXE1 ./test_twoClients PROCS1 1 ARGS1 ${isSST} 0
+    NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
+    NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
 endif(BUILD_TESTING)
 
 ## export the library
