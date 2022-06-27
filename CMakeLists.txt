@@ -64,13 +64,13 @@ if(BUILD_TESTING)
     endif()
   endfunction(add_exe)
 
-  function(removeBpFiles TESTNAME)
+  function(removeAdiosFiles TESTNAME)
     add_test(NAME ${TESTNAME} COMMAND ${CMAKE_COMMAND}
-      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/removeBpFiles.cmake)
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/removeAdiosFiles.cmake)
   endfunction()
 
   function(mpi_test TESTNAME PROCS EXE)
-    removeBpFiles(${TESTNAME}_cleanup)
+    removeAdiosFiles(${TESTNAME}_cleanup)
     add_test(
       NAME ${TESTNAME}
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${PROCS} ${VALGRIND} ${VALGRIND_ARGS} ${EXE} ${ARGN}
@@ -80,7 +80,7 @@ if(BUILD_TESTING)
   function(dual_mpi_test TESTNAME TIMEOUT
       NAME1 PROCS1 EXE1 ARGS1 
       NAME2 PROCS2 EXE2 ARGS2)
-    removeBpFiles(${TESTNAME}_cleanup)
+    removeAdiosFiles(${TESTNAME}_cleanup)
     add_test(NAME ${TESTNAME}
       COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runMultipleMpiJobs.sh 
       ${MPIEXEC_EXECUTABLE}
@@ -94,7 +94,7 @@ if(BUILD_TESTING)
     set(oneValueArgs TESTNAME TIMEOUT NAME1 NAME2 NAME3 EXE1 EXE2 EXE3 PROCS1 PROCS2 PROCS3)
     set(multiValueArgs ARGS1 ARGS2 ARGS3)
     cmake_parse_arguments(TRITEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
-    removeBpFiles(${TRITEST_TESTNAME}_cleanup)
+    removeAdiosFiles(${TRITEST_TESTNAME}_cleanup)
     add_test(NAME ${TRITEST_TESTNAME}
       COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runMultipleMpiJobs.sh 
       ${MPIEXEC_EXECUTABLE}
