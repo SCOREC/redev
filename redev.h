@@ -353,6 +353,8 @@ class Redev {
      */
     template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params,
                                   TransportType transportType = TransportType::BP4);
+    ProcessType GetProcessType() const;
+
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);

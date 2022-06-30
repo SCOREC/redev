@@ -426,4 +426,5 @@ namespace redev {
     }
     eng.EndStep();
   }
-}
+  ProcessType Redev::GetProcessType() const { return processType; }
+  }
