@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   auto ranks = isRdv ? redev::LOs({0}) : redev::LOs(1);
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
+  redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
   std::string name = "foo";
   const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};

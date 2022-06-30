@@ -317,6 +317,10 @@ struct CommPair {
   redev::AdiosComm<T> c2s;
 };
 
+enum class ProcessType {
+  Client = 0,
+  Server = 1
+};
 /**
  * The Redev class exercises the Partition class APIs to setup the rendezvous
  * partition on the server/rendezvous processes, communicate the partition to
@@ -330,10 +334,10 @@ class Redev {
      * Create a Redev object
      * @param[in] comm MPI communicator containing the ranks that are part of the server/client
      * @param[in] ptn Partition object defining the redezvous domain partition
-     * @param[in] isRendezvous true for the server processes and false otherwise
+     * @param[in] processProcess enum for if the server is a client, server, or both
      * @param[in] noClients for testing without any clients present
      */
-    Redev(MPI_Comm comm, Partition& ptn, bool isRendezvous=false, bool noClients=false);
+    Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
      * Create a ADIOS2-based CommPair between the server and one client
      * @param[in] name name for the communication channel, each CommPair must have a unique name
@@ -347,7 +351,7 @@ class Redev {
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
-    bool isRendezvous; // true: the rendezvous application, false: otherwise
+    ProcessType processType;
     bool noClients; // true: no clients will be connected, false: otherwise
     void openEnginesBP4(bool noClients,
         std::string s2cName, std::string c2sName,

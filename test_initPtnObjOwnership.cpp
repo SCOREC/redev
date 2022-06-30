@@ -5,7 +5,7 @@ const std::string timeout="8";
 
 auto makeRedev(int dim, redev::LOs& ranks, redev::Reals& cuts, bool isRendezvous) {
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  return redev::Redev(MPI_COMM_WORLD,ptn,isRendezvous);
+  return redev::Redev(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRendezvous));
 }
 
 void client() {
