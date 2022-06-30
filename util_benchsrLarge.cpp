@@ -80,9 +80,8 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -140,9 +139,8 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvFanOut ";
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {

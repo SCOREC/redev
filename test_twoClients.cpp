@@ -113,7 +113,7 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   /// [Client Setup]
   std::stringstream clientName;
   clientName << "client" << clientId;
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,static_cast<redev::TransportType>(isSST));
 
   //setup outbound message
   std::cout << "sending to server\n";
@@ -151,8 +151,8 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   /// [Server Create Clients]
-  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,isSST);
-  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,isSST);
+  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,static_cast<redev::TransportType>(isSST));
+  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,static_cast<redev::TransportType>(isSST));
   /// [Server Create Clients]
 
   /// [Server First Inbound Messages from Clients]

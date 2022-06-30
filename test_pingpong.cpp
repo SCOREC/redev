@@ -26,9 +26,8 @@ int main(int argc, char** argv) {
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
   redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
   std::string name = "foo";
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {

@@ -321,6 +321,10 @@ enum class ProcessType {
   Client = 0,
   Server = 1
 };
+enum class TransportType {
+  BP4 = 0,
+  SST = 1
+};
 /**
  * The Redev class exercises the Partition class APIs to setup the rendezvous
  * partition on the server/rendezvous processes, communicate the partition to
@@ -344,10 +348,11 @@ class Redev {
      * @param[in] params list of ADIOS2 parameters controlling IO and Engine creation, see
      * https://adios2.readthedocs.io/en/latest/engines/engines.html for the list
      * of applicable parameters for the SST and BP4 engines
-     * @param[in] isSST by default the BP4 Engine is used, setting this to true
-     * enables use of the SST engine
+     * @param[in] transportType by default the BP4 Engine is used, other transport
+     * types are available in the TransportType enum
      */
-    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params, bool isSST=false);
+    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params,
+                                  TransportType transportType = TransportType::BP4);
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     void CheckVersion(adios2::Engine& eng, adios2::IO& io);
@@ -370,34 +375,45 @@ class Redev {
 };
 
 template<typename T>
-CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params, bool isSST) {
+CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
+                                     TransportType transportType) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
   auto s2cIO = adios.DeclareIO(s2cName);
   auto c2sIO = adios.DeclareIO(c2sName);
-  s2cIO.SetEngine( isSST ? "SST" : "BP4");
-  c2sIO.SetEngine( isSST ? "SST" : "BP4");
+  if(transportType == TransportType::SST && noClients == true) {
+    // TODO log message here
+    transportType = TransportType::BP4;
+  }
+  std::string engineType;
+  switch (transportType) {
+    case TransportType::BP4 :
+      engineType = "BP4";
+      break;
+    case TransportType::SST:
+      engineType = "SST";
+      break;
+    // no default case. This will cause a compiler error if we do not handle a
+    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+  }
+  s2cIO.SetEngine(engineType);
+  c2sIO.SetEngine(engineType);
   s2cIO.SetParameters(params);
   c2sIO.SetParameters(params);
   REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
-  if(noClients) {
-    //SST hangs if there is no reader
-    s2cIO.SetEngine("BP4");
-    c2sIO.SetEngine("BP4");
-  }
   adios2::Engine s2cEngine;
   adios2::Engine c2sEngine;
-  if(isSameCaseInsensitive(s2cIO.EngineType(), "SST") ) {
-    openEnginesSST(noClients,s2cName,c2sName,
-        s2cIO,c2sIO,s2cEngine,c2sEngine);
-  } else if(isSameCaseInsensitive(s2cIO.EngineType(), "BP4") ) {
-    openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
-        s2cIO,c2sIO,s2cEngine,c2sEngine);
-  } else {
-    if(!rank) {
-      std::cerr << "ERROR: redev does not support ADIOS2 engine " << s2cIO.EngineType() << "\n";
-    }
-    exit(EXIT_FAILURE);
+  switch (transportType) {
+    case TransportType::BP4 :
+      openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
+                     s2cIO,c2sIO,s2cEngine,c2sEngine);
+      break;
+    case TransportType::SST:
+      openEnginesSST(noClients,s2cName,c2sName,
+                     s2cIO,c2sIO,s2cEngine,c2sEngine);
+      break;
+    // no default case. This will cause a compiler error if we do not handle a
+    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
   }
   Setup(s2cIO,s2cEngine);
   const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine);

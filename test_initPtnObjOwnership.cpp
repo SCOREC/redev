@@ -14,9 +14,8 @@ void client() {
   auto cuts = redev::Reals(1);
   const bool isRendezvous = false;
   auto rdv = makeRedev(dim, ranks, cuts, isRendezvous);
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", timeout}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,redev::TransportType::BP4);
 }
 
 void server() {
@@ -25,9 +24,8 @@ void server() {
   auto cuts = redev::Reals({0});
   const bool isRendezvous=true;
   auto rdv = makeRedev(dim, ranks, cuts, isRendezvous);
-  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", timeout}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,isSST);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,redev::TransportType::BP4);
 }
 
 int main(int argc, char** argv) {
