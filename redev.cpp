@@ -14,9 +14,10 @@ namespace {
   void waitForEngineCreation(adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     auto params = io.Parameters();
-    bool isStreaming = params.count("Streaming") && redev::isSameCi(params["Streaming"],"ON");
+    bool isStreaming = params.count("Streaming") &&
+                       redev::isSameCaseInsensitive(params["Streaming"], "ON");
     bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
-    bool isSST = redev::isSameCi(io.EngineType(),"SST");
+    bool isSST = redev::isSameCaseInsensitive(io.EngineType(), "SST");
     if( (isStreaming && timeoutSet) || isSST ) return;
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }

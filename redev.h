@@ -383,10 +383,10 @@ CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params param
   }
   adios2::Engine s2cEngine;
   adios2::Engine c2sEngine;
-  if( isSameCi(s2cIO.EngineType(), "SST") ) {
+  if(isSameCaseInsensitive(s2cIO.EngineType(), "SST") ) {
     openEnginesSST(noClients,s2cName,c2sName,
         s2cIO,c2sIO,s2cEngine,c2sEngine);
-  } else if( isSameCi(s2cIO.EngineType(), "BP4") ) {
+  } else if(isSameCaseInsensitive(s2cIO.EngineType(), "BP4") ) {
     openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
         s2cIO,c2sIO,s2cEngine,c2sEngine);
   } else {
