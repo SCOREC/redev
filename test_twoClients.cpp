@@ -113,7 +113,7 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   /// [Client Setup]
   std::stringstream clientName;
   clientName << "client" << clientId;
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,static_cast<redev::TransportType>(isSST));
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,isSST);
 
   //setup outbound message
   std::cout << "sending to server\n";
@@ -151,8 +151,8 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   /// [Server Create Clients]
-  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,static_cast<redev::TransportType>(isSST));
-  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,static_cast<redev::TransportType>(isSST));
+  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,isSST);
+  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,isSST);
   /// [Server Create Clients]
 
   /// [Server First Inbound Messages from Clients]
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
   auto ranks = isRdv ? redev::LOs({0}) : redev::LOs(1);
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "6"}};
   if(!isRdv) {
     client(rdv,clientId,params,isSST);

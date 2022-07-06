@@ -76,12 +76,13 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   //the cuts won't be used since getRank(...) won't be called
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(mpiComm,ptn,isRdv);
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";
+  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -135,12 +136,13 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   //the cuts won't be used since getRank(...) won't be called
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(mpiComm,ptn,isRdv);
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvFanOut ";
+  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,isSST);
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -192,7 +194,7 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   auto ranks = redev::LOs(rdvRanks);
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(mpiComm,ptn,isRdv);
   //get adios objs
   std::string name = "mapped";
   adios2::ADIOS adios(mpiComm);

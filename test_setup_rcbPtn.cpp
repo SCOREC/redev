@@ -10,9 +10,10 @@ void rcbPtnTest(int rank, bool isRdv) {
   auto cuts = isRdv ? expectedCuts : redev::Reals(4);
   const auto dim = 2;
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(MPI_COMM_WORLD,ptn,isRdv);
+  const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,redev::TransportType::BP4);
+  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,isSST);
   if(!isRdv) {
     auto ptnRanks = ptn.GetRanks();
     auto ptnCuts = ptn.GetCuts();

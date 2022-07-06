@@ -14,10 +14,9 @@ namespace {
   void waitForEngineCreation(adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     auto params = io.Parameters();
-    bool isStreaming = params.count("Streaming") &&
-                       redev::isSameCaseInsensitive(params["Streaming"], "ON");
+    bool isStreaming = params.count("Streaming") && redev::isSameCi(params["Streaming"],"ON");
     bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
-    bool isSST = redev::isSameCaseInsensitive(io.EngineType(), "SST");
+    bool isSST = redev::isSameCi(io.EngineType(),"SST");
     if( (isStreaming && timeoutSet) || isSST ) return;
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
@@ -275,7 +274,7 @@ namespace redev {
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
-    if(processType == ProcessType::Server) {
+    if(isRendezvous) {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
       assert(s2cEngine);
     } else {
@@ -285,7 +284,7 @@ namespace redev {
     waitForEngineCreation(s2cIO);
     waitForEngineCreation(c2sIO);
     //create engines for reading
-    if(processType == ProcessType::Server) {
+    if(isRendezvous) {
       if(noClients==false) { //support unit testing
         c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
         assert(c2sEngine);
@@ -305,13 +304,13 @@ namespace redev {
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     //create one engine's reader and writer pair at a time - SST blocks on open(read)
-    if(processType==ProcessType::Server) {
+    if(isRendezvous) {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
     } else {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
     }
     assert(s2cEngine);
-    if(processType==ProcessType::Server) {
+    if(isRendezvous) {
       if(noClients==false) { //support unit testing
         c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
         assert(c2sEngine);
@@ -322,8 +321,8 @@ namespace redev {
     }
   }
 
-  Redev::Redev(MPI_Comm comm, Partition&ptn, ProcessType processType_, bool noClients)
-    : comm(comm), adios(comm), ptn(ptn), processType(processType_), noClients(noClients) {
+  Redev::Redev(MPI_Comm comm_, Partition& ptn_, bool isRendezvous_, bool noClients_)
+    : comm(comm_), adios(comm), ptn(ptn_), isRendezvous(isRendezvous_), noClients(noClients_) {
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
@@ -338,7 +337,7 @@ namespace redev {
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
-      if(processType==ProcessType::Server)
+      if(isRendezvous)
         ptn.Write(s2cEngine,s2cIO);
       else
         ptn.Read(s2cEngine,s2cIO);
@@ -358,7 +357,7 @@ namespace redev {
     auto status = c2sEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     redev::LO clientCommSz = 0;
-    if(processType == ProcessType::Client) {
+    if(!isRendezvous) {
       auto var = c2sIO.DefineVariable<redev::LO>(varName);
       if(!rank)
         c2sEngine.Put(var, commSize);
@@ -370,7 +369,7 @@ namespace redev {
       }
     }
     c2sEngine.EndStep();
-    if(processType==ProcessType::Server)
+    if(isRendezvous)
       redev::Broadcast(&clientCommSz,1,0,comm);
     return clientCommSz;
   }
@@ -386,7 +385,7 @@ namespace redev {
     auto status = s2cEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     redev::LO serverCommSz = 0;
-    if(processType==ProcessType::Server) {
+    if(isRendezvous) {
       auto var = s2cIO.DefineVariable<redev::LO>(varName);
       if(!rank)
         s2cEngine.Put(var, commSize);
@@ -398,7 +397,7 @@ namespace redev {
       }
     }
     s2cEngine.EndStep();
-    if(processType == ProcessType::Client)
+    if(!isRendezvous)
       redev::Broadcast(&serverCommSz,1,0,comm);
     return serverCommSz;
   }
@@ -409,7 +408,7 @@ namespace redev {
     auto status = eng.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app writes the version it has and other apps read
-    if(processType==ProcessType::Server) {
+    if(isRendezvous) {
       auto varVersion = io.DefineVariable<std::string>(hashVarName);
       if(!rank)
         eng.Put(varVersion, std::string(redevGitHash));
@@ -426,5 +425,4 @@ namespace redev {
     }
     eng.EndStep();
   }
-  ProcessType Redev::GetProcessType() const { return processType; }
-  }
+}
