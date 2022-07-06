@@ -135,7 +135,8 @@ class AdiosComm : public Communicator<T> {
     ~AdiosComm() {
       eng.Close();
     }
-    /// don't allow copy/move/assign
+    /// We are explicitly not allowing copy/move constructor/assignment as we don't
+    /// know if the ADIOS2 Engine and IO objects can be safely copied/moved.
     AdiosComm(const AdiosComm& other) = delete;
     AdiosComm(AdiosComm&& other) = delete;
     AdiosComm& operator=(const AdiosComm& other) = delete;
