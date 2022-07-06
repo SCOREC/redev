@@ -338,7 +338,7 @@ class Redev {
      * Create a Redev object
      * @param[in] comm MPI communicator containing the ranks that are part of the server/client
      * @param[in] ptn Partition object defining the redezvous domain partition
-     * @param[in] processProcess enum for if the server is a client, server, or both
+     * @param[in] processProcess enum for if the server is a client, server
      * @param[in] noClients for testing without any clients present
      */
     Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
