@@ -129,6 +129,19 @@ class AdiosComm : public Communicator<T> {
       : comm(comm_), recvRanks(recvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
         inMsg.knownSizes = false;
     }
+    
+    //rule of 5 en.cppreference.com/w/cpp/language/rule_of_three
+    /// destructor to close the engine
+    ~AdiosComm() {
+      eng.Close();
+    }
+    /// We are explicitly not allowing copy/move constructor/assignment as we don't
+    /// know if the ADIOS2 Engine and IO objects can be safely copied/moved.
+    AdiosComm(const AdiosComm& other) = delete;
+    AdiosComm(AdiosComm&& other) = delete;
+    AdiosComm& operator=(const AdiosComm& other) = delete;
+    AdiosComm& operator=(AdiosComm&& other) = delete;
+
     void SetOutMessageLayout(LOs& dest_, LOs& offsets_) {
       REDEV_FUNCTION_TIMER;
       outMsg = OutMessageLayout{dest_, offsets_};
