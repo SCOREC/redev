@@ -303,18 +303,34 @@ class RCBPtn : public Partition {
 };
 
 /**
- * A CommPair is a pair of communication objects using ADIOS2.
- * s2c is the object for server-to-client communications.
- * c2s is the object for client-to-server communications.
- * The 'server' is the set of processes with the rendezvous partition.
- * A 'client' is a set of processes that queries the rendezvous partition.
+ * A BidirectionalComm is a communicator that can send and receive data
+ * If you are on a client rank sending sends data to the server and receiving
+ * retrieves data from server.
+ * If you are on a server rank sending sends data to the client and receiving
+ * retrieves data from client.
  */
 template <class T>
-struct CommPair {
-  /// server-to-client
-  redev::AdiosComm<T> s2c;
-  /// client-to-server
-  redev::AdiosComm<T> c2s;
+class BidirectionalComm {
+public:
+  BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
+                    std::unique_ptr<Communicator<T>> receiver_)
+      : sender(std::move(sender_)), receiver(std::move(receiver_)) {
+    REDEV_ALWAYS_ASSERT(sender != nullptr);
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
+  }
+  void SetOutMessageLayout(LOs &dest, LOs &offsets) {
+    sender->SetOutMessageLayout(dest, offsets);
+  }
+  InMessageLayout GetInMessageLayout() {
+    return receiver->GetInMessageLayout();
+  }
+
+  void Send(T *msgs) { sender->Send(msgs); }
+  std::vector<T> Recv() { return receiver->Recv(); }
+
+private:
+  std::unique_ptr<Communicator<T>> sender;
+  std::unique_ptr<Communicator<T>> receiver;
 };
 
 enum class ProcessType {
@@ -343,15 +359,16 @@ class Redev {
      */
     Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
-     * Create a ADIOS2-based CommPair between the server and one client
-     * @param[in] name name for the communication channel, each CommPair must have a unique name
+     * Create a ADIOS2-based BidirectionalComm between the server and one client
+     * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
      * @param[in] params list of ADIOS2 parameters controlling IO and Engine creation, see
      * https://adios2.readthedocs.io/en/latest/engines/engines.html for the list
      * of applicable parameters for the SST and BP4 engines
      * @param[in] transportType by default the BP4 Engine is used, other transport
      * types are available in the TransportType enum
      */
-    template<typename T> CommPair<T> CreateAdiosClient(std::string_view name, adios2::Params params,
+    template<typename T>
+    BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
                                   TransportType transportType = TransportType::BP4);
     ProcessType GetProcessType() const;
 
@@ -377,7 +394,7 @@ class Redev {
 };
 
 template<typename T>
-CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
+BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
                                      TransportType transportType) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
@@ -420,9 +437,14 @@ CommPair<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params param
   Setup(s2cIO,s2cEngine);
   const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine);
   const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine);
-  return CommPair<T>{
-    AdiosComm<T>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c"),
-    AdiosComm<T>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s")};
+  auto s2c = std::make_unique<AdiosComm<T>>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c");
+  auto c2s = std::make_unique<AdiosComm<T>>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s");
+  switch (processType) {
+  case ProcessType::Client:
+    return {std::move(c2s), std::move(s2c)};
+  case ProcessType::Server:
+    return {std::move(s2c), std::move(c2s)};
+  }
 }
 
 }
