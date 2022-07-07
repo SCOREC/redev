@@ -91,11 +91,11 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
         redev::LOs dest = {destRank};
         redev::LOs offsets;
         constructCsrOffsetsMapped(destRank, mbpr, offsets);
-        commPair.c2s.SetOutMessageLayout(dest, offsets);
+        commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      commPair.c2s.Send(msgs.data());
+      commPair.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -105,7 +105,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      auto msgs = commPair.c2s.Recv();
+      auto msgs = commPair.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -150,11 +150,11 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
         std::iota(dest.begin(),dest.end(),0);
         redev::LOs offsets(mbpr);
         constructCsrOffsetsFanOut(mbpr,rdvRanks,offsets);
-        commPair.c2s.SetOutMessageLayout(dest, offsets);
+        commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs(mbpr,rank);
       auto start = std::chrono::steady_clock::now();
-      commPair.c2s.Send(msgs.data());
+      commPair.Send(msgs.data());
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;
@@ -164,7 +164,7 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
       if(!rank) printTime(str, min, max, avg);
     } else {
       auto start = std::chrono::steady_clock::now();
-      commPair.c2s.Recv();
+      commPair.Recv();
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_seconds = end-start;
       double min, max, avg;

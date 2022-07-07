@@ -43,8 +43,8 @@ int main(int argc, char** argv) {
     dest = redev::LOs{0,1};
     offsets = redev::LOs{0,2,6};
     redev::LOs msgs = {0,0,1,1,1,1};
-    commPair.c2s.SetOutMessageLayout(dest, offsets);
-    commPair.c2s.Send(msgs.data());
+    commPair.SetOutMessageLayout(dest, offsets);
+    commPair.Send(msgs.data());
   }
   }
   MPI_Finalize();

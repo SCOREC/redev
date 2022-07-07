@@ -63,11 +63,11 @@ int main(int argc, char** argv) {
       offsets = redev::LOs{0,4,5,7,11};
       msgs = redev::LOs(11,2);
     }
-    commPair.c2s.SetOutMessageLayout(dest, offsets);
-    commPair.c2s.Send(msgs.data());
+    commPair.SetOutMessageLayout(dest, offsets);
+    commPair.Send(msgs.data());
   } else {
-    auto msgVec = commPair.c2s.Recv();
-    auto inMsg = commPair.c2s.GetInMessageLayout();
+    auto msgVec = commPair.Recv();
+    auto inMsg = commPair.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
     if(rank == 0) {

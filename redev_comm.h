@@ -35,38 +35,6 @@ void Broadcast(T* data, int count, int root, MPI_Comm comm) {
 }
 
 /**
- * The Communicator class provides an abstract interface for sending and
- * receiving messages to/from the client and server.
- */
-template<typename T>
-class Communicator {
-  public:
-    /**
-     * Set the arrangement of data in the messages array so that its segments,
-     * defined by the offsets array, are sent to the correct destination ranks,
-     * defined by the dest array.
-     * @param[in] dest array of integers specifying the destination rank for a
-     * portion of the msgs array
-     * @param[in] offsets array of length |dest|+1 defining the segment of the
-     * msgs array (passed to the Send function) being sent to each destination rank.
-     * the segment [ msgs[offsets[i]] : msgs[offsets[i+1]] } is sent to rank dest[i]
-     */
-    virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
-    /**
-     * Send the array.
-     * @param[in] msgs array of data to be sent according to the layout specified
-     *            with SetOutMessageLayout
-     */
-    virtual void Send(T* msgs) = 0;
-    /**
-     * Receive an array. Use AdiosComm's GetInMessageLayout to retreive
-     * an instance of the InMessageLayout struct containing the layout of
-     * the received array.
-     */
-    virtual std::vector<T> Recv() = 0;
-};
-
-/**
  * The InMessageLayout struct contains the arrays defining the arrangement of
  * data in the array returned by Communicator::Recv.
  */
@@ -101,6 +69,43 @@ struct InMessageLayout {
    */
   size_t count;
 };
+
+/**
+ * The Communicator class provides an abstract interface for sending and
+ * receiving messages to/from the client and server.
+ * TODO: Split Communicator into Send/Recieve Communicators, bidirectional constructed by composition and can perform both send and receive
+ */
+template<typename T>
+class Communicator {
+  public:
+    /**
+     * Set the arrangement of data in the messages array so that its segments,
+     * defined by the offsets array, are sent to the correct destination ranks,
+     * defined by the dest array.
+     * @param[in] dest array of integers specifying the destination rank for a
+     * portion of the msgs array
+     * @param[in] offsets array of length |dest|+1 defining the segment of the
+     * msgs array (passed to the Send function) being sent to each destination rank.
+     * the segment [ msgs[offsets[i]] : msgs[offsets[i+1]] } is sent to rank dest[i]
+     */
+    virtual void SetOutMessageLayout(LOs& dest, LOs& offsets) = 0;
+    /**
+     * Send the array.
+     * @param[in] msgs array of data to be sent according to the layout specified
+     *            with SetOutMessageLayout
+     */
+    virtual void Send(T* msgs) = 0;
+    /**
+     * Receive an array. Use AdiosComm's GetInMessageLayout to retreive
+     * an instance of the InMessageLayout struct containing the layout of
+     * the received array.
+     */
+    virtual std::vector<T> Recv() = 0;
+
+    virtual InMessageLayout GetInMessageLayout() = 0;
+    virtual ~Communicator() = default;
+};
+
 
 /**
  * The AdiosComm class implements the Communicator interface to support sending

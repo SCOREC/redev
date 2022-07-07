@@ -34,14 +34,14 @@ int main(int argc, char** argv) {
       if(iter==0) {
         redev::LOs dest = redev::LOs{0};
         redev::LOs offsets = redev::LOs{0,1};
-        commPair.c2s.SetOutMessageLayout(dest, offsets);
+        commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,42);
-      commPair.c2s.Send(msgs.data());
+      commPair.Send(msgs.data());
     } else {
-      auto msgs = commPair.c2s.Recv();
+      auto msgs = commPair.Recv();
       if(iter == 0) {
-        auto inMsg = commPair.c2s.GetInMessageLayout();
+        auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
@@ -54,14 +54,14 @@ int main(int argc, char** argv) {
       if(iter==0) {
         redev::LOs dest = redev::LOs{0};
         redev::LOs offsets = redev::LOs{0,1};
-        commPair.s2c.SetOutMessageLayout(dest, offsets);
+        commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,1337);
-      commPair.s2c.Send(msgs.data());
+      commPair.Send(msgs.data());
     } else {
-      auto msgs = commPair.s2c.Recv();
+      auto msgs = commPair.Recv();
       if(iter==0) {
-        auto inMsg = commPair.s2c.GetInMessageLayout();
+        auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);

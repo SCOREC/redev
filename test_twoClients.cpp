@@ -30,7 +30,7 @@
  *
  * \par Client Setup
  *
- * Client setup begins with creation of the redev::CommPair communication object via the call to redev::CreateAdiosClient.  Note, the string for each created redev::CommPair must match in the Server and Client calls.
+ * Client setup begins with creation of the redev::BidirectionalComm communication object via the call to redev::CreateAdiosClient.  Note, the string for each created redev::BidirectionalComm must match in the Server and Client calls.
  *
  * Given that the data being transferred is a single integer and each Client and
  * Server is only running on a single process the data layout (`dest` and
@@ -57,7 +57,7 @@
  *
  * \par Server Create Clients
  *
- * In the Client code only a single redev::CommPair is needed.
+ * In the Client code only a single redev::BidirectionalComm is needed.
  * As there are two Clients, the Server must call redev::CreateAdiosClient
  * twice; once for "client0" and again for "client1".
  *
@@ -68,7 +68,7 @@
  * As was done in the Client code when receiving a message from the Server, the message layout
  * is retrieved and checked that it defines a single entry coming from process zero of each Client.
  * This sequence is repeated for both the message coming from each Client using
- * the respective redev::CommPair `c2s` (Client-to-Server) struct member.
+ * the respective redev::BidirectionalComm `c2s` (Client-to-Server) struct member.
  *
  * \snippet{lineno} test_twoClients.cpp Server First Inbound Messages from Clients
  *
@@ -119,16 +119,16 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   std::cout << "sending to server\n";
   redev::LOs dest = redev::LOs{0};
   redev::LOs offsets = redev::LOs{0,1};
-  commPair.c2s.SetOutMessageLayout(dest, offsets);
+  commPair.SetOutMessageLayout(dest, offsets);
 
   //first outbound send
   redev::LOs msgs = redev::LOs(1,42+clientId);
-  commPair.c2s.Send(msgs.data());
+  commPair.Send(msgs.data());
 
   //first inbound message from server
   std::cout << "recieving from server\n";
-  auto msgFromServer = commPair.s2c.Recv();
-  auto inMsg = commPair.s2c.GetInMessageLayout();
+  auto msgFromServer = commPair.Recv();
+  auto inMsg = commPair.GetInMessageLayout();
   REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
   REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
   REDEV_ALWAYS_ASSERT(inMsg.start == 0);
@@ -141,9 +141,9 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
     std::cout << "iter " << iter << "\n";
     //outbound message to server
     redev::LOs outMsg = redev::LOs(1,42+clientId);
-    commPair.c2s.Send(outMsg.data());
+    commPair.Send(outMsg.data());
     //inbound message from server
-    auto msg = commPair.s2c.Recv();
+    auto msg = commPair.Recv();
     REDEV_ALWAYS_ASSERT(msg[0] == 1337+clientId);
   }
   /// [Client Loop]
@@ -157,9 +157,9 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
 
   /// [Server First Inbound Messages from Clients]
   std::cout << "recieving from client0\n";
-  auto msgs0 = client0.c2s.Recv();
+  auto msgs0 = client0.Recv();
   {
-    auto inMsg = client0.c2s.GetInMessageLayout();
+    auto inMsg = client0.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
     REDEV_ALWAYS_ASSERT(inMsg.start == 0);
@@ -168,9 +168,9 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   }
 
   std::cout << "recieving from client1\n";
-  auto msgs1 = client1.c2s.Recv();
+  auto msgs1 = client1.Recv();
   {
-    auto inMsg = client1.c2s.GetInMessageLayout();
+    auto inMsg = client1.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
     REDEV_ALWAYS_ASSERT(inMsg.start == 0);
@@ -183,29 +183,29 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   std::cout << "sending to client0\n";
   redev::LOs dest = redev::LOs{0};
   redev::LOs offsets = redev::LOs{0,1};
-  client0.s2c.SetOutMessageLayout(dest, offsets);
+  client0.SetOutMessageLayout(dest, offsets);
   redev::LOs msgs = redev::LOs(1,1337);
-  client0.s2c.Send(msgs.data());
+  client0.Send(msgs.data());
 
   std::cout << "sending to client1\n";
-  client1.s2c.SetOutMessageLayout(dest, offsets);
+  client1.SetOutMessageLayout(dest, offsets);
   msgs = redev::LOs(1,1338);
-  client1.s2c.Send(msgs.data());
+  client1.Send(msgs.data());
   /// [Server Outbound Messages to Clients]
 
   /// [Server Loop]
   for(int iter=0; iter<3; iter++) {
     std::cout << "iter " << iter << "\n";
     //inbound messages from clients
-    auto inMsg0 = client0.c2s.Recv();
+    auto inMsg0 = client0.Recv();
     REDEV_ALWAYS_ASSERT(inMsg0[0] == 42);
-    auto inMsg1 = client1.c2s.Recv();
+    auto inMsg1 = client1.Recv();
     REDEV_ALWAYS_ASSERT(inMsg1[0] == 43);
     //outbound messages to clients
     redev::LOs outMsg0 = redev::LOs(1,1337);
-    client0.s2c.Send(outMsg0.data());
+    client0.Send(outMsg0.data());
     redev::LOs outMsg1 = redev::LOs(1,1338);
-    client1.s2c.Send(outMsg1.data());
+    client1.Send(outMsg1.data());
   }
   /// [Server Loop]
 }

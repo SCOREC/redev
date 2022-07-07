@@ -71,8 +71,8 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     constructCsrOffsets(mbpr,rdvRanks,offsets);
     redev::LOs msgs(mbpr,rank);
     auto start = std::chrono::steady_clock::now();
-    commPair.c2s.SetOutMessageLayout(dest, offsets);
-    commPair.c2s.Send(msgs.data());
+    commPair.SetOutMessageLayout(dest, offsets);
+    commPair.Send(msgs.data());
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
@@ -82,7 +82,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
     if(!rank) printTime(str, min, max, avg);
   } else {
     auto start = std::chrono::steady_clock::now();
-    commPair.c2s.Recv();
+    commPair.Recv();
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     double min, max, avg;
