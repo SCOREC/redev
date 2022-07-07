@@ -309,7 +309,9 @@ class RCBPtn : public Partition {
  * If you are on a server rank sending sends data to the client and receiving
  * retrieves data from client.
  */
-template <class T> struct BidirectionalComm {
+template <class T>
+class BidirectionalComm {
+public:
   BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
                     std::unique_ptr<Communicator<T>> receiver_)
       : sender(std::move(sender_)), receiver(std::move(receiver_)) {
@@ -323,7 +325,6 @@ template <class T> struct BidirectionalComm {
     return receiver->GetInMessageLayout();
   }
 
-public:
   void Send(T *msgs) { sender->Send(msgs); }
   std::vector<T> Recv() { return receiver->Recv(); }
 
