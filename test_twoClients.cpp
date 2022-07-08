@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdlib>
 #include "redev.h"
-#include "redev_comm.h"
 
 /**
  * \page test_twoclients

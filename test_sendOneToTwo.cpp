@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdlib>
 #include "redev.h"
-#include "redev_comm.h"
 
 //If the name of the variable being sent ("foo"), the communication
 //pattern, or data being sent is changed then also update the cmake

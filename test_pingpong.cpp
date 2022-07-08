@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdlib>
 #include "redev.h"
-#include "redev_comm.h"
 
 int main(int argc, char** argv) {
   int rank, nproc;
