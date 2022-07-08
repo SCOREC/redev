@@ -79,7 +79,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.  This must be done before the code is built.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
         queries: security-and-quality
@@ -96,4 +96,4 @@ jobs:
       run: ctest --timeout 10 --output-on-failure
       
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
