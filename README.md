@@ -23,24 +23,19 @@ module load gcc/10.1.0 mpich cmake/3.20.0
 
 ```
 git clone git@github.com:ornladios/ADIOS2.git
-mkdir buildAdios2
-cd !$
-cmake ../ADIOS2/ -DCMAKE_INSTALL_PREFIX=$PWD/install -DADIOS2_USE_CUDA=OFF
-make -j8
-make install
-export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$PWD/install
+bdir=buildAdios2
+cmake -S ADIOS2/ -B $bdir -DCMAKE_INSTALL_PREFIX=$bdir/install -DADIOS2_USE_CUDA=OFF
+cmake --build $bdir --target install -j8
 ```
 
 ## Redev
 
 ```
 git clone git@github.com:SCOREC/redev.git
-mkdir buildRedev
-cd !$
-cmake ../redev -DCMAKE_INSTALL_PREFIX=$PWD/install
-make -j8
-make install
-ctest
+bdir=buildRedev
+export CMAKE_PREFIX_PATH=$PWD/buildAdios2/install:$CMAKE_PREFIX_PATH
+cmake -S redev -B $bdir -DCMAKE_INSTALL_PREFIX=$bdir/install
+cmake --build $bdir --target install --target test
 ```
 
 # Using redev
