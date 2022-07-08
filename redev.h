@@ -440,11 +440,13 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
   auto s2c = std::make_unique<AdiosComm<T>>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c");
   auto c2s = std::make_unique<AdiosComm<T>>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s");
   switch (processType) {
-  case ProcessType::Client:
-    return {std::move(c2s), std::move(s2c)};
-  case ProcessType::Server:
-    return {std::move(s2c), std::move(c2s)};
+    case ProcessType::Client:
+      return {std::move(c2s), std::move(s2c)};
+    case ProcessType::Server:
+      return {std::move(s2c), std::move(c2s)};
   }
+  REDEV_ALWAYS_ASSERT(false);  //we should never get here
+  return {nullptr, nullptr}; //silence compiler warning
 }
 
 }
