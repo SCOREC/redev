@@ -1,7 +1,5 @@
 #pragma once
-#include "redev.h"
 #include "redev_profile.h"
-#include "redev_assert.h"
 #include <numeric> // accumulate, exclusive_scan
 #include <type_traits> // is_same
 
@@ -106,6 +104,36 @@ class Communicator {
     virtual ~Communicator() = default;
 };
 
+/**
+ * A BidirectionalComm is a communicator that can send and receive data
+ * If you are on a client rank sending sends data to the server and receiving
+ * retrieves data from server.
+ * If you are on a server rank sending sends data to the client and receiving
+ * retrieves data from client.
+ */
+template <class T>
+class BidirectionalComm {
+  public:
+    BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
+                      std::unique_ptr<Communicator<T>> receiver_)
+        : sender(std::move(sender_)), receiver(std::move(receiver_)) {
+      REDEV_ALWAYS_ASSERT(sender != nullptr);
+      REDEV_ALWAYS_ASSERT(receiver != nullptr);
+    }
+    void SetOutMessageLayout(LOs &dest, LOs &offsets) {
+      sender->SetOutMessageLayout(dest, offsets);
+    }
+    InMessageLayout GetInMessageLayout() {
+      return receiver->GetInMessageLayout();
+    }
+  
+    void Send(T *msgs) { sender->Send(msgs); }
+    std::vector<T> Recv() { return receiver->Recv(); }
+  
+  private:
+    std::unique_ptr<Communicator<T>> sender;
+    std::unique_ptr<Communicator<T>> receiver;
+};
 
 /**
  * The AdiosComm class implements the Communicator interface to support sending
@@ -323,4 +351,60 @@ class AdiosComm : public Communicator<T> {
     InMessageLayout inMsg;
 };
 
+template<typename T>
+BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
+                                     TransportType transportType) {
+  auto s2cName = std::string(name)+"_s2c";
+  auto c2sName = std::string(name)+"_c2s";
+  auto s2cIO = adios.DeclareIO(s2cName);
+  auto c2sIO = adios.DeclareIO(c2sName);
+  if(transportType == TransportType::SST && noClients == true) {
+    // TODO log message here
+    transportType = TransportType::BP4;
+  }
+  std::string engineType;
+  switch (transportType) {
+    case TransportType::BP4 :
+      engineType = "BP4";
+      break;
+    case TransportType::SST:
+      engineType = "SST";
+      break;
+    // no default case. This will cause a compiler error if we do not handle a
+    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+  }
+  s2cIO.SetEngine(engineType);
+  c2sIO.SetEngine(engineType);
+  s2cIO.SetParameters(params);
+  c2sIO.SetParameters(params);
+  REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
+  adios2::Engine s2cEngine;
+  adios2::Engine c2sEngine;
+  switch (transportType) {
+    case TransportType::BP4 :
+      openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
+                     s2cIO,c2sIO,s2cEngine,c2sEngine);
+      break;
+    case TransportType::SST:
+      openEnginesSST(noClients,s2cName,c2sName,
+                     s2cIO,c2sIO,s2cEngine,c2sEngine);
+      break;
+    // no default case. This will cause a compiler error if we do not handle a
+    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+  }
+  Setup(s2cIO,s2cEngine);
+  const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine);
+  const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine);
+  auto s2c = std::make_unique<AdiosComm<T>>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c");
+  auto c2s = std::make_unique<AdiosComm<T>>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s");
+  switch (processType) {
+    case ProcessType::Client:
+      return {std::move(c2s), std::move(s2c)};
+    case ProcessType::Server:
+      return {std::move(s2c), std::move(c2s)};
+  }
+  REDEV_ALWAYS_ASSERT(false);  //we should never get here
+  return {nullptr, nullptr}; //silence compiler warning
 }
+
+}//end namespace redev

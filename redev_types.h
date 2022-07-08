@@ -21,5 +21,15 @@ using Reals = std::vector<Real>;
 typedef std::complex<double> CV;
 ///Vector of complex values
 using CVs = std::vector<CV>;
+///Identify the current process as part of the Server or a Client
+enum class ProcessType {
+  Client = 0,
+  Server = 1
+};
+///The ADIOS2 Engine
+enum class TransportType {
+  BP4 = 0,
+  SST = 1
+};
 }
 #endif

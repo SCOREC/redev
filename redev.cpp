@@ -6,6 +6,7 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 #include <string>         // std::stoi
+#include <numeric>        // exclusive_scan
 
 namespace {
   //Wait for the file to be created by the writer.
