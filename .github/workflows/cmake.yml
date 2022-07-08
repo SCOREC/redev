@@ -46,7 +46,7 @@ jobs:
            -DADIOS2_BUILD_EXAMPLES=OFF 
            -DBUILD_TESTING=OFF
            -DADIOS2_USE_Fortran=OFF
-           -DADIOS2_USE_SST=OFF
+           -DADIOS2_USE_SST=ON
            -DADIOS2_INSTALL_GENERATE_CONFIG=OFF
            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
 
@@ -73,6 +73,7 @@ jobs:
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
+           -DADIOS2_HAVE_SST=ON
            -DADIOS2_BPLS_PATH=${{runner.workspace}}/build-adios2/install/bin/bpls
            -DBUILD_TESTING=ON
 
