@@ -235,8 +235,8 @@ int main(int argc, char** argv) {
   const auto dim = 1;
   auto ranks = isRdv ? redev::LOs({0}) : redev::LOs(1);
   auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
-  auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
+  auto ptn = std::make_unique<redev::RCBPtn>(dim,ranks,cuts);
+  redev::Redev rdv(MPI_COMM_WORLD,std::move(ptn),static_cast<redev::ProcessType>(isRdv));
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "6"}};
   if(!isRdv) {
     client(rdv,clientId,params,isSST);

@@ -6,6 +6,7 @@
 #include "redev_comm.h"
 #include "redev_strings.h"
 #include <array>          // std::array
+#include <memory>
 
 namespace redev {
 
@@ -166,6 +167,7 @@ class Partition {
      * @param[in] root the source rank that sends the partition information
      */
     virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
+    virtual ~Partition() = default;
 };
 
 /**
@@ -360,7 +362,7 @@ class Redev {
      * The server will send the client the needed partition information during
      * the call to CreateAdiosClient.
      */
-    Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
+    Redev(MPI_Comm comm, std::unique_ptr<Partition> ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
      * Create a ADIOS2-based BidirectionalComm between the server and one client
      * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
@@ -374,6 +376,7 @@ class Redev {
     BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
                                   TransportType transportType = TransportType::BP4);
     ProcessType GetProcessType() const;
+    const Partition* GetPartition() const { return partition.get(); }
 
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
@@ -393,7 +396,7 @@ class Redev {
     MPI_Comm comm;
     adios2::ADIOS adios;
     int rank;
-    Partition& ptn;
+    std::unique_ptr<Partition> partition;
 };
 
 template<typename T>

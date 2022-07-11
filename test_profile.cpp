@@ -16,12 +16,13 @@ int main(int argc, char** argv) {
     const auto dim = 1;
     std::vector<redev::LO> ranks = {0,1,2,3};
     std::vector<redev::Real> cuts = {0,0.5,0.25,0.75};
-    auto ptn = redev::RCBPtn(dim,ranks,cuts);
-    redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv),noParticipant);
+    auto ptn = std::make_unique<redev::RCBPtn>(dim,ranks,cuts);
+    redev::Redev rdv(MPI_COMM_WORLD,std::move(ptn),static_cast<redev::ProcessType>(isRdv),noParticipant);
     std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
+    const auto* partition = dynamic_cast<const redev::RCBPtn*>(rdv.GetPartition());
     const int numCalls = 10;
     for(auto i=0; i<numCalls; i++)
-      ptn.GetRank(pt);
+      partition->GetRank(pt);
 
     auto prof = redev::Profiling::GetInstance();
     prof->Write(std::cout);

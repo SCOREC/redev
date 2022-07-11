@@ -12,14 +12,16 @@ void classPtnTest(int rank, bool isRdv) {
     expectedE2R[expectedEnts[i]] = expectedRanks[i];
   auto ranks = isRdv ? expectedRanks : redev::LOs();
   auto ents = isRdv ? expectedEnts : redev::ClassPtn::ModelEntVec();
-  auto partition = redev::ClassPtn(MPI_COMM_WORLD,ranks,ents);
-  redev::Redev rdv(MPI_COMM_WORLD,partition,static_cast<redev::ProcessType>(isRdv));
+  auto partition = std::make_unique<redev::ClassPtn>(MPI_COMM_WORLD,ranks,ents);
+  redev::Redev rdv(MPI_COMM_WORLD,std::move(partition),static_cast<redev::ProcessType>(isRdv));
   const bool isSST = false;
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,static_cast<redev::TransportType>(isSST));
   if(!isRdv) {
-    auto p_ranks = partition.GetRanks();
-    auto p_modelEnts = partition.GetModelEnts();
+    const auto* partition = dynamic_cast<const redev::ClassPtn*>(rdv.GetPartition());
+    REDEV_ALWAYS_ASSERT(partition != nullptr);
+    auto p_ranks = partition->GetRanks();
+    auto p_modelEnts = partition->GetModelEnts();
     REDEV_ALWAYS_ASSERT(p_ranks.size() == 4);
     REDEV_ALWAYS_ASSERT(p_modelEnts.size() == 4);
     EntToRank e2r;

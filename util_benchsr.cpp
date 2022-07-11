@@ -55,8 +55,8 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
   auto ranks = redev::LOs(rdvRanks);
   //the cuts won't be used since getRank(...) won't be called
   auto cuts = redev::Reals(rdvRanks);
-  auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,ptn,static_cast<redev::ProcessType>(isRdv));
+  auto ptn = std::make_unique<redev::RCBPtn>(dim,ranks,cuts);
+  redev::Redev rdv(mpiComm,std::move(ptn),static_cast<redev::ProcessType>(isRdv));
   std::string name = "foo";
   std::stringstream ss;
   ss << mbpr << " B rdv ";
@@ -103,8 +103,8 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const in
   const auto dim = 2;
   auto ranks = redev::LOs(rdvRanks);
   auto cuts = redev::Reals(rdvRanks);
-  auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,ptn,static_cast<redev::ProcessType>(isRdv));
+  auto ptn = std::make_unique<redev::RCBPtn>(dim,ranks,cuts);
+  redev::Redev rdv(mpiComm,std::move(ptn),static_cast<redev::ProcessType>(isRdv));
   //get adios objs
   std::string name = "mapped";
   adios2::ADIOS adios(mpiComm);
