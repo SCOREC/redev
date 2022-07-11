@@ -353,9 +353,12 @@ class Redev {
     /**
      * Create a Redev object
      * @param[in] comm MPI communicator containing the ranks that are part of the server/client
-     * @param[in] ptn Partition object defining the redezvous domain partition
+     * @param[in] ptn Partition object defining the redezvous domain partition (see note below)
      * @param[in] processProcess enum for if the server is a client, server
      * @param[in] noClients for testing without any clients present
+     * The client processes should pass in an empty Partition object.
+     * The server will send the client the needed partition information during
+     * the call to CreateAdiosClient.
      */
     Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
