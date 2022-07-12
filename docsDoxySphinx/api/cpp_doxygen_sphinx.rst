@@ -63,9 +63,9 @@ Types
    :project: Redev
 
 `BidirectionalComm`
-----------
+-------------------
 
-.. doxygenstruct:: redev::BidirectionalComm
+.. doxygenclass:: redev::BidirectionalComm
    :project: Redev
 
 `Communicator`
