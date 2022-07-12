@@ -115,7 +115,8 @@ class Communicator {
  * One AdiosComm object is required for each communication link direction.  For
  * example, for a client and server to both send and receive messages one
  * AdiosComm for client->server messaging and another AdiosComm for
- * server->client messaging.
+ * server->client messaging are needed. Redev::BidirectionalComm is a helper
+ * class for this use case.
  */
 template<typename T>
 class AdiosComm : public Communicator<T> {
