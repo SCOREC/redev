@@ -46,7 +46,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#classptn"><cite>ClassPtn</cite></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rcbptn"><cite>RCBPtn</cite></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#redev"><cite>Redev</cite></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#commpair"><cite>CommPair</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bidirectionalcomm"><cite>BidirectionalComm</cite></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#communicator"><cite>Communicator</cite></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#adioscomm"><cite>AdiosComm</cite></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#inmessagelayout"><cite>InMessageLayout</cite></a></li>
@@ -430,70 +430,58 @@ Always use <code class="docutils literal notranslate"><span class="pre">redev::<
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5redev5Redev5RedevE8MPI_CommR9Partitionbb">
-<span id="_CPPv3N5redev5Redev5RedevE8MPI_CommR9Partitionbb"></span><span id="_CPPv2N5redev5Redev5RedevE8MPI_CommR9Partitionbb"></span><span id="redev::Redev::Redev__MPI_Comm.PartitionR.b.b"></span><span class="target" id="classredev_1_1Redev_1ae4a0901c84b6747debd1a46ee463b9c2"></span><span class="sig-name descname"><span class="n"><span class="pre">Redev</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">comm</span></span>, <a class="reference internal" href="#_CPPv4N5redev9PartitionE" title="redev::Partition"><span class="n"><span class="pre">Partition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ptn</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">isRendezvous</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">noClients</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5redev5Redev5RedevE8MPI_CommR9Partitionbb" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5redev5Redev5RedevE8MPI_CommR9Partition11ProcessTypeb">
+<span id="_CPPv3N5redev5Redev5RedevE8MPI_CommR9Partition11ProcessTypeb"></span><span id="_CPPv2N5redev5Redev5RedevE8MPI_CommR9Partition11ProcessTypeb"></span><span id="redev::Redev::Redev__MPI_Comm.PartitionR.ProcessType.b"></span><span class="target" id="classredev_1_1Redev_1aa76aec375cd15dd166b0b470b46e0442"></span><span class="sig-name descname"><span class="n"><span class="pre">Redev</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">comm</span></span>, <a class="reference internal" href="#_CPPv4N5redev9PartitionE" title="redev::Partition"><span class="n"><span class="pre">Partition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ptn</span></span>, <span class="n"><span class="pre">ProcessType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">processType</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">ProcessType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Client</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">noClients</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5redev5Redev5RedevE8MPI_CommR9Partition11ProcessTypeb" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Create a <a class="reference internal" href="#classredev_1_1Redev"><span class="std std-ref">Redev</span></a> object </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>comm</strong> – <strong>[in]</strong> MPI communicator containing the ranks that are part of the server/client </p></li>
-<li><p><strong>ptn</strong> – <strong>[in]</strong> <a class="reference internal" href="#classredev_1_1Partition"><span class="std std-ref">Partition</span></a> object defining the redezvous domain partition </p></li>
-<li><p><strong>isRendezvous</strong> – <strong>[in]</strong> true for the server processes and false otherwise </p></li>
-<li><p><strong>noClients</strong> – <strong>[in]</strong> for testing without any clients present </p></li>
+<li><p><strong>ptn</strong> – <strong>[in]</strong> <a class="reference internal" href="#classredev_1_1Partition"><span class="std std-ref">Partition</span></a> object defining the redezvous domain partition (see note below) </p></li>
+<li><p><strong>processProcess</strong> – <strong>[in]</strong> enum for if the server is a client, server </p></li>
+<li><p><strong>noClients</strong> – <strong>[in]</strong> for testing without any clients present The client processes should pass in an empty <a class="reference internal" href="#classredev_1_1Partition"><span class="std std-ref">Partition</span></a> object. The server will send the client the needed partition information during the call to CreateAdiosClient. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN5redev5Redev17CreateAdiosClientE8CommPairI1TENSt11string_viewEN6adios26ParamsEb">
-<span id="_CPPv3I0EN5redev5Redev17CreateAdiosClientENSt11string_viewEN6adios26ParamsEb"></span><span id="_CPPv2I0EN5redev5Redev17CreateAdiosClientENSt11string_viewEN6adios26ParamsEb"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classredev_1_1Redev_1aa3bec03ee16411e686103e88c4b91da7"></span><a class="reference internal" href="#_CPPv4I0EN5redev8CommPairE" title="redev::CommPair"><span class="n"><span class="pre">CommPair</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5redev5Redev17CreateAdiosClientE8CommPairI1TENSt11string_viewEN6adios26ParamsEb" title="redev::Redev::CreateAdiosClient::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CreateAdiosClient</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">adios2</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Params</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">params</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">isSST</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5redev5Redev17CreateAdiosClientE8CommPairI1TENSt11string_viewEN6adios26ParamsEb" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Create a ADIOS2-based <a class="reference internal" href="#structredev_1_1CommPair"><span class="std std-ref">CommPair</span></a> between the server and one client </p>
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5redev5Redev17CreateAdiosClientE17BidirectionalCommI1TENSt11string_viewEN6adios26ParamsE13TransportType">
+<span id="_CPPv3I0EN5redev5Redev17CreateAdiosClientENSt11string_viewEN6adios26ParamsE13TransportType"></span><span id="_CPPv2I0EN5redev5Redev17CreateAdiosClientENSt11string_viewEN6adios26ParamsE13TransportType"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classredev_1_1Redev_1a49ebe945bbe33998261de5dd91349e32"></span><span class="n"><span class="pre">BidirectionalComm</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5redev5Redev17CreateAdiosClientE17BidirectionalCommI1TENSt11string_viewEN6adios26ParamsE13TransportType" title="redev::Redev::CreateAdiosClient::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CreateAdiosClient</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">adios2</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Params</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">params</span></span>, <span class="n"><span class="pre">TransportType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">transportType</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">TransportType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BP4</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5redev5Redev17CreateAdiosClientE17BidirectionalCommI1TENSt11string_viewEN6adios26ParamsE13TransportType" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a ADIOS2-based BidirectionalComm between the server and one client </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – <strong>[in]</strong> name for the communication channel, each <a class="reference internal" href="#structredev_1_1CommPair"><span class="std std-ref">CommPair</span></a> must have a unique name </p></li>
+<li><p><strong>name</strong> – <strong>[in]</strong> name for the communication channel, each BidirectionalComm must have a unique name </p></li>
 <li><p><strong>params</strong> – <strong>[in]</strong> list of ADIOS2 parameters controlling IO and Engine creation, see <a class="reference external" href="https://adios2.readthedocs.io/en/latest/engines/engines.html">https://adios2.readthedocs.io/en/latest/engines/engines.html</a> for the list of applicable parameters for the SST and BP4 engines </p></li>
-<li><p><strong>isSST</strong> – <strong>[in]</strong> by default the BP4 Engine is used, setting this to true enables use of the SST engine </p></li>
+<li><p><strong>transportType</strong> – <strong>[in]</strong> by default the BP4 Engine is used, other transport types are available in the TransportType enum </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5redev5Redev14GetProcessTypeEv">
+<span id="_CPPv3NK5redev5Redev14GetProcessTypeEv"></span><span id="_CPPv2NK5redev5Redev14GetProcessTypeEv"></span><span id="redev::Redev::GetProcessTypeC"></span><span class="target" id="classredev_1_1Redev_1a6870c15845b948b2366f11c9750de16f"></span><span class="n"><span class="pre">ProcessType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetProcessType</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5redev5Redev14GetProcessTypeEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 </div>
 </dd></dl>
 
 </section>
-<section id="commpair">
-<h2><cite>CommPair</cite><a class="headerlink" href="#commpair" title="Permalink to this headline"></a></h2>
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN5redev8CommPairE">
-<span id="_CPPv3I0EN5redev8CommPairE"></span><span id="_CPPv2I0EN5redev8CommPairE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structredev_1_1CommPair"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">redev</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">CommPair</span></span></span><a class="headerlink" href="#_CPPv4I0EN5redev8CommPairE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>A <a class="reference internal" href="#structredev_1_1CommPair"><span class="std std-ref">CommPair</span></a> is a pair of communication objects using ADIOS2. s2c is the object for server-to-client communications. c2s is the object for client-to-server communications. The ‘server’ is the set of processes with the rendezvous partition. A ‘client’ is a set of processes that queries the rendezvous partition. </p>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5redev8CommPair3s2cE">
-<span id="_CPPv3N5redev8CommPair3s2cE"></span><span id="_CPPv2N5redev8CommPair3s2cE"></span><span id="redev::CommPair::s2c__redev::AdiosComm:T:"></span><span class="target" id="structredev_1_1CommPair_1a1cb8771f9834794d7ee89c31e7d47ec0"></span><span class="n"><span class="pre">redev</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5redev8CommPairE" title="redev::CommPair::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">s2c</span></span></span><a class="headerlink" href="#_CPPv4N5redev8CommPair3s2cE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>server-to-client </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5redev8CommPair3c2sE">
-<span id="_CPPv3N5redev8CommPair3c2sE"></span><span id="_CPPv2N5redev8CommPair3c2sE"></span><span id="redev::CommPair::c2s__redev::AdiosComm:T:"></span><span class="target" id="structredev_1_1CommPair_1a6a465dc83f8bed4a83fad5fb9bbc6e13"></span><span class="n"><span class="pre">redev</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5redev8CommPairE" title="redev::CommPair::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">c2s</span></span></span><a class="headerlink" href="#_CPPv4N5redev8CommPair3c2sE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>client-to-server </p>
-</dd></dl>
-
+<section id="bidirectionalcomm">
+<h2><cite>BidirectionalComm</cite><a class="headerlink" href="#bidirectionalcomm" title="Permalink to this headline"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenstruct: Cannot find class “redev::BidirectionalComm” in doxygen xml output for project “Redev” from directory: build/xml/</p>
 </div>
-</dd></dl>
-
 </section>
 <section id="communicator">
 <h2><cite>Communicator</cite><a class="headerlink" href="#communicator" title="Permalink to this headline"></a></h2>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN5redev12CommunicatorE">
 <span id="_CPPv3I0EN5redev12CommunicatorE"></span><span id="_CPPv2I0EN5redev12CommunicatorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classredev_1_1Communicator"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">redev</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Communicator</span></span></span><a class="headerlink" href="#_CPPv4I0EN5redev12CommunicatorE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The <a class="reference internal" href="#classredev_1_1Communicator"><span class="std std-ref">Communicator</span></a> class provides an abstract interface for sending and receiving messages to/from the client and server. </p>
+<dd><p>The <a class="reference internal" href="#classredev_1_1Communicator"><span class="std std-ref">Communicator</span></a> class provides an abstract interface for sending and receiving messages to/from the client and server. TODO: Split <a class="reference internal" href="#classredev_1_1Communicator"><span class="std std-ref">Communicator</span></a> into Send/Recieve Communicators, bidirectional constructed by composition and can perform both send and receive </p>
 <p>Subclassed by <a class="reference internal" href="#classredev_1_1AdiosComm"><span class="std std-ref">redev::AdiosComm&lt; T &gt;</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -528,6 +516,16 @@ Always use <code class="docutils literal notranslate"><span class="pre">redev::<
 <dd><p>Receive an array. Use <a class="reference internal" href="#classredev_1_1AdiosComm"><span class="std std-ref">AdiosComm</span></a>’s GetInMessageLayout to retreive an instance of the <a class="reference internal" href="#structredev_1_1InMessageLayout"><span class="std std-ref">InMessageLayout</span></a> struct containing the layout of the received array. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev12Communicator18GetInMessageLayoutEv">
+<span id="_CPPv3N5redev12Communicator18GetInMessageLayoutEv"></span><span id="_CPPv2N5redev12Communicator18GetInMessageLayoutEv"></span><span id="redev::Communicator::GetInMessageLayout"></span><span class="target" id="classredev_1_1Communicator_1a75b71ad918e5423faa9fbf790d6568ea"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5redev15InMessageLayoutE" title="redev::InMessageLayout"><span class="n"><span class="pre">InMessageLayout</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetInMessageLayout</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5redev12Communicator18GetInMessageLayoutEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev12CommunicatorD0Ev">
+<span id="_CPPv3N5redev12CommunicatorD0Ev"></span><span id="_CPPv2N5redev12CommunicatorD0Ev"></span><span id="redev::Communicator::~Communicator"></span><span class="target" id="classredev_1_1Communicator_1aa562a3e26a25bce5b1887d4b8b551408"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Communicator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5redev12CommunicatorD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 </div>
 </dd></dl>
 
@@ -556,6 +554,33 @@ Always use <code class="docutils literal notranslate"><span class="pre">redev::<
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosCommD0Ev">
+<span id="_CPPv3N5redev9AdiosCommD0Ev"></span><span id="_CPPv2N5redev9AdiosCommD0Ev"></span><span id="redev::AdiosComm::~AdiosComm"></span><span class="target" id="classredev_1_1AdiosComm_1a6030543b634abcac45252d5832caa585"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~AdiosComm</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5redev9AdiosCommD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>destructor to close the engine </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosComm9AdiosCommERK9AdiosComm">
+<span id="_CPPv3N5redev9AdiosComm9AdiosCommERK9AdiosComm"></span><span id="_CPPv2N5redev9AdiosComm9AdiosCommERK9AdiosComm"></span><span id="redev::AdiosComm::AdiosComm__AdiosCommCR"></span><span class="target" id="classredev_1_1AdiosComm_1a9de0d828b1af3f2ac70c7176eb1fc17f"></span><span class="sig-name descname"><span class="n"><span class="pre">AdiosComm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5redev9AdiosComm9AdiosCommERK9AdiosComm" title="redev::AdiosComm::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5redev9AdiosComm9AdiosCommERK9AdiosComm" title="Permalink to this definition"></a><br /></dt>
+<dd><p>We are explicitly not allowing copy/move constructor/assignment as we don’t know if the ADIOS2 Engine and IO objects can be safely copied/moved. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosComm9AdiosCommERR9AdiosComm">
+<span id="_CPPv3N5redev9AdiosComm9AdiosCommERR9AdiosComm"></span><span id="_CPPv2N5redev9AdiosComm9AdiosCommERR9AdiosComm"></span><span id="redev::AdiosComm::AdiosComm__AdiosCommRR"></span><span class="target" id="classredev_1_1AdiosComm_1a185f8c9336cdf7820d102fd1ad36b76b"></span><span class="sig-name descname"><span class="n"><span class="pre">AdiosComm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5redev9AdiosComm9AdiosCommERR9AdiosComm" title="redev::AdiosComm::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5redev9AdiosComm9AdiosCommERR9AdiosComm" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosCommaSERK9AdiosComm">
+<span id="_CPPv3N5redev9AdiosCommaSERK9AdiosComm"></span><span id="_CPPv2N5redev9AdiosCommaSERK9AdiosComm"></span><span id="redev::AdiosComm::assign-operator__AdiosCommCR"></span><span class="target" id="classredev_1_1AdiosComm_1aba4bb6254f61dcbc030dc7956f3ba5e0"></span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5redev9AdiosCommaSERK9AdiosComm" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosCommaSERR9AdiosComm">
+<span id="_CPPv3N5redev9AdiosCommaSERR9AdiosComm"></span><span id="_CPPv2N5redev9AdiosCommaSERR9AdiosComm"></span><span id="redev::AdiosComm::assign-operator__AdiosCommRR"></span><span class="target" id="classredev_1_1AdiosComm_1a8c6148f5deccbe9d212e79d09e74b6b4"></span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5redev9AdiosCommE" title="redev::AdiosComm"><span class="n"><span class="pre">AdiosComm</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5redev9AdiosCommaSERR9AdiosComm" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosComm19SetOutMessageLayoutER3LOsR3LOs">
@@ -590,7 +615,7 @@ Always use <code class="docutils literal notranslate"><span class="pre">redev::<
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5redev9AdiosComm18GetInMessageLayoutEv">
-<span id="_CPPv3N5redev9AdiosComm18GetInMessageLayoutEv"></span><span id="_CPPv2N5redev9AdiosComm18GetInMessageLayoutEv"></span><span id="redev::AdiosComm::GetInMessageLayout"></span><span class="target" id="classredev_1_1AdiosComm_1aab6cf16a20d8c0b7aff8b6aba2d5b093"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5redev15InMessageLayoutE" title="redev::InMessageLayout"><span class="n"><span class="pre">InMessageLayout</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetInMessageLayout</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5redev9AdiosComm18GetInMessageLayoutEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N5redev9AdiosComm18GetInMessageLayoutEv"></span><span id="_CPPv2N5redev9AdiosComm18GetInMessageLayoutEv"></span><span id="redev::AdiosComm::GetInMessageLayout"></span><span class="target" id="classredev_1_1AdiosComm_1aab6cf16a20d8c0b7aff8b6aba2d5b093"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5redev15InMessageLayoutE" title="redev::InMessageLayout"><span class="n"><span class="pre">InMessageLayout</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetInMessageLayout</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5redev9AdiosComm18GetInMessageLayoutEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Return the <a class="reference internal" href="#structredev_1_1InMessageLayout"><span class="std std-ref">InMessageLayout</span></a> object. <dl>
 <dt class="sig sig-object cpp">
 <em><span class="pre">Todo:</span></em></dt>

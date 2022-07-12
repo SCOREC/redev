@@ -62,10 +62,10 @@ Types
 .. doxygenclass:: redev::Redev
    :project: Redev
 
-`CommPair`
+`BidirectionalComm`
 ----------
 
-.. doxygenstruct:: redev::CommPair
+.. doxygenstruct:: redev::BidirectionalComm
    :project: Redev
 
 `Communicator`
