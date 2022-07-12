@@ -4,7 +4,6 @@
 #include <chrono> //steady_clock, duration
 #include <thread> //this_thread
 #include "redev.h"
-#include "redev_comm.h"
 #include "util_support.h"
 
 #define MILLION 1024*1024

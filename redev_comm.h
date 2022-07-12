@@ -1,5 +1,6 @@
 #pragma once
-#include "redev.h"
+#include "redev_types.h"
+#include "redev_assert.h"
 #include "redev_profile.h"
 #include "redev_assert.h"
 #include <numeric> // accumulate, exclusive_scan
