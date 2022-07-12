@@ -120,8 +120,8 @@ void sendRecvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const in
   std::stringstream ss;
   ss << mbpr << " B " << name;
   if(!isRdv) { //sender
-    adios2::Dims shape{static_cast<size_t>(mbpr*nproc)};
-    adios2::Dims start{static_cast<size_t>(mbpr*rank)};
+    adios2::Dims shape{static_cast<size_t>(mbpr)*nproc};
+    adios2::Dims start{static_cast<size_t>(mbpr)*rank};
     adios2::Dims count{static_cast<size_t>(mbpr)};
     auto var = io.DefineVariable<redev::LO>(name, shape, start, count);
     assert(var);

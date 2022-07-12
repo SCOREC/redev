@@ -131,7 +131,7 @@ class AdiosComm : public Communicator<T> {
      * @param[in] name_ unique name among AdiosComm objects
      */
     AdiosComm(MPI_Comm comm_, int recvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
-      : comm(comm_), recvRanks(recvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
+      : comm(comm_), recvRanks(recvRanks_), eng(eng_), io(io_), name(std::move(name_)), verbose(0) {
         inMsg.knownSizes = false;
     }
     
@@ -191,8 +191,8 @@ class AdiosComm : public Communicator<T> {
       assert(rdvVar);
       const auto srcRanksName = name+"_srcRanks";
       //The source rank offsets array is the same on each process ('regular').
-      adios2::Dims srShape{static_cast<size_t>(commSz*recvRanks)};
-      adios2::Dims srStart{static_cast<size_t>(recvRanks*rank)};
+      adios2::Dims srShape{static_cast<size_t>(commSz)*recvRanks};
+      adios2::Dims srStart{static_cast<size_t>(recvRanks)*rank};
       adios2::Dims srCount{static_cast<size_t>(recvRanks)};
       checkStep(eng.BeginStep());
 

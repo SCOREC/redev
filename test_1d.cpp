@@ -10,10 +10,7 @@ int main(int argc, char** argv) {
   adios2::ADIOS adios(MPI_COMM_WORLD);
   adios2::IO io = adios.DeclareIO("Write");
   std::string engineName = "BP4";
-  if (!engineName.empty())
-  {
-    io.SetEngine(engineName);
-  }
+  io.SetEngine(engineName);
 
   adios2::Engine engine = io.Open("foo.bp", adios2::Mode::Write);
 
@@ -39,13 +36,13 @@ int main(int argc, char** argv) {
 
   engine.BeginStep();
 
-  start = adios2::Dims{static_cast<size_t>(mpiRank*Nx)};
+  start = adios2::Dims{static_cast<size_t>(mpiRank)*Nx};
   count = adios2::Dims{static_cast<size_t>(1)};
   var_i32.SetSelection({start,count});
   int x = 42;
   engine.Put(var_i32, &x);
 
-  start = adios2::Dims{static_cast<size_t>(mpiRank*Nx+1)};
+  start = adios2::Dims{static_cast<size_t>(mpiRank)*Nx+1};
   var_i32.SetSelection({start,count});
   int y = 43;
   engine.Put(var_i32, &y);
