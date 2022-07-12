@@ -18,10 +18,10 @@ void classPtnTest(int rank, bool isRdv) {
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,static_cast<redev::TransportType>(isSST));
   if(!isRdv) {
-    const auto* partition = dynamic_cast<const redev::ClassPtn*>(rdv.GetPartition());
-    REDEV_ALWAYS_ASSERT(partition != nullptr);
-    auto p_ranks = partition->GetRanks();
-    auto p_modelEnts = partition->GetModelEnts();
+    const auto* partition_ptr = dynamic_cast<const redev::ClassPtn*>(rdv.GetPartition());
+    REDEV_ALWAYS_ASSERT(partition_ptr != nullptr);
+    auto p_ranks = partition_ptr->GetRanks();
+    auto p_modelEnts = partition_ptr->GetModelEnts();
     REDEV_ALWAYS_ASSERT(p_ranks.size() == 4);
     REDEV_ALWAYS_ASSERT(p_modelEnts.size() == 4);
     EntToRank e2r;

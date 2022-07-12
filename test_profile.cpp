@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     redev::Redev rdv(MPI_COMM_WORLD,std::move(ptn),static_cast<redev::ProcessType>(isRdv),noParticipant);
     std::array<redev::Real,3> pt{0.6, 0.0, 0.0};
     const auto* partition = dynamic_cast<const redev::RCBPtn*>(rdv.GetPartition());
+    REDEV_ALWAYS_ASSERT(partition != nullptr);
     const int numCalls = 10;
     for(auto i=0; i<numCalls; i++)
       partition->GetRank(pt);
