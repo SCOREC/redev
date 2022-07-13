@@ -6,6 +6,7 @@
 #include "redev_comm.h"
 #include "redev_strings.h"
 #include <array>          // std::array
+#include <variant>
 
 namespace redev {
 
@@ -96,13 +97,13 @@ namespace redev {
  * The following figure depicts an example Redev workflow for exchanging data between
  * two applications (Clients) and the Coupler (the Server).
  * The Rendezvous partition in this example is formed from groups of adjacent
- * geometric model entities referred to as a 'Feature-based Partition'.
+ * geometric model entities referred to as a 'Feature-based PartitionInterface'.
  * Red colored boxes and text are operations supported by Redev.
  * The phases of the workflow are described below.
  * - _App. Setup_: The applications initialize its domain data
  *   by loading meshes, and associated partition data.
  *   The Coupler loads the geometric model of the domain.
- * - _Rdv. Setup_: The coupler forms the 'Feature-based Partition' used for Rendezvous, and
+ * - _Rdv. Setup_: The coupler forms the 'Feature-based PartitionInterface' used for Rendezvous, and
  *   sends partition information to an instance of Redev embedded
  *   into each application.
  * - _Mesh Setup_: Each application queries the rendezvous partition in a loop
@@ -137,16 +138,18 @@ namespace redev {
  */
 
 /**
- * The Partition class provides an abstract interface that is used by Redev for
- * sharing partition information among the server and client processes.
- * Instances of the Partition class define an interface (i.e., GetRank(...)) to query
- * which process owns a point in the domain (RCBPtn) or a given geometric model entity
- * (ClassPtn).
- * Defining the cut tree for RCB or the assignment of ranks to geometric model entities
- * is not the purpose/responsiblity of this class or the RCBPtn and ClassPtn
- * derived classes.
+ * The PartitionInterface class provides an abstract interface that is used by
+ * Redev for sharing partition information among the server and client
+ * processes. Instances of the PartitionInterface class define an interface
+ * (i.e., GetRank(...)) to query which process owns a point in the domain
+ * (RCBPtn) or a given geometric model entity (ClassPtn). Defining the cut tree
+ * for RCB or the assignment of ranks to geometric model entities is not the
+ * purpose/responsiblity of this class or the RCBPtn and ClassPtn derived
+ * classes.
+ * @note this class is only used to enforce the partition interface and
+ * can/should be replaced with concept in C++20
  */
-class Partition {
+class PartitionInterface {
   public:
     /**
      * Write the partition to the provided ADIOS engine and io.
@@ -167,7 +170,6 @@ class Partition {
      */
     virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
 };
-
 /**
  * The ClassPtn class supports a domain partition defined by the ownership of geometric model entities.
  * The user passes to the constructor the assignment of ranks to geometric model entities.
@@ -176,21 +178,21 @@ class Partition {
  * The concepts of classification are described in Section 2.2.2 of the PUMI
  * Users Guide (v2.1) https://www.scorec.rpi.edu/pumi/PUMI.pdf.
  */
-class ClassPtn : public Partition {
+class ClassPtn : public PartitionInterface {
   public:
     /**
      * Pair of integers (dimension, id) that uniquely identify a geometric model entity by their
      * dimension and id.  The id for an entity within a dimension is unique.
      */
-    typedef std::pair<redev::LO, redev::LO> ModelEnt;
+    using ModelEnt = std::pair<redev::LO, redev::LO>;
     /**
      * Vector of geometric model entities.
      */
-    typedef std::vector<ModelEnt> ModelEntVec;
+    using ModelEntVec = std::vector<ModelEnt>;
     /**
      * Map of geometric model entities to the process that owns them.
      */
-    typedef std::map<ModelEnt,redev::LO> ModelEntToRank;
+    using ModelEntToRank = std::map<ModelEnt,redev::LO>;
     ClassPtn();
     /**
      * Create a ClassPtn object from a vector of owning ranks and geometric model entities.
@@ -203,17 +205,20 @@ class ClassPtn : public Partition {
      * Return the rank owning the given geometric model entity.
      * @param[in] ent the geometric model entity
      */
+    [[nodiscard]]
     redev::LO GetRank(ModelEnt ent) const;
-    void Write(adios2::Engine& eng, adios2::IO& io);
-    void Read(adios2::Engine& eng, adios2::IO& io);
-    void Broadcast(MPI_Comm comm, int root=0);
+    void Write(adios2::Engine& eng, adios2::IO& io) final;
+    void Read(adios2::Engine& eng, adios2::IO& io) final;
+    void Broadcast(MPI_Comm comm, int root=0) final;
     /**
      * Return the vector of owning ranks for all geometric model entity.
      */
+    [[nodiscard]]
     redev::LOs GetRanks() const;
     /**
      * Return the vector of all geometric model entities.
      */
+     [[nodiscard]]
     ModelEntVec GetModelEnts() const;
   private:
     const std::string entsAndRanksVarName = "class partition ents and ranks";
@@ -226,16 +231,19 @@ class ClassPtn : public Partition {
      * return a vector with the contents of the ModelEntToRank map
      * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      */
+    [[nodiscard]]
     redev::LOs SerializeModelEntsAndRanks() const;
     /**
      * Given a vector that contains the owning ranks and geometric model entities
      * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
      * construct the ModelEntToRank map
      */
+    [[nodiscard]]
     ModelEntToRank DeserializeModelEntsAndRanks(const redev::LOs& serialized) const;
     /**
      * Ensure that the dimensions of the model ents is [0:3]
      */
+     [[nodiscard]]
     bool ModelEntDimsValid(const ModelEntVec& ents) const;
     /**
      * The map of geometric model entities to their owning rank
@@ -261,7 +269,7 @@ class ClassPtn : public Partition {
  * The root of the cut tree is stored at index 1 and index 0 is unused.
  * See test_query.cpp for examples.
  */
-class RCBPtn : public Partition {
+class RCBPtn : public PartitionInterface {
   public:
     RCBPtn();
     /**
@@ -283,16 +291,18 @@ class RCBPtn : public Partition {
      * @param[in] pt the cartesian point in space. The 3rd value is ignored for 2d domains.
      */
     redev::LO GetRank(std::array<redev::Real,3>& pt) const;
-    void Write(adios2::Engine& eng, adios2::IO& io);
-    void Read(adios2::Engine& eng, adios2::IO& io);
-    void Broadcast(MPI_Comm comm, int root=0);
+    void Write(adios2::Engine& eng, adios2::IO& io) final;
+    void Read(adios2::Engine& eng, adios2::IO& io) final;
+    void Broadcast(MPI_Comm comm, int root=0) final;
     /**
      * Return the vector of owning ranks for each sub-domain of the cut tree.
      */
+    [[nodiscard]]
     std::vector<redev::LO> GetRanks() const;
     /**
      * Return the vector of cuts defining the cut tree. The 2-vectors (3-vectors) are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
      */
+    [[nodiscard]]
     std::vector<redev::Real> GetCuts() const;
   private:
     const std::string ranksVarName = "rcb partition ranks";
@@ -301,6 +311,8 @@ class RCBPtn : public Partition {
     std::vector<redev::LO> ranks;
     std::vector<redev::Real> cuts;
 };
+
+using Partition = std::variant<ClassPtn,RCBPtn>;
 
 /**
  * A BidirectionalComm is a communicator that can send and receive data
@@ -342,7 +354,7 @@ enum class TransportType {
   SST = 1
 };
 /**
- * The Redev class exercises the Partition class APIs to setup the rendezvous
+ * The Redev class exercises the PartitionInterface class APIs to setup the rendezvous
  * partition on the server/rendezvous processes, communicate the partition to
  * the client processes.  It also provides an API to create objects that enable
  * communication with the clients.
@@ -353,14 +365,14 @@ class Redev {
     /**
      * Create a Redev object
      * @param[in] comm MPI communicator containing the ranks that are part of the server/client
-     * @param[in] ptn Partition object defining the redezvous domain partition (see note below)
+     * @param[in] ptn PartitionInterface object defining the redezvous domain partition (see note below)
      * @param[in] processProcess enum for if the server is a client, server
      * @param[in] noClients for testing without any clients present
-     * The client processes should pass in an empty Partition object.
+     * The client processes should pass in an empty PartitionInterface object.
      * The server will send the client the needed partition information during
      * the call to CreateAdiosClient.
      */
-    Redev(MPI_Comm comm, Partition& ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
+    Redev(MPI_Comm comm, Partition ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
      * Create a ADIOS2-based BidirectionalComm between the server and one client
      * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
@@ -373,7 +385,10 @@ class Redev {
     template<typename T>
     BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
                                   TransportType transportType = TransportType::BP4);
+    [[nodiscard]]
     ProcessType GetProcessType() const;
+    [[nodiscard]]
+    const Partition & GetPartition() const;
 
   private:
     void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
@@ -393,7 +408,7 @@ class Redev {
     MPI_Comm comm;
     adios2::ADIOS adios;
     int rank;
-    Partition& ptn;
+    Partition ptn;
 };
 
 template<typename T>
