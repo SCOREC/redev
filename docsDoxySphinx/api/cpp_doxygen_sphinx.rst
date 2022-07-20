@@ -37,10 +37,10 @@ Types
    :project: Redev
 
 
-`Partition`
+`PartitionInterface`
 -----------
 
-.. doxygenclass:: redev::Partition
+.. doxygenclass:: redev::PartitionInterface
    :project: Redev
 
 `ClassPtn`

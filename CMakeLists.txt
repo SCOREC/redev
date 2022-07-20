@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0...3.21.0)
 
-project(redev VERSION 3.0.1 LANGUAGES C CXX) #C is required to find MPI_C
+project(redev VERSION 4.0.0 LANGUAGES C CXX) #C is required to find MPI_C
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -26,6 +26,7 @@ set(REDEV_HEADERS
   redev_time.h
   redev_assert.h
   redev_strings.h
+  redev_variant_tools.h
   )
 
 set(REDEV_SOURCES
@@ -130,7 +131,6 @@ if(BUILD_TESTING)
     TIMEOUT ${test_timeout}
     NAME1 rdv PROCS1 1 EXE1 ./test_initPtnObjOwnership ARGS1 1
     NAME2 app PROCS2 1 EXE2 ./test_initPtnObjOwnership ARGS2 0)
-  set_property(TEST test_initPtnObjOwnership PROPERTY WILL_FAIL TRUE)
   add_exe(test_setup_rcbPtn test_setup_rcbPtn.cpp)
   dual_mpi_test(TESTNAME test_setup_rcbPtn_1p
     TIMEOUT ${test_timeout}

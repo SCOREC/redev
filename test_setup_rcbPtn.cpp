@@ -9,13 +9,13 @@ void rcbPtnTest(int rank, bool isRdv) {
   auto ranks = isRdv ? expectedRanks : redev::LOs(4);
   auto cuts = isRdv ? expectedCuts : redev::Reals(4);
   const auto dim = 2;
-  auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(MPI_COMM_WORLD, redev::RCBPtn(dim,ranks,cuts),static_cast<redev::ProcessType>(isRdv));
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,redev::TransportType::BP4);
   if(!isRdv) {
-    auto ptnRanks = ptn.GetRanks();
-    auto ptnCuts = ptn.GetCuts();
+    const auto& partition = std::get<redev::RCBPtn>(rdv.GetPartition());
+    auto ptnRanks = partition.GetRanks();
+    auto ptnCuts = partition.GetCuts();
     REDEV_ALWAYS_ASSERT(ptnRanks == expectedRanks);
     REDEV_ALWAYS_ASSERT(ptnCuts == expectedCuts);
   }

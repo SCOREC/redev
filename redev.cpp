@@ -322,8 +322,8 @@ namespace redev {
     }
   }
 
-  Redev::Redev(MPI_Comm comm, Partition&ptn, ProcessType processType_, bool noClients)
-    : comm(comm), adios(comm), ptn(ptn), processType(processType_), noClients(noClients) {
+  Redev::Redev(MPI_Comm comm, Partition ptn, ProcessType processType, bool noClients)
+    : comm(comm), adios(comm), ptn(ptn), processType(processType), noClients(noClients) {
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
@@ -338,13 +338,16 @@ namespace redev {
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     //rendezvous app rank 0 writes partition info and other apps read
     if(!rank) {
-      if(processType==ProcessType::Server)
-        ptn.Write(s2cEngine,s2cIO);
-      else
-        ptn.Read(s2cEngine,s2cIO);
+      if(processType==ProcessType::Server) {
+        std::visit([&](auto&& partition){partition.Write(s2cEngine, s2cIO);} ,ptn);
+      }
+      else {
+        std::visit([&](auto&& partition){partition.Read(s2cEngine, s2cIO);} ,ptn);
+      }
     }
     s2cEngine.EndStep();
-    ptn.Broadcast(comm);
+    std::visit([&](auto&& partition){partition.Broadcast(comm);} ,ptn);
+
   }
 
   /*
@@ -427,4 +430,5 @@ namespace redev {
     eng.EndStep();
   }
   ProcessType Redev::GetProcessType() const { return processType; }
+  const Partition &Redev::GetPartition() const {return ptn;}
   }
