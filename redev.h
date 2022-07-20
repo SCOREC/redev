@@ -324,6 +324,7 @@ using Partition = std::variant<ClassPtn,RCBPtn>;
 template <class T>
 class BidirectionalComm {
 public:
+  BidirectionalComm() = default;
   BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
                     std::unique_ptr<Communicator<T>> receiver_)
       : sender(std::move(sender_)), receiver(std::move(receiver_)) {
