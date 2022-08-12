@@ -26,6 +26,8 @@ jobs:
       run: |
         sudo apt-get update -yq
         sudo apt-get install -yq cmake
+        cmake --version
+        /usr/bin/cmake --version
 
     - name: Install mpi
       run: |
@@ -44,7 +46,7 @@ jobs:
     - name: ADIOS2 Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build-adios2
-      run: cmake $GITHUB_WORKSPACE/adios2
+      run: /usr/bin/cmake $GITHUB_WORKSPACE/adios2
            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
            -DADIOS2_USE_MPI=ON
            -DADIOS2_USE_CUDA=OFF 
@@ -59,8 +61,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build-adios2
       shell: bash
       run: |
-        cmake --build . --parallel 2
-        cmake --install .
+        /usr/bin/cmake --build . --parallel 2
+        /usr/bin/cmake --install .
 
     - name: Redev Checkout repo
       uses: actions/checkout@v2
