@@ -22,6 +22,7 @@ set(REDEV_HEADERS
   redev.h
   redev_types.h
   redev_comm.h
+  redev_scan.h
   redev_profile.h
   redev_time.h
   redev_assert.h
