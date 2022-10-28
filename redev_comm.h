@@ -25,6 +25,13 @@ constexpr MPI_Datatype getMpiType(T) noexcept {
   else if constexpr (std::is_same_v<T, std::complex<double>>) { return MPI_DOUBLE_COMPLEX; }
   else if constexpr (std::is_same_v<T, int64_t>) { return MPI_INT64_T; }
   else if constexpr (std::is_same_v<T, int32_t>) { return MPI_INT32_T; }
+  else if constexpr (std::is_same_v<T, uint64_t>) { return MPI_UINT64_T; }
+  // uint64_t is named "unsigned long long" instead of "unsigned long" however these types have the same size
+  else if constexpr (std::is_same_v<T, unsigned long>) {
+    static_assert(sizeof(unsigned long)==sizeof(uint64_t));
+    return MPI_UINT64_T;
+  }
+  else if constexpr (std::is_same_v<T, uint32_t>) { return MPI_UINT32_T; }
   else{ static_assert(detail::dependent_always_false<T>::value, "type has unkown map to MPI_Type"); return {}; }
 }
 

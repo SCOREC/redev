@@ -332,8 +332,25 @@ namespace redev {
     REDEV_ALWAYS_ASSERT(isInitialized);
     MPI_Comm_rank(comm, &rank); //set member var
   }
+  Redev::Redev(MPI_Comm comm, ProcessType processType, bool noClients)
+    : comm(comm), adios(comm), ptn(), processType(processType), noClients(noClients) {
+      REDEV_FUNCTION_TIMER;
+      REDEV_ALWAYS_ASSERT(processType == ProcessType::Client);
+      int isInitialized = 0;
+      MPI_Initialized(&isInitialized);
+      REDEV_ALWAYS_ASSERT(isInitialized);
+      MPI_Comm_rank(comm, &rank); //set member var
+    }
 
   void Redev::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+    // initialize the partition on the client based on how it's set on the server
+    if (processType == ProcessType::Server) {
+      SendPartitionTypeToClient(s2cIO, s2cEngine);
+    }
+    else {
+      auto partition_index = SendPartitionTypeToClient(s2cIO, s2cEngine);
+      ConstructPartitionFromIndex(partition_index);
+    }
     REDEV_FUNCTION_TIMER;
     CheckVersion(s2cEngine,s2cIO);
     auto status = s2cEngine.BeginStep();
@@ -408,7 +425,48 @@ namespace redev {
     return serverCommSz;
   }
 
-  void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
+  std::size_t Redev::SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+    REDEV_FUNCTION_TIMER;
+    const auto varName = "redev partition type";
+    auto status = s2cEngine.BeginStep();
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    std::size_t partition_index = ptn.index();
+    if(processType==ProcessType::Server) {
+      auto var = s2cIO.DefineVariable<std::size_t>(varName);
+      if(!rank)
+        s2cEngine.Put(var, partition_index);
+    } else {
+      auto var = s2cIO.InquireVariable<std::size_t>(varName);
+      if(var && !rank) {
+        s2cEngine.Get(var, partition_index);
+        s2cEngine.PerformGets(); //default read mode is deferred
+      }
+    }
+    s2cEngine.EndStep();
+    if(processType == ProcessType::Client) {
+      redev::Broadcast(&partition_index,1,0,comm);
+    }
+    return partition_index;
+}
+
+void Redev::ConstructPartitionFromIndex(size_t partition_index) {
+  if(ptn.index() != partition_index) {
+    switch(partition_index) {
+    case 0:
+      ptn.emplace<ClassPtn>();
+      REDEV_ALWAYS_ASSERT(ptn.index() == 0ULL);
+      break;
+    case 1:
+      ptn.emplace<RCBPtn>();
+      REDEV_ALWAYS_ASSERT(ptn.index() == 1ULL);
+      break;
+    default:
+      Redev_Assert_Fail("Unhandled partition type");
+    }
+  }
+}
+
+void Redev::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     const auto hashVarName = "redev git hash";
     auto status = eng.BeginStep();

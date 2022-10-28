@@ -9,7 +9,10 @@ int main(int argc, char** argv) {
   redev::RCBPtn ptn;
   auto isRendezvous=true;
   auto noClients=true;
-  redev::Redev(MPI_COMM_WORLD,ptn,static_cast<redev::ProcessType>(isRendezvous),noClients);
+  if(static_cast<redev::ProcessType>(isRendezvous) == redev::ProcessType::Server)
+    redev::Redev(MPI_COMM_WORLD,ptn,redev::ProcessType::Server, noClients);
+  else
+    redev::Redev(MPI_COMM_WORLD,redev::ProcessType::Client, noClients);
   MPI_Finalize();
   return 0;
 }
