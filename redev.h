@@ -364,7 +364,7 @@ enum class TransportType {
 class Redev {
   public:
     /**
-     * Create a Redev object
+     * Create a Redev server
      * @param[in] comm MPI communicator containing the ranks that are part of the server/client
      * @param[in] ptn PartitionInterface object defining the redezvous domain partition (see note below)
      * @param[in] processProcess enum for if the server is a client, server
@@ -373,7 +373,17 @@ class Redev {
      * The server will send the client the needed partition information during
      * the call to CreateAdiosClient.
      */
-    Redev(MPI_Comm comm, Partition ptn, ProcessType processType = ProcessType::Client, bool noClients= false);
+    Redev(MPI_Comm comm, Partition ptn, ProcessType processType = ProcessType::Server, bool noClients= false);
+    /**
+     * Create a Redev client
+     * @param[in] comm MPI communicator containing the ranks that are part of the server/client
+     * @param[in] processProcess enum for if the server is a client, server
+     * @param[in] noClients for testing without any clients present
+     * The client processes should pass in an empty PartitionInterface object.
+     * The server will send the client the needed partition information during
+     * the call to CreateAdiosClient.
+     */
+    Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client, bool noClients= false);
     /**
      * Create a ADIOS2-based BidirectionalComm between the server and one client
      * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
@@ -404,12 +414,14 @@ class Redev {
         std::string s2cName, std::string c2sName,
         adios2::IO& s2cIO, adios2::IO& c2sIO,
         adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-    redev::LO GetServerCommSize(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-    redev::LO GetClientCommSize(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
+    redev::LO SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
+    redev::LO SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
+    std::size_t SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     MPI_Comm comm;
     adios2::ADIOS adios;
     int rank;
     Partition ptn;
+    void ConstructPartitionFromIndex(size_t partition_index);
 };
 
 template<typename T>
@@ -454,8 +466,8 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
     // an engine type that has been defined in the TransportType enum. (-Werror=switch)
   }
   Setup(s2cIO,s2cEngine);
-  const auto serverRanks = GetServerCommSize(s2cIO,s2cEngine);
-  const auto clientRanks = GetClientCommSize(c2sIO,c2sEngine);
+  const auto serverRanks = SendServerCommSizeToClient(s2cIO, s2cEngine);
+  const auto clientRanks = SendClientCommSizeToServer(c2sIO, c2sEngine);
   auto s2c = std::make_unique<AdiosComm<T>>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c");
   auto c2s = std::make_unique<AdiosComm<T>>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s");
   switch (processType) {
