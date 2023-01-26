@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   auto ranks = isRdv ? redev::LOs({0,1,2,3}) : redev::LOs(4);
   auto cuts = isRdv ? redev::Reals({0,0.5,0.75,0.25}) : redev::Reals(4);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(MPI_COMM_WORLD,std::move(ptn),static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(MPI_COMM_WORLD,redev::Partition(std::move(ptn)),static_cast<redev::ProcessType>(isRdv));
   std::string name = "foo";
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);

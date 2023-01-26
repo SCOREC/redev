@@ -34,6 +34,8 @@ constexpr MPI_Datatype getMpiType(T) noexcept {
   }
   else if constexpr (std::is_same_v<T, uint32_t>) { return MPI_UINT32_T; }
   else{ static_assert(detail::dependent_always_false<T>::value, "type has unkown map to MPI_Type"); return {}; }
+  // empty return statement needed to avoid compiler warning
+  return {};
 }
 
 template<typename T>

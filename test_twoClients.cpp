@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
     auto ranks = isRdv ? redev::LOs({0}) : redev::LOs(1);
     auto cuts = isRdv ? redev::Reals({0}) : redev::Reals(1);
     auto ptn = redev::RCBPtn(dim,ranks,cuts);
-    redev::Redev rdv(MPI_COMM_WORLD,std::move(ptn),redev::ProcessType::Server);
+    redev::Redev rdv(MPI_COMM_WORLD,redev::Partition{std::move(ptn)},redev::ProcessType::Server);
     server(rdv,params,isSST);
   }
   std::cout << "done\n";
