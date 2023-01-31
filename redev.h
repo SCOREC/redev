@@ -395,7 +395,7 @@ class Redev {
      */
     template<typename T>
     BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
-                                  TransportType transportType = TransportType::BP4);
+                                  TransportType transportType = TransportType::BP4, std::string_view path = {});
     [[nodiscard]]
     ProcessType GetProcessType() const;
     [[nodiscard]]
@@ -426,7 +426,7 @@ class Redev {
 
 template<typename T>
 BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
-                                     TransportType transportType) {
+                                     TransportType transportType, std::string_view path) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
   auto s2cIO = adios.DeclareIO(s2cName);
@@ -453,13 +453,19 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
   REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
   adios2::Engine s2cEngine;
   adios2::Engine c2sEngine;
+  std::stringstream S2CEngineName;
+  S2CEngineName << path << s2cName;
+  std::stringstream C2SEngineName;
+  C2SEngineName << path << c2sName;
   switch (transportType) {
     case TransportType::BP4 :
-      openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
+      C2SEngineName << ".bp";
+      S2CEngineName << ".bp";
+      openEnginesBP4(noClients,S2CEngineName.str(),C2SEngineName.str(),
                      s2cIO,c2sIO,s2cEngine,c2sEngine);
       break;
     case TransportType::SST:
-      openEnginesSST(noClients,s2cName,c2sName,
+      openEnginesSST(noClients,S2CEngineName.str(),C2SEngineName.str(),
                      s2cIO,c2sIO,s2cEngine,c2sEngine);
       break;
     // no default case. This will cause a compiler error if we do not handle a
