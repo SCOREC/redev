@@ -429,8 +429,8 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
                                      TransportType transportType, std::string_view path) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
-  auto s2cIO = adios.DeclareIO(s2cName);
-  auto c2sIO = adios.DeclareIO(c2sName);
+  auto s2cIO = adios.DeclareIO(std::string(path)+s2cName);
+  auto c2sIO = adios.DeclareIO(std::string(path)+c2sName);
   if(transportType == TransportType::SST && noClients == true) {
     // TODO log message here
     transportType = TransportType::BP4;
