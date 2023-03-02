@@ -3,6 +3,7 @@
 #include "redev_assert.h"
 #include "redev_profile.h"
 #include "redev_assert.h"
+#include "redev_exclusive_scan.h"
 #include <numeric> // accumulate, exclusive_scan
 #include <type_traits> // is_same
 
@@ -33,6 +34,8 @@ constexpr MPI_Datatype getMpiType(T) noexcept {
   }
   else if constexpr (std::is_same_v<T, uint32_t>) { return MPI_UINT32_T; }
   else{ static_assert(detail::dependent_always_false<T>::value, "type has unkown map to MPI_Type"); return {}; }
+  // empty return statement needed to avoid compiler warning
+  return {};
 }
 
 template<typename T>
@@ -187,7 +190,7 @@ class AdiosComm : public Communicator<T> {
       const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), redev::GO(0)));
 
       GOs gStart(recvRanks,0);
-      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
+      redev::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
 
       //The messages array has a different length on each rank ('irregular') so we don't
       //define local size and count here.

@@ -75,7 +75,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   //the cuts won't be used since getRank(...) won't be called
   auto cuts = redev::Reals(rdvRanks);
   auto ptn = redev::RCBPtn(dim,ranks,cuts);
-  redev::Redev rdv(mpiComm,std::move(ptn),static_cast<redev::ProcessType>(isRdv));
+  redev::Redev rdv(mpiComm,redev::Partition{std::move(ptn)},static_cast<redev::ProcessType>(isRdv));
   std::string name = "rendezvous";
   std::stringstream ss;
   ss << mbpr << " B rdvMapped ";

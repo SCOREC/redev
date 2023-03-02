@@ -27,6 +27,7 @@ set(REDEV_HEADERS
   redev_assert.h
   redev_strings.h
   redev_variant_tools.h
+  redev_exclusive_scan.h
   )
 
 set(REDEV_SOURCES
