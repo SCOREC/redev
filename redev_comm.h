@@ -117,6 +117,14 @@ class Communicator {
     virtual ~Communicator() = default;
 };
 
+template <typename T>
+class NoOpComm : public Communicator<T> {
+    void SetOutMessageLayout(LOs& dest, LOs& offsets) final {};
+    void Send(T* msgs) final {};
+    std::vector<T> Recv() final { return {}; }
+    InMessageLayout GetInMessageLayout() final { return {}; }
+};
+
 
 /**
  * The AdiosComm class implements the Communicator interface to support sending
