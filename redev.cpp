@@ -52,10 +52,10 @@ namespace redev {
       redev::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
       auto allSerialized = redev::LOs(offset.back());
       MPI_Gatherv(serialized.data(), len, MPI_INT, allSerialized.data(),
-          degree.data(), offset.data(), MPI_INT, root, MPI_COMM_WORLD);
+          degree.data(), offset.data(), MPI_INT, root, comm);
       modelEntToRank = DeserializeModelEntsAndRanks(allSerialized);
     } else {
-      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, MPI_COMM_WORLD);
+      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, comm);
     }
   }
 
