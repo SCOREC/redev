@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0...3.21.0)
 
-project(redev VERSION 4.0.0 LANGUAGES C CXX) #C is required to find MPI_C
+project(redev VERSION 4.1.0 LANGUAGES C CXX) #C is required to find MPI_C
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -27,6 +27,7 @@ set(REDEV_HEADERS
   redev_assert.h
   redev_strings.h
   redev_variant_tools.h
+  redev_exclusive_scan.h
   )
 
 set(REDEV_SOURCES

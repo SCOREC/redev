@@ -332,14 +332,22 @@ public:
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
   }
   void SetOutMessageLayout(LOs &dest, LOs &offsets) {
+    REDEV_ALWAYS_ASSERT(sender != nullptr);
     sender->SetOutMessageLayout(dest, offsets);
   }
   InMessageLayout GetInMessageLayout() {
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->GetInMessageLayout();
   }
 
-  void Send(T *msgs) { sender->Send(msgs); }
-  std::vector<T> Recv() { return receiver->Recv(); }
+  void Send(T *msgs) { 
+    REDEV_ALWAYS_ASSERT(sender != nullptr);
+    sender->Send(msgs);
+  }
+  std::vector<T> Recv() { 
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
+    return receiver->Recv();
+  }
 
 private:
   std::unique_ptr<Communicator<T>> sender;
@@ -394,8 +402,15 @@ class Redev {
      * types are available in the TransportType enum
      */
     template<typename T>
+    [[nodiscard]]
     BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
                                   TransportType transportType = TransportType::BP4, std::string_view path = {});
+    /**
+     * Create a bidirectional communicator that has NoOp for Send/Receive
+     */
+    template <typename T>
+    [[nodiscard]]
+    BidirectionalComm<T> CreateNoOpClient();
     [[nodiscard]]
     ProcessType GetProcessType() const;
     [[nodiscard]]
@@ -429,8 +444,8 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
                                      TransportType transportType, std::string_view path) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
-  auto s2cIO = adios.DeclareIO(s2cName);
-  auto c2sIO = adios.DeclareIO(c2sName);
+  auto s2cIO = adios.DeclareIO(std::string(path)+s2cName);
+  auto c2sIO = adios.DeclareIO(std::string(path)+c2sName);
   if(transportType == TransportType::SST && noClients == true) {
     // TODO log message here
     transportType = TransportType::BP4;
@@ -484,6 +499,10 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
   }
   REDEV_ALWAYS_ASSERT(false);  //we should never get here
   return {nullptr, nullptr}; //silence compiler warning
+}
+template <typename T>
+BidirectionalComm<T> Redev::CreateNoOpClient() {
+  return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
 }
 
 }

@@ -3,6 +3,7 @@
 #include "redev_git_version.h"
 #include "redev.h"
 #include "redev_profile.h"
+#include "redev_exclusive_scan.h"
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 #include <string>         // std::stoi
@@ -48,13 +49,13 @@ namespace redev {
     MPI_Gather(&len,1,MPI_INT,degree.data(),1,MPI_INT,root,comm);
     if(root==rank) {
       auto offset = redev::LOs(commSize+1);
-      std::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
+      redev::exclusive_scan(degree.begin(), degree.end(), offset.begin(), redev::LO(0));
       auto allSerialized = redev::LOs(offset.back());
       MPI_Gatherv(serialized.data(), len, MPI_INT, allSerialized.data(),
-          degree.data(), offset.data(), MPI_INT, root, MPI_COMM_WORLD);
+          degree.data(), offset.data(), MPI_INT, root, comm);
       modelEntToRank = DeserializeModelEntsAndRanks(allSerialized);
     } else {
-      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, MPI_COMM_WORLD);
+      MPI_Gatherv(serialized.data(), len, MPI_INT, NULL, NULL, NULL, MPI_INT, root, comm);
     }
   }
 

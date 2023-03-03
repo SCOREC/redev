@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   auto isRendezvous=true;
   auto noClients=true;
   if(static_cast<redev::ProcessType>(isRendezvous) == redev::ProcessType::Server)
-    redev::Redev(MPI_COMM_WORLD,ptn,redev::ProcessType::Server, noClients);
+    redev::Redev(MPI_COMM_WORLD,redev::Partition{ptn},redev::ProcessType::Server, noClients);
   else
     redev::Redev(MPI_COMM_WORLD,redev::ProcessType::Client, noClients);
   MPI_Finalize();

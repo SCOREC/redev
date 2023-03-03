@@ -3,8 +3,10 @@
 #include "redev_assert.h"
 #include "redev_profile.h"
 #include "redev_assert.h"
+#include "redev_exclusive_scan.h"
 #include <numeric> // accumulate, exclusive_scan
 #include <type_traits> // is_same
+#include <stddef.h>
 
 namespace {
 void checkStep(adios2::StepStatus status) {
@@ -21,18 +23,36 @@ namespace redev {
 template<class T>
 [[ nodiscard ]]
 constexpr MPI_Datatype getMpiType(T) noexcept {
-  if constexpr (std::is_same_v<T, double>) { return MPI_DOUBLE; }
-  else if constexpr (std::is_same_v<T, std::complex<double>>) { return MPI_DOUBLE_COMPLEX; }
-  else if constexpr (std::is_same_v<T, int64_t>) { return MPI_INT64_T; }
+  if constexpr (std::is_same_v<T, char>) { return MPI_CHAR; }
+  else if constexpr (std::is_same_v<T, signed short int>) { return MPI_SHORT; }
+  else if constexpr (std::is_same_v<T, signed int>) { return MPI_INT; }
+  else if constexpr (std::is_same_v<T, signed long>) { return MPI_LONG; }
+  else if constexpr (std::is_same_v<T, signed long long>) { return MPI_LONG_LONG; }
+  else if constexpr (std::is_same_v<T, signed char>) { return MPI_SIGNED_CHAR; }
+  else if constexpr (std::is_same_v<T, unsigned char>) { return MPI_UNSIGNED_CHAR; }
+  else if constexpr (std::is_same_v<T, unsigned short>) { return MPI_UNSIGNED_SHORT; }
+  else if constexpr (std::is_same_v<T, unsigned int>) { return MPI_UNSIGNED; }
+  else if constexpr (std::is_same_v<T, unsigned long>) { return MPI_UNSIGNED_LONG; }
+  else if constexpr (std::is_same_v<T, unsigned long long>) { return MPI_UNSIGNED_LONG_LONG; }
+  else if constexpr (std::is_same_v<T, float>) { return MPI_FLOAT; }
+  else if constexpr (std::is_same_v<T, double>) { return MPI_DOUBLE; }
+  else if constexpr (std::is_same_v<T, long double>) { return MPI_LONG_DOUBLE; }
+  else if constexpr (std::is_same_v<T, wchar_t>) { return MPI_WCHAR; }
+  else if constexpr (std::is_same_v<T, int8_t>) { return MPI_INT8_T; }
+  else if constexpr (std::is_same_v<T, int16_t>) { return MPI_INT16_T; }
   else if constexpr (std::is_same_v<T, int32_t>) { return MPI_INT32_T; }
-  else if constexpr (std::is_same_v<T, uint64_t>) { return MPI_UINT64_T; }
-  // uint64_t is named "unsigned long long" instead of "unsigned long" however these types have the same size
-  else if constexpr (std::is_same_v<T, unsigned long>) {
-    static_assert(sizeof(unsigned long)==sizeof(uint64_t));
-    return MPI_UINT64_T;
-  }
+  else if constexpr (std::is_same_v<T, int64_t>) { return MPI_INT64_T; }
+  else if constexpr (std::is_same_v<T, uint8_t>) { return MPI_UINT8_T; }
+  else if constexpr (std::is_same_v<T, uint16_t>) { return MPI_UINT16_T; }
   else if constexpr (std::is_same_v<T, uint32_t>) { return MPI_UINT32_T; }
+  else if constexpr (std::is_same_v<T, uint64_t>) { return MPI_UINT64_T; }
+  else if constexpr (std::is_same_v<T, bool>) { return MPI_CXX_BOOL; }
+  else if constexpr (std::is_same_v<T, std::complex<float>>) { return MPI_CXX_FLOAT_COMPLEX; }
+  else if constexpr (std::is_same_v<T, std::complex<double>>) { return MPI_CXX_DOUBLE_COMPLEX; }
+  else if constexpr (std::is_same_v<T, std::complex<long double>>) { return MPI_CXX_LONG_DOUBLE_COMPLEX; }
   else{ static_assert(detail::dependent_always_false<T>::value, "type has unkown map to MPI_Type"); return {}; }
+  // empty return statement needed to avoid compiler warning
+  return {};
 }
 
 template<typename T>
@@ -114,6 +134,14 @@ class Communicator {
     virtual ~Communicator() = default;
 };
 
+template <typename T>
+class NoOpComm : public Communicator<T> {
+    void SetOutMessageLayout(LOs& dest, LOs& offsets) final {};
+    void Send(T* msgs) final {};
+    std::vector<T> Recv() final { return {}; }
+    InMessageLayout GetInMessageLayout() final { return {}; }
+};
+
 
 /**
  * The AdiosComm class implements the Communicator interface to support sending
@@ -187,7 +215,7 @@ class AdiosComm : public Communicator<T> {
       const size_t gDegreeTot = static_cast<size_t>(std::accumulate(gDegree.begin(), gDegree.end(), redev::GO(0)));
 
       GOs gStart(recvRanks,0);
-      std::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
+      redev::exclusive_scan(gDegree.begin(), gDegree.end(), gStart.begin(), redev::GO(0));
 
       //The messages array has a different length on each rank ('irregular') so we don't
       //define local size and count here.
