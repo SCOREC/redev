@@ -16,7 +16,7 @@ namespace redev {
  * The Rendezvous Algorithm
  * ========================
  *
- * The Rendezvous algorithm 
+ * The Rendezvous algorithm
  * > enables scalable algorithms which are most useful when processors neither know which other processors
  * > to send data to, nor which other processors will be sending data to them [1].
  * It is used in LAMMPS [1], the PUMI unstructured mesh library for loading
@@ -40,7 +40,7 @@ namespace redev {
  *
  * The key to the Rendezvous algorithm is a partitioning of the common portion
  * of the domain that (1) has a relatively low memory usage and (2) supports computationally
- * efficient queries for membership within the partition given a entity 
+ * efficient queries for membership within the partition given a entity
  * within the domain (e.g., a mesh element or vertex).
  * The structured grid from the above figure is one possible partition that
  * satisfies these requirements.
@@ -49,7 +49,7 @@ namespace redev {
  * ===============
  *
  * The [WDMApp project](https://wdmapp.readthedocs.io/en/latest/) combines an
- * application that evolves the physics near the 'edge' of a fusion device 
+ * application that evolves the physics near the 'edge' of a fusion device
  * (i.e., D3D, ITER, etc.) with another application that
  * is responsible for the inner 'core' portion of the device near the
  * magnetic axis.
@@ -93,7 +93,7 @@ namespace redev {
  * The Server is a set of processes that owns the Rendezvous partition of the
  * overlap sub-domain, receives data from Clients, and supports sending the data
  * back to the Clients.
- * 
+ *
  * The following figure depicts an example Redev workflow for exchanging data between
  * two applications (Clients) and the Coupler (the Server).
  * The Rendezvous partition in this example is formed from groups of adjacent
@@ -127,7 +127,7 @@ namespace redev {
  *   a **Reverse** send from the Coupler to 'A'.
  *
  * \image xml redevWorkflow500.png
- * 
+ *
  * References
  * ----------
  *
@@ -340,11 +340,11 @@ public:
     return receiver->GetInMessageLayout();
   }
 
-  void Send(T *msgs) { 
+  void Send(T *msgs) {
     REDEV_ALWAYS_ASSERT(sender != nullptr);
     sender->Send(msgs);
   }
-  std::vector<T> Recv() { 
+  std::vector<T> Recv() {
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->Recv();
   }
@@ -362,6 +362,160 @@ enum class TransportType {
   BP4 = 0,
   SST = 1
 };
+
+// Proof of concept using Adios implementation details
+// TODO: TypeErase BidirectionalChannel & have Adios Specific IMPL
+// TODO: Can partition be const& here?
+struct BidirectionalChannel {
+public :
+  BidirectionalChannel(adios2::ADIOS& adios, MPI_Comm comm, std::string_view name, adios2::Params params,
+                       TransportType transportType, ProcessType processType, Partition& partition,
+                       std::string_view path,
+                       bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition) {
+    MPI_Comm_rank(comm,&rank_);
+    auto s2cName = std::string(name)+"_s2c";
+    auto c2sName = std::string(name)+"_c2s";
+    s2c_io_ = adios.DeclareIO(std::string(path)+s2cName);
+    c2s_io_ = adios.DeclareIO(std::string(path)+c2sName);
+    if(transportType == TransportType::SST && noClients == true) {
+      // TODO log message here
+      transportType = TransportType::BP4;
+    }
+    std::string engineType;
+    switch (transportType) {
+    case TransportType::BP4 :
+      engineType = "BP4";
+      break;
+    case TransportType::SST:
+      engineType = "SST";
+      break;
+      // no default case. This will cause a compiler error if we do not handle a
+      // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+    }
+    s2c_io_.SetEngine(engineType);
+    c2s_io_.SetEngine(engineType);
+    s2c_io_.SetParameters(params);
+    c2s_io_.SetParameters(params);
+    REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
+    std::stringstream S2CEngineName;
+    S2CEngineName << path << s2cName;
+    std::stringstream C2SEngineName;
+    C2SEngineName << path << c2sName;
+    //
+    switch (transportType) {
+    case TransportType::BP4 :
+      C2SEngineName << ".bp";
+      S2CEngineName << ".bp";
+      openEnginesBP4(noClients,S2CEngineName.str(),C2SEngineName.str(),
+                     s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
+      break;
+    case TransportType::SST:
+      openEnginesSST(noClients,S2CEngineName.str(),C2SEngineName.str(),
+                     s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
+      break;
+      // no default case. This will cause a compiler error if we do not handle a
+      // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+    }
+    // TODO pull begin/end step out of Setup/SendReceive metadata functions
+    // begin step
+    // send metadata
+    Setup(s2c_io_,s2c_engine_);
+    num_server_ranks_ = SendServerCommSizeToClient(s2c_io_, s2c_engine_);
+    num_client_ranks_ = SendClientCommSizeToServer(c2s_io_, c2s_engine_);
+    // end step
+  }
+  template <typename T>
+  [[nodiscard]]
+  BidirectionalComm<T>
+  CreateComm(std::string name) {
+    // TODO, remove s2c/c2s destinction on variable names then use std::move name
+    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_, s2c_engine_, s2c_io_, std::string(name)+"_s2c");
+    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_, c2s_engine_, c2s_io_, std::string(name)+"_c2s");
+    switch (process_type_) {
+    case ProcessType::Client:
+      return {std::move(c2s), std::move(s2c)};
+    case ProcessType::Server:
+      return {std::move(s2c), std::move(c2s)};
+    }
+    // Quash compiler warnings
+    return {nullptr, nullptr};
+  }
+
+  // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all the switch statements...
+  void BeginSendCommunicationPhase() {
+    switch (process_type_) {
+    case ProcessType::Client:
+      c2s_engine_.BeginStep();
+      break;
+    case ProcessType::Server:
+      s2c_engine_.BeginStep();
+      break;
+    }
+  }
+  void EndSendCommunicationPhase() {
+    switch (process_type_) {
+    case ProcessType::Client:
+      c2s_engine_.EndStep();
+      break;
+    case ProcessType::Server:
+      s2c_engine_.EndStep();
+      break;
+    }
+  }
+  void BeginReceiveCommunicationPhase() {
+    switch (process_type_) {
+    case ProcessType::Client:
+      s2c_engine_.BeginStep();
+      break;
+    case ProcessType::Server:
+      c2s_engine_.BeginStep();
+      break;
+    }
+
+  }
+  void EndReceiveCommunicationPhase() {
+    switch (process_type_) {
+    case ProcessType::Client:
+      s2c_engine_.EndStep();
+      break;
+    case ProcessType::Server:
+      c2s_engine_.EndStep();
+      break;
+    }
+  }
+private:
+
+  void openEnginesBP4(bool noClients,
+                      std::string s2cName, std::string c2sName,
+                      adios2::IO& s2cIO, adios2::IO& c2sIO,
+                      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
+  void openEnginesSST(bool noClients,
+                      std::string s2cName, std::string c2sName,
+                      adios2::IO& s2cIO, adios2::IO& c2sIO,
+                      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
+  [[nodiscard]]
+  redev::LO SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
+  [[nodiscard]]
+  redev::LO SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
+  [[nodiscard]]
+  std::size_t SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
+  void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
+  void CheckVersion(adios2::Engine& eng, adios2::IO& io);
+  void ConstructPartitionFromIndex(size_t partition_index);
+
+  adios2::IO s2c_io_;
+  adios2::IO c2s_io_;
+  adios2::Engine s2c_engine_;
+  adios2::Engine c2s_engine_;
+  redev::LO num_client_ranks_;
+  redev::LO num_server_ranks_;
+  MPI_Comm comm_;
+  ProcessType process_type_;
+  int rank_;
+  Partition & partition_;
+
+};
+
 /**
  * The Redev class exercises the PartitionInterface class APIs to setup the rendezvous
  * partition on the server/rendezvous processes, communicate the partition to
@@ -379,7 +533,7 @@ class Redev {
      * @param[in] noClients for testing without any clients present
      * The client processes should pass in an empty PartitionInterface object.
      * The server will send the client the needed partition information during
-     * the call to CreateAdiosClient.
+     * the call to CreateAdiosChannel.
      */
     Redev(MPI_Comm comm, Partition ptn, ProcessType processType = ProcessType::Server, bool noClients= false);
     /**
@@ -389,9 +543,10 @@ class Redev {
      * @param[in] noClients for testing without any clients present
      * The client processes should pass in an empty PartitionInterface object.
      * The server will send the client the needed partition information during
-     * the call to CreateAdiosClient.
+     * the call to CreateAdiosChannel.
      */
     Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client, bool noClients= false);
+    // FIXME UPDATE DOCS
     /**
      * Create a ADIOS2-based BidirectionalComm between the server and one client
      * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
@@ -401,10 +556,12 @@ class Redev {
      * @param[in] transportType by default the BP4 Engine is used, other transport
      * types are available in the TransportType enum
      */
-    template<typename T>
     [[nodiscard]]
-    BidirectionalComm<T> CreateAdiosClient(std::string_view name, adios2::Params params,
-                                  TransportType transportType = TransportType::BP4, std::string_view path = {});
+    BidirectionalChannel
+    CreateAdiosChannel(std::string_view name, adios2::Params params,
+                                  TransportType transportType = TransportType::BP4, std::string_view path = {}) {
+    return BidirectionalChannel{adios,comm,name,std::move(params),transportType,processType, ptn, path,noClients};
+    }
     /**
      * Create a bidirectional communicator that has NoOp for Send/Receive
      */
@@ -417,30 +574,17 @@ class Redev {
     const Partition & GetPartition() const;
 
   private:
-    void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-    void CheckVersion(adios2::Engine& eng, adios2::IO& io);
     ProcessType processType;
     bool noClients; // true: no clients will be connected, false: otherwise
-    void openEnginesBP4(bool noClients,
-        std::string s2cName, std::string c2sName,
-        adios2::IO& s2cIO, adios2::IO& c2sIO,
-        adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-    void openEnginesSST(bool noClients,
-        std::string s2cName, std::string c2sName,
-        adios2::IO& s2cIO, adios2::IO& c2sIO,
-        adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-    redev::LO SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-    redev::LO SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
-    std::size_t SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
     MPI_Comm comm;
     adios2::ADIOS adios;
     int rank;
     Partition ptn;
-    void ConstructPartitionFromIndex(size_t partition_index);
 };
 
+/*
 template<typename T>
-BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Params params,
+BidirectionalComm<T> Redev::CreateAdiosChannel(std::string_view name, adios2::Params params,
                                      TransportType transportType, std::string_view path) {
   auto s2cName = std::string(name)+"_s2c";
   auto c2sName = std::string(name)+"_c2s";
@@ -500,6 +644,7 @@ BidirectionalComm<T> Redev::CreateAdiosClient(std::string_view name, adios2::Par
   REDEV_ALWAYS_ASSERT(false);  //we should never get here
   return {nullptr, nullptr}; //silence compiler warning
 }
+*/
 template <typename T>
 BidirectionalComm<T> Redev::CreateNoOpClient() {
   return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};

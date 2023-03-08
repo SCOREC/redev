@@ -344,8 +344,8 @@ class AdiosComm : public Communicator<T> {
   private:
     MPI_Comm comm;
     int recvRanks;
-    adios2::Engine eng;
-    adios2::IO io;
+    adios2::Engine& eng;
+    adios2::IO& io;
     adios2::Variable<T> rdvVar;
     adios2::Variable<redev::GO> srcRanksVar;
     adios2::Variable<redev::GO> offsetsVar;

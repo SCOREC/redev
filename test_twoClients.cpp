@@ -29,7 +29,7 @@
  *
  * \par Client Setup
  *
- * Client setup begins with creation of the redev::BidirectionalComm communication object via the call to redev::CreateAdiosClient.  Note, the string for each created redev::BidirectionalComm must match in the Server and Client calls.
+ * Client setup begins with creation of the redev::BidirectionalComm communication object via the call to redev::CreateAdiosChannel.  Note, the string for each created redev::BidirectionalComm must match in the Server and Client calls.
  *
  * Given that the data being transferred is a single integer and each Client and
  * Server is only running on a single process the data layout (`dest` and
@@ -57,7 +57,7 @@
  * \par Server Create Clients
  *
  * In the Client code only a single redev::BidirectionalComm is needed.
- * As there are two Clients, the Server must call redev::CreateAdiosClient
+ * As there are two Clients, the Server must call redev::CreateAdiosChannel
  * twice; once for "client0" and again for "client1".
  *
  * \snippet{lineno} test_twoClients.cpp Server Create Clients
@@ -112,7 +112,9 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   /// [Client Setup]
   std::stringstream clientName;
   clientName << "client" << clientId;
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,static_cast<redev::TransportType>(isSST));
+  auto channel = rdv.CreateAdiosChannel(
+      clientName.str(), params, static_cast<redev::TransportType>(isSST));
+  auto commPair = channel.CreateComm<redev::LO>(clientName.str());
 
   //setup outbound message
   std::cout << "sending to server\n";
@@ -150,8 +152,13 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   /// [Server Create Clients]
-  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,static_cast<redev::TransportType>(isSST));
-  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,static_cast<redev::TransportType>(isSST));
+
+  auto client0_channel = rdv.CreateAdiosChannel(
+      "client0", params, static_cast<redev::TransportType>(isSST));
+  auto client0 = client0_channel.CreateComm<redev::LO>("client0");
+  auto client1_channel = rdv.CreateAdiosChannel(
+      "client1", params, static_cast<redev::TransportType>(isSST));
+  auto client1 = client1_channel.CreateComm<redev::LO>("client1");
   /// [Server Create Clients]
 
   /// [Server First Inbound Messages from Clients]
