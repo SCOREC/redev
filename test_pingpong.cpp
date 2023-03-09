@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
         commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,42);
-      commPair.Send(msgs.data());
+      commPair.Send(msgs.data(),redev::Mode::Synchronous);
     } else {
-      auto msgs = commPair.Recv();
+      auto msgs = commPair.Recv(redev::Mode::Synchronous);
       if(iter == 0) {
         auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
@@ -58,9 +58,9 @@ int main(int argc, char** argv) {
         commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,1337);
-      commPair.Send(msgs.data());
+      commPair.Send(msgs.data(), redev::Mode::Synchronous);
     } else {
-      auto msgs = commPair.Recv();
+      auto msgs = commPair.Recv(redev::Mode::Synchronous);
       if(iter==0) {
         auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));

@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     offsets = redev::LOs{0,2,6};
     redev::LOs msgs = {0,0,1,1,1,1};
     commPair.SetOutMessageLayout(dest, offsets);
-    commPair.Send(msgs.data());
+    commPair.Send(msgs.data(),redev::Mode::Synchronous);
   }
   }
   MPI_Finalize();

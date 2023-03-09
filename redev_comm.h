@@ -1,12 +1,12 @@
 #pragma once
-#include "redev_types.h"
-#include "redev_assert.h"
-#include "redev_profile.h"
+#include "redev.h"
 #include "redev_assert.h"
 #include "redev_exclusive_scan.h"
+#include "redev_profile.h"
+#include "redev_types.h"
 #include <numeric> // accumulate, exclusive_scan
-#include <type_traits> // is_same
 #include <stddef.h>
+#include <type_traits> // is_same
 
 namespace {
 void checkStep(adios2::StepStatus status) {
@@ -19,6 +19,11 @@ namespace redev {
   namespace detail {
     template <typename... T> struct dependent_always_false : std::false_type {};
   }
+
+enum class Mode {
+  Deferred,
+  Synchronous
+};
 
 template<class T>
 [[ nodiscard ]]
@@ -122,13 +127,13 @@ class Communicator {
      * @param[in] msgs array of data to be sent according to the layout specified
      *            with SetOutMessageLayout
      */
-    virtual void Send(T* msgs) = 0;
+    virtual void Send(T *msgs, Mode mode) = 0;
     /**
      * Receive an array. Use AdiosComm's GetInMessageLayout to retreive
      * an instance of the InMessageLayout struct containing the layout of
      * the received array.
      */
-    virtual std::vector<T> Recv() = 0;
+    virtual std::vector<T> Recv(Mode mode) = 0;
 
     virtual InMessageLayout GetInMessageLayout() = 0;
     virtual ~Communicator() = default;
@@ -137,8 +142,8 @@ class Communicator {
 template <typename T>
 class NoOpComm : public Communicator<T> {
     void SetOutMessageLayout(LOs& dest, LOs& offsets) final {};
-    void Send(T* msgs) final {};
-    std::vector<T> Recv() final { return {}; }
+    void Send(T *msgs, Mode /*unused*/) final {};
+    std::vector<T> Recv(Mode /*unused*/) final { return {}; }
     InMessageLayout GetInMessageLayout() final { return {}; }
 };
 
@@ -188,8 +193,11 @@ class AdiosComm : public Communicator<T> {
       REDEV_FUNCTION_TIMER;
       outMsg = OutMessageLayout{dest_, offsets_};
     }
-    void Send(T* msgs) {
+    void Send(T *msgs, Mode mode) {
       REDEV_FUNCTION_TIMER;
+      if(mode == Mode::Synchronous) {
+        checkStep(eng.BeginStep());
+      }
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
@@ -231,7 +239,6 @@ class AdiosComm : public Communicator<T> {
       adios2::Dims srShape{static_cast<size_t>(commSz*recvRanks)};
       adios2::Dims srStart{static_cast<size_t>(recvRanks*rank)};
       adios2::Dims srCount{static_cast<size_t>(recvRanks)};
-      checkStep(eng.BeginStep());
 
       //send dest rank offsets array from rank 0
       auto offsets = gStart;
@@ -243,7 +250,7 @@ class AdiosComm : public Communicator<T> {
         const auto oCount = offsets.size();
         if(!offsetsVar) {
           offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{oShape},{oStart},{oCount});
-          eng.Put<redev::GO>(offsetsVar, offsets.data());
+          eng.Put<redev::GO>(offsetsVar, offsets.data(), adios2::Mode::Sync);
         }
       }
 
@@ -251,7 +258,7 @@ class AdiosComm : public Communicator<T> {
       if(!srcRanksVar) {
         srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
         assert(srcRanksVar);
-        eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data());
+        eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data(),adios2::Mode::Sync);
       }
 
       //assume one call to pack from each rank for now
@@ -266,17 +273,19 @@ class AdiosComm : public Communicator<T> {
           eng.Put<T>(rdvVar, &(msgs[outMsg.offsets[i]]));
         }
       }
-
-      eng.PerformPuts();
-      eng.EndStep();
+      if(mode == Mode::Synchronous) {
+        eng.EndStep();
+      }
     }
-    std::vector<T> Recv() {
+    std::vector<T> Recv(Mode mode) {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       auto t1 = redev::getTime();
-      checkStep(eng.BeginStep());
+      if(mode == Mode::Synchronous) {
+        checkStep(eng.BeginStep());
+      }
 
       if(!inMsg.knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
@@ -314,8 +323,9 @@ class AdiosComm : public Communicator<T> {
         eng.Get(msgsVar, msgs.data());
       }
 
-      eng.PerformGets();
-      eng.EndStep();
+      if(mode == Mode::Synchronous) {
+        eng.EndStep();
+      }
       auto t3 = redev::getTime();
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;

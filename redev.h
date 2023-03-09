@@ -340,13 +340,13 @@ public:
     return receiver->GetInMessageLayout();
   }
 
-  void Send(T *msgs) {
+  void Send(T *msgs, Mode mode=Mode::Deferred) {
     REDEV_ALWAYS_ASSERT(sender != nullptr);
-    sender->Send(msgs);
+    sender->Send(msgs, mode);
   }
-  std::vector<T> Recv() {
+  std::vector<T> Recv(Mode mode=Mode::Deferred) {
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
-    return receiver->Recv();
+    return receiver->Recv(mode);
   }
 
 private:
@@ -443,14 +443,16 @@ public :
 
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all the switch statements...
   void BeginSendCommunicationPhase() {
+    adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
-      c2s_engine_.BeginStep();
+      status = c2s_engine_.BeginStep();
       break;
     case ProcessType::Server:
-      s2c_engine_.BeginStep();
+      status = s2c_engine_.BeginStep();
       break;
     }
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
   }
   void EndSendCommunicationPhase() {
     switch (process_type_) {
@@ -463,15 +465,16 @@ public :
     }
   }
   void BeginReceiveCommunicationPhase() {
+    adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
-      s2c_engine_.BeginStep();
+      status = s2c_engine_.BeginStep();
       break;
     case ProcessType::Server:
-      c2s_engine_.BeginStep();
+      status = c2s_engine_.BeginStep();
       break;
     }
-
+    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
   }
   void EndReceiveCommunicationPhase() {
     switch (process_type_) {

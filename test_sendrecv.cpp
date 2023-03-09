@@ -65,9 +65,13 @@ int main(int argc, char** argv) {
       msgs = redev::LOs(11,2);
     }
     commPair.SetOutMessageLayout(dest, offsets);
-    commPair.Send(msgs.data());
+    channel.BeginSendCommunicationPhase();
+    commPair.Send(msgs.data(),redev::Mode::Deferred);
+    channel.EndSendCommunicationPhase();
   } else {
-    auto msgVec = commPair.Recv();
+    channel.BeginReceiveCommunicationPhase();
+    auto msgVec = commPair.Recv(redev::Mode::Deferred);
+    channel.EndReceiveCommunicationPhase();
     auto inMsg = commPair.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
