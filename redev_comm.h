@@ -177,11 +177,6 @@ class AdiosComm : public Communicator<T> {
         inMsg.knownSizes = false;
     }
     
-    //rule of 5 en.cppreference.com/w/cpp/language/rule_of_three
-    /// destructor to close the engine
-    ~AdiosComm() {
-      eng.Close();
-    }
     /// We are explicitly not allowing copy/move constructor/assignment as we don't
     /// know if the ADIOS2 Engine and IO objects can be safely copied/moved.
     AdiosComm(const AdiosComm& other) = delete;

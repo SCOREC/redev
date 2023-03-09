@@ -424,6 +424,11 @@ public :
     num_client_ranks_ = SendClientCommSizeToServer(c2s_io_, c2s_engine_);
     // end step
   }
+  //FIXME IMPL RULE OF 5
+  ~BidirectionalChannel() {
+    s2c_engine_.Close();
+    c2s_engine_.Close();
+  }
   template <typename T>
   [[nodiscard]]
   BidirectionalComm<T>
