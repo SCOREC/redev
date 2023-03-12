@@ -374,10 +374,10 @@ public :
                        bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition) {
 
     MPI_Comm_rank(comm,&rank_);
-    auto s2cName = name+"_s2c";
-    auto c2sName = name+"_c2s";
-    s2c_io_ = adios.DeclareIO(path+s2cName);
-    c2s_io_ = adios.DeclareIO(path+c2sName);
+    auto s2cName = path+name+"_s2c";
+    auto c2sName = path+name+"_c2s";
+    s2c_io_ = adios.DeclareIO(s2cName);
+    c2s_io_ = adios.DeclareIO(c2sName);
     if(transportType == TransportType::SST && noClients == true) {
       // TODO log message here
       transportType = TransportType::BP4;
@@ -398,20 +398,13 @@ public :
     s2c_io_.SetParameters(params);
     c2s_io_.SetParameters(params);
     REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
-    std::stringstream S2CEngineName;
-    S2CEngineName << path << s2cName;
-    std::stringstream C2SEngineName;
-    C2SEngineName << path << c2sName;
-    //
     switch (transportType) {
     case TransportType::BP4 :
-      C2SEngineName << ".bp";
-      S2CEngineName << ".bp";
-      openEnginesBP4(noClients,S2CEngineName.str(),C2SEngineName.str(),
+      openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
                      s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
       break;
     case TransportType::SST:
-      openEnginesSST(noClients,S2CEngineName.str(),C2SEngineName.str(),
+      openEnginesSST(noClients,s2cName,c2sName,
                      s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
       break;
       // no default case. This will cause a compiler error if we do not handle a
@@ -439,8 +432,8 @@ public :
   BidirectionalComm<T>
   CreateComm(std::string name) {
     // TODO, remove s2c/c2s destinction on variable names then use std::move name
-    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_, s2c_engine_, s2c_io_, std::string(name)+"_s2c");
-    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_, c2s_engine_, c2s_io_, std::string(name)+"_c2s");
+    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_, s2c_engine_, s2c_io_, name);
+    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_, c2s_engine_, c2s_io_, name);
     switch (process_type_) {
     case ProcessType::Client:
       return {std::move(c2s), std::move(s2c)};
