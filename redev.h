@@ -366,17 +366,18 @@ enum class TransportType {
 // Proof of concept using Adios implementation details
 // TODO: TypeErase BidirectionalChannel & have Adios Specific IMPL
 // TODO: Can partition be const& here?
-struct BidirectionalChannel {
+class BidirectionalChannel {
 public :
-  BidirectionalChannel(adios2::ADIOS& adios, MPI_Comm comm, std::string_view name, adios2::Params params,
+  BidirectionalChannel(adios2::ADIOS& adios, MPI_Comm comm, std::string name, adios2::Params params,
                        TransportType transportType, ProcessType processType, Partition& partition,
-                       std::string_view path,
+                       std::string path,
                        bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition) {
+
     MPI_Comm_rank(comm,&rank_);
-    auto s2cName = std::string(name)+"_s2c";
-    auto c2sName = std::string(name)+"_c2s";
-    s2c_io_ = adios.DeclareIO(std::string(path)+s2cName);
-    c2s_io_ = adios.DeclareIO(std::string(path)+c2sName);
+    auto s2cName = name+"_s2c";
+    auto c2sName = name+"_c2s";
+    s2c_io_ = adios.DeclareIO(path+s2cName);
+    c2s_io_ = adios.DeclareIO(path+c2sName);
     if(transportType == TransportType::SST && noClients == true) {
       // TODO log message here
       transportType = TransportType::BP4;
@@ -424,6 +425,10 @@ public :
     num_client_ranks_ = SendClientCommSizeToServer(c2s_io_, c2s_engine_);
     // end step
   }
+  BidirectionalChannel(const BidirectionalChannel&) = delete;
+  BidirectionalChannel(BidirectionalChannel&&) = delete;
+  BidirectionalChannel operator=(const BidirectionalChannel&) = delete;
+  BidirectionalChannel operator=(BidirectionalChannel&&) = delete;
   //FIXME IMPL RULE OF 5
   ~BidirectionalChannel() {
     s2c_engine_.Close();
@@ -444,6 +449,11 @@ public :
     }
     // Quash compiler warnings
     return {nullptr, nullptr};
+  }
+  template <typename T>
+  [[nodiscard]]
+  BidirectionalComm<T> CreateNoOpComm() {
+    return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
 
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all the switch statements...
@@ -566,16 +576,10 @@ class Redev {
      */
     [[nodiscard]]
     BidirectionalChannel
-    CreateAdiosChannel(std::string_view name, adios2::Params params,
-                                  TransportType transportType = TransportType::BP4, std::string_view path = {}) {
-    return BidirectionalChannel{adios,comm,name,std::move(params),transportType,processType, ptn, path,noClients};
+    CreateAdiosChannel(std::string name, adios2::Params params,
+                                  TransportType transportType = TransportType::BP4, std::string path = {}) {
+    return BidirectionalChannel{adios,comm,std::move(name),std::move(params),transportType,processType, ptn, std::move(path),noClients};
     }
-    /**
-     * Create a bidirectional communicator that has NoOp for Send/Receive
-     */
-    template <typename T>
-    [[nodiscard]]
-    BidirectionalComm<T> CreateNoOpClient();
     [[nodiscard]]
     ProcessType GetProcessType() const;
     [[nodiscard]]
@@ -589,73 +593,5 @@ class Redev {
     int rank;
     Partition ptn;
 };
-
-/*
-template<typename T>
-BidirectionalComm<T> Redev::CreateAdiosChannel(std::string_view name, adios2::Params params,
-                                     TransportType transportType, std::string_view path) {
-  auto s2cName = std::string(name)+"_s2c";
-  auto c2sName = std::string(name)+"_c2s";
-  auto s2cIO = adios.DeclareIO(std::string(path)+s2cName);
-  auto c2sIO = adios.DeclareIO(std::string(path)+c2sName);
-  if(transportType == TransportType::SST && noClients == true) {
-    // TODO log message here
-    transportType = TransportType::BP4;
-  }
-  std::string engineType;
-  switch (transportType) {
-    case TransportType::BP4 :
-      engineType = "BP4";
-      break;
-    case TransportType::SST:
-      engineType = "SST";
-      break;
-    // no default case. This will cause a compiler error if we do not handle a
-    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
-  }
-  s2cIO.SetEngine(engineType);
-  c2sIO.SetEngine(engineType);
-  s2cIO.SetParameters(params);
-  c2sIO.SetParameters(params);
-  REDEV_ALWAYS_ASSERT(s2cIO.EngineType() == c2sIO.EngineType());
-  adios2::Engine s2cEngine;
-  adios2::Engine c2sEngine;
-  std::stringstream S2CEngineName;
-  S2CEngineName << path << s2cName;
-  std::stringstream C2SEngineName;
-  C2SEngineName << path << c2sName;
-  switch (transportType) {
-    case TransportType::BP4 :
-      C2SEngineName << ".bp";
-      S2CEngineName << ".bp";
-      openEnginesBP4(noClients,S2CEngineName.str(),C2SEngineName.str(),
-                     s2cIO,c2sIO,s2cEngine,c2sEngine);
-      break;
-    case TransportType::SST:
-      openEnginesSST(noClients,S2CEngineName.str(),C2SEngineName.str(),
-                     s2cIO,c2sIO,s2cEngine,c2sEngine);
-      break;
-    // no default case. This will cause a compiler error if we do not handle a
-    // an engine type that has been defined in the TransportType enum. (-Werror=switch)
-  }
-  Setup(s2cIO,s2cEngine);
-  const auto serverRanks = SendServerCommSizeToClient(s2cIO, s2cEngine);
-  const auto clientRanks = SendClientCommSizeToServer(c2sIO, c2sEngine);
-  auto s2c = std::make_unique<AdiosComm<T>>(comm, clientRanks, s2cEngine, s2cIO, std::string(name)+"_s2c");
-  auto c2s = std::make_unique<AdiosComm<T>>(comm, serverRanks, c2sEngine, c2sIO, std::string(name)+"_c2s");
-  switch (processType) {
-    case ProcessType::Client:
-      return {std::move(c2s), std::move(s2c)};
-    case ProcessType::Server:
-      return {std::move(s2c), std::move(c2s)};
-  }
-  REDEV_ALWAYS_ASSERT(false);  //we should never get here
-  return {nullptr, nullptr}; //silence compiler warning
-}
-*/
-template <typename T>
-BidirectionalComm<T> Redev::CreateNoOpClient() {
-  return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
-}
 
 }
