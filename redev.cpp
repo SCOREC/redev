@@ -484,7 +484,6 @@ void BidirectionalChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
       if(varVersion && !rank_) {
         eng.Get(varVersion, inHash);
         eng.PerformGets(); //default read mode is deferred
-        std::cout << "inHash " << inHash << "\n";
         REDEV_ALWAYS_ASSERT(inHash == redevGitHash);
       }
     }
