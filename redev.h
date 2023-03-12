@@ -386,6 +386,8 @@ public :
     switch (transportType) {
     case TransportType::BP4 :
       engineType = "BP4";
+      s2cName = s2cName+".bp";
+      c2sName = c2sName+".bp";
       break;
     case TransportType::SST:
       engineType = "SST";
@@ -398,18 +400,8 @@ public :
     s2c_io_.SetParameters(params);
     c2s_io_.SetParameters(params);
     REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
-    switch (transportType) {
-    case TransportType::BP4 :
-      openEnginesBP4(noClients,s2cName+".bp",c2sName+".bp",
-                     s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
-      break;
-    case TransportType::SST:
-      openEnginesSST(noClients,s2cName,c2sName,
-                     s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
-      break;
-      // no default case. This will cause a compiler error if we do not handle a
-      // an engine type that has been defined in the TransportType enum. (-Werror=switch)
-    }
+    openEngines(noClients,s2cName+".bp",c2sName+".bp",
+                   s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
     // TODO pull begin/end step out of Setup/SendReceive metadata functions
     // begin step
     // send metadata
@@ -496,11 +488,7 @@ public :
   }
 private:
 
-  void openEnginesBP4(bool noClients,
-                      std::string s2cName, std::string c2sName,
-                      adios2::IO& s2cIO, adios2::IO& c2sIO,
-                      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-  void openEnginesSST(bool noClients,
+  void openEngines(bool noClients,
                       std::string s2cName, std::string c2sName,
                       adios2::IO& s2cIO, adios2::IO& c2sIO,
                       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);

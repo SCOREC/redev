@@ -20,6 +20,8 @@ namespace {
     bool timeoutSet = params.count("OpenTimeoutSecs") && std::stoi(params["OpenTimeoutSecs"]) > 0;
     bool isSST = redev::isSameCaseInsensitive(io.EngineType(), "SST");
     if( (isStreaming && timeoutSet) || isSST ) return;
+    std::cout<<"Waiting for BP4 Engine Creation\n";
+    // TODO: REDEV LOGGING...LOG INFO that sleeping for engine creation
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }
@@ -272,7 +274,7 @@ namespace redev {
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
   // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
-  void BidirectionalChannel::openEnginesBP4(bool noClients,
+  void BidirectionalChannel::openEngines(bool noClients,
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -280,10 +282,10 @@ namespace redev {
     //create the engine writers at the same time - BP4 does not wait for the readers (SST does)
     if(process_type_ == ProcessType::Server) {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
-      assert(s2cEngine);
+      REDEV_ALWAYS_ASSERT(s2cEngine);
     } else {
       c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
-      assert(c2sEngine);
+      REDEV_ALWAYS_ASSERT(c2sEngine);
     }
     waitForEngineCreation(s2cIO);
     waitForEngineCreation(c2sIO);
@@ -296,32 +298,6 @@ namespace redev {
     } else {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
       assert(s2cEngine);
-    }
-  }
-
-  // SST support
-  // - with a rendezvous + non-rendezvous application pair
-  // - with only a rendezvous application for debugging/testing
-  void BidirectionalChannel::openEnginesSST(bool noClients,
-      std::string s2cName, std::string c2sName,
-      adios2::IO& s2cIO, adios2::IO& c2sIO,
-      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
-    REDEV_FUNCTION_TIMER;
-    //create one engine's reader and writer pair at a time - SST blocks on open(read)
-    if(process_type_==ProcessType::Server) {
-      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
-    } else {
-      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
-    }
-    assert(s2cEngine);
-    if(process_type_==ProcessType::Server) {
-      if(noClients==false) { //support unit testing
-        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-        assert(c2sEngine);
-      }
-    } else {
-      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
-      assert(c2sEngine);
     }
   }
 
