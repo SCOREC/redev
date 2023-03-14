@@ -371,7 +371,9 @@ public :
   BidirectionalChannel(adios2::ADIOS& adios, MPI_Comm comm, std::string name, adios2::Params params,
                        TransportType transportType, ProcessType processType, Partition& partition,
                        std::string path,
-                       bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition) {
+                       bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition), send_communication_phase_active_(false), receive_communication_phase_active_(false)
+
+  {
 
     MPI_Comm_rank(comm,&rank_);
     auto s2cName = path+name+"_s2c";
@@ -443,6 +445,7 @@ public :
 
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all the switch statements...
   void BeginSendCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == false);
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -453,8 +456,10 @@ public :
       break;
     }
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    send_communication_phase_active_ = true;
   }
   void EndSendCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == true);
     switch (process_type_) {
     case ProcessType::Client:
       c2s_engine_.EndStep();
@@ -463,8 +468,10 @@ public :
       s2c_engine_.EndStep();
       break;
     }
+    send_communication_phase_active_ = false;
   }
   void BeginReceiveCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == false);
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -475,8 +482,10 @@ public :
       break;
     }
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+    receive_communication_phase_active_ = true;
   }
   void EndReceiveCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == true);
     switch (process_type_) {
     case ProcessType::Client:
       s2c_engine_.EndStep();
@@ -485,7 +494,11 @@ public :
       c2s_engine_.EndStep();
       break;
     }
+    receive_communication_phase_active_ = false;
   }
+  [[nodiscard]]
+  bool InSendCommunicationPhase() const noexcept { return send_communication_phase_active_; }
+  bool InReceiveCommunicationPhase() const noexcept { return receive_communication_phase_active_; }
 private:
 
   void openEngines(bool noClients,
@@ -512,6 +525,8 @@ private:
   ProcessType process_type_;
   int rank_;
   Partition & partition_;
+  bool send_communication_phase_active_;
+  bool receive_communication_phase_active_;
 
 };
 
