@@ -190,9 +190,6 @@ class AdiosComm : public Communicator<T> {
     }
     void Send(T *msgs, Mode mode) {
       REDEV_FUNCTION_TIMER;
-      if(mode == Mode::Synchronous) {
-        checkStep(eng.BeginStep());
-      }
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
@@ -245,7 +242,9 @@ class AdiosComm : public Communicator<T> {
         const auto oCount = offsets.size();
         if(!offsetsVar) {
           offsetsVar = io.DefineVariable<redev::GO>(offsetsName,{oShape},{oStart},{oCount});
-          eng.Put<redev::GO>(offsetsVar, offsets.data(), adios2::Mode::Sync);
+          // if we are in sync mode we will peform all puts at the end of the function, otherwise we need to put this now before
+          // offsets data goes out of scope
+          eng.Put<redev::GO>(offsetsVar, offsets.data(), (mode==Mode::Deferred)?adios2::Mode::Sync:adios2::Mode::Deferred);
         }
       }
 
@@ -253,7 +252,10 @@ class AdiosComm : public Communicator<T> {
       if(!srcRanksVar) {
         srcRanksVar = io.DefineVariable<redev::GO>(srcRanksName, srShape, srStart, srCount);
         assert(srcRanksVar);
-        eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data(),adios2::Mode::Sync);
+        // if we are in sync mode we will peform all puts at the end of the function, otherwise we need to put this now before
+        // ranks data goes out of scope
+        eng.Put<redev::GO>(srcRanksVar, rdvRankStart.data(),(mode==Mode::Deferred)?adios2::Mode::Sync:adios2::Mode::Deferred);
+
       }
 
       //assume one call to pack from each rank for now
@@ -269,7 +271,7 @@ class AdiosComm : public Communicator<T> {
         }
       }
       if(mode == Mode::Synchronous) {
-        eng.EndStep();
+        eng.PerformPuts();
       }
     }
     std::vector<T> Recv(Mode mode) {
@@ -278,9 +280,6 @@ class AdiosComm : public Communicator<T> {
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       auto t1 = redev::getTime();
-      if(mode == Mode::Synchronous) {
-        checkStep(eng.BeginStep());
-      }
 
       if(!inMsg.knownSizes) {
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
@@ -302,6 +301,7 @@ class AdiosComm : public Communicator<T> {
         rdvRanksVar.SetSelection({{0},{rsrSz}});
         eng.Get(rdvRanksVar, inMsg.srcRanks.data());
 
+        // TODO: Can remove in synchronous mode?
         eng.PerformGets();
         inMsg.start = static_cast<size_t>(inMsg.offset[rank]);
         inMsg.count = static_cast<size_t>(inMsg.offset[rank+1]-inMsg.start);
@@ -317,10 +317,13 @@ class AdiosComm : public Communicator<T> {
         msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
         eng.Get(msgsVar, msgs.data());
       }
-
       if(mode == Mode::Synchronous) {
-        eng.EndStep();
+        eng.PerformGets();
       }
+
+      //if(mode == Mode::Synchronous) {
+      //  eng.EndStep();
+      //}
       auto t3 = redev::getTime();
       std::chrono::duration<double> r1 = t2-t1;
       std::chrono::duration<double> r2 = t3-t2;
