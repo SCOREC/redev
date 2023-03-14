@@ -38,13 +38,9 @@ int main(int argc, char** argv) {
         commPair.SetOutMessageLayout(dest, offsets);
       }
       redev::LOs msgs = redev::LOs(1,42);
-      channel.BeginSendCommunicationPhase();
-      commPair.Send(msgs.data());
-      channel.EndSendCommunicationPhase();
+      channel.SendPhase([&](){commPair.Send(msgs.data());});
     } else {
-      channel.BeginReceiveCommunicationPhase();
-      auto msgs = commPair.Recv();
-      channel.EndReceiveCommunicationPhase();
+      auto msgs = channel.ReceivePhase([&](){return commPair.Recv();});
       if(iter == 0) {
         auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));

@@ -498,9 +498,46 @@ public :
   }
   [[nodiscard]]
   bool InSendCommunicationPhase() const noexcept { return send_communication_phase_active_; }
+  [[nodiscard]]
   bool InReceiveCommunicationPhase() const noexcept { return receive_communication_phase_active_; }
-private:
 
+  template <typename Func, typename... Args>
+  auto SendPhase(const Func& f, Args&&... args) {
+    auto sg = PhaseScope(this, CommunicationPhase::Send);
+    return f(std::forward<Args>(args)...);
+  }
+  template <typename Func, typename... Args>
+  auto ReceivePhase(const Func& f, Args&&... args) {
+    auto sg = PhaseScope(this, CommunicationPhase::Receive);
+    return f(std::forward<Args>(args)...);
+  }
+
+private:
+  enum class CommunicationPhase { Send, Receive };
+  struct PhaseScope{
+    PhaseScope(BidirectionalChannel* channel, CommunicationPhase phase) : channel_(channel), phase_(phase) {
+      switch(phase_) {
+        case CommunicationPhase::Send:
+          channel_->BeginSendCommunicationPhase();
+          break;
+        case CommunicationPhase::Receive:
+          channel_->BeginReceiveCommunicationPhase();
+          break;
+      }
+    }
+    ~PhaseScope() {
+      switch(phase_) {
+        case CommunicationPhase::Send:
+          channel_->EndSendCommunicationPhase();
+          break;
+        case CommunicationPhase::Receive:
+          channel_->EndReceiveCommunicationPhase();
+          break;
+      }
+    }
+    BidirectionalChannel* channel_;
+    CommunicationPhase phase_;
+  };
   void openEngines(bool noClients,
                       std::string s2cName, std::string c2sName,
                       adios2::IO& s2cIO, adios2::IO& c2sIO,
