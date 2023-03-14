@@ -400,7 +400,7 @@ public :
     s2c_io_.SetParameters(params);
     c2s_io_.SetParameters(params);
     REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
-    openEngines(noClients,s2cName+".bp",c2sName+".bp",
+    openEngines(noClients,s2cName,c2sName,
                    s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
     // TODO pull begin/end step out of Setup/SendReceive metadata functions
     // begin step
