@@ -1,5 +1,6 @@
 #include <redev.h>
 #include <cassert>
+#include "redev_assert.h"
 #include "redev_git_version.h"
 #include "redev.h"
 #include "redev_profile.h"
@@ -274,7 +275,7 @@ namespace redev {
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
   // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
-  void BidirectionalChannel::openEngines(bool noClients,
+  void BidirectionalChannel::openEnginesBP4(bool noClients,
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -293,12 +294,36 @@ namespace redev {
     if(process_type_ == ProcessType::Server) {
       if(noClients==false) { //support unit testing
         c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-        assert(c2sEngine);
+        REDEV_ALWAYS_ASSERT(c2sEngine);
       }
     } else {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
-      assert(s2cEngine);
+      REDEV_ALWAYS_ASSERT(s2cEngine);
     }
+  }
+    // SST support
+  // - with a rendezvous + non-rendezvous application pair
+  // - with only a rendezvous application for debugging/testing
+  void BidirectionalChannel::openEnginesSST(bool noClients,
+      std::string s2cName, std::string c2sName,
+      adios2::IO& s2cIO, adios2::IO& c2sIO,
+      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
+    REDEV_FUNCTION_TIMER;
+    //create one engine's reader and writer pair at a time - SST blocks on open(read)
+    if(process_type_==ProcessType::Server) {
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
+    } else {
+      s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
+    }
+    REDEV_ALWAYS_ASSERT(s2cEngine);
+    if(process_type_==ProcessType::Server) {
+      if(noClients==false) { //support unit testing
+        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
+      }
+    } else {
+      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
+    }
+    REDEV_ALWAYS_ASSERT(c2sEngine);
   }
 
   Redev::Redev(MPI_Comm comm, Partition ptn, ProcessType processType, bool noClients)
