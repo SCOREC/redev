@@ -626,9 +626,11 @@ class Redev {
     return BidirectionalChannel{adios,comm,std::move(name),std::move(params),transportType,processType, ptn, std::move(path),noClients};
     }
     [[nodiscard]]
-    ProcessType GetProcessType() const;
+    ProcessType GetProcessType() const noexcept;
     [[nodiscard]]
-    const Partition & GetPartition() const;
+    const Partition & GetPartition() const noexcept;
+    [[nodiscard]]
+    bool RankParticipates() const noexcept;
 
   private:
     ProcessType processType;

@@ -490,6 +490,8 @@ void BidirectionalChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
     }
     eng.EndStep();
   }
-  ProcessType Redev::GetProcessType() const { return processType; }
-  const Partition &Redev::GetPartition() const {return ptn;}
+  ProcessType Redev::GetProcessType() const noexcept { return processType; }
+  const Partition &Redev::GetPartition() const noexcept {return ptn;}
+  bool Redev::RankParticipates() const noexcept { return comm == MPI_COMM_NULL; }
+
   }
