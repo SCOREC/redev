@@ -10,9 +10,7 @@ public:
                adios2::Params params, TransportType transportType,
                ProcessType processType, Partition &partition, std::string path,
                bool noClients = false)
-      : comm_(comm), process_type_(processType), partition_(partition),
-        send_communication_phase_active_(false),
-        receive_communication_phase_active_(false)
+      : comm_(comm), process_type_(processType), partition_(partition)
 
   {
     MPI_Comm_rank(comm, &rank_);
@@ -74,11 +72,7 @@ public:
         num_server_ranks_(o.num_server_ranks_),
         comm_(std::exchange(o.comm_, MPI_COMM_NULL)),
         process_type_(o.process_type_), rank_(o.rank_),
-        partition_(o.partition_),
-        send_communication_phase_active_(
-            std::exchange(o.send_communication_phase_active_, false)),
-        receive_communication_phase_active_(
-            std::exchange(o.receive_communication_phase_active_, false)) {}
+        partition_(o.partition_) {}
   AdiosChannel operator=(AdiosChannel &&) = delete;
   // FIXME IMPL RULE OF 5
   ~AdiosChannel() {
@@ -115,7 +109,6 @@ public:
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all
   // the switch statements...
   void BeginSendCommunicationPhase() {
-    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == false);
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -126,10 +119,8 @@ public:
       break;
     }
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
-    send_communication_phase_active_ = true;
   }
   void EndSendCommunicationPhase() {
-    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == true);
     switch (process_type_) {
     case ProcessType::Client:
       c2s_engine_.EndStep();
@@ -138,10 +129,8 @@ public:
       s2c_engine_.EndStep();
       break;
     }
-    send_communication_phase_active_ = false;
   }
   void BeginReceiveCommunicationPhase() {
-    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == false);
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -152,10 +141,8 @@ public:
       break;
     }
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
-    receive_communication_phase_active_ = true;
   }
   void EndReceiveCommunicationPhase() {
-    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == true);
     switch (process_type_) {
     case ProcessType::Client:
       s2c_engine_.EndStep();
@@ -164,13 +151,6 @@ public:
       c2s_engine_.EndStep();
       break;
     }
-    receive_communication_phase_active_ = false;
-  }
-  [[nodiscard]] bool InSendCommunicationPhase() const noexcept {
-    return send_communication_phase_active_;
-  }
-  [[nodiscard]] bool InReceiveCommunicationPhase() const noexcept {
-    return receive_communication_phase_active_;
   }
 
 private:
@@ -200,8 +180,6 @@ private:
   ProcessType process_type_;
   int rank_;
   Partition &partition_;
-  bool send_communication_phase_active_;
-  bool receive_communication_phase_active_;
 };
 } // namespace redev
 

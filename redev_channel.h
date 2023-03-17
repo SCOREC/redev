@@ -10,7 +10,9 @@ public:
   template <typename T>
   Channel(T &&channel)
       : pimpl_{new ChannelModel<std::remove_cv_t<std::remove_reference_t<T>>>(
-            std::forward<T>(channel))} {}
+            std::forward<T>(channel))},
+        send_communication_phase_active_(false),
+        receive_communication_phase_active_(false) {}
 
   // For cases where we may be interested in storing the comm variant rather
   // than the exact type this function can be used to reduce the runtime
@@ -27,19 +29,31 @@ public:
   [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name) {
     return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name)));
   }
-  void BeginSendCommunicationPhase() { pimpl_->BeginSendCommunicationPhase(); }
-  void EndSendCommunicationPhase() { pimpl_->EndSendCommunicationPhase(); }
+  void BeginSendCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == false);
+    pimpl_->BeginSendCommunicationPhase();
+    send_communication_phase_active_ = true;
+  }
+  void EndSendCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == true);
+    pimpl_->EndSendCommunicationPhase();
+    send_communication_phase_active_ = false;
+  }
   void BeginReceiveCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == false);
     pimpl_->BeginReceiveCommunicationPhase();
+    receive_communication_phase_active_ = true;
   }
   void EndReceiveCommunicationPhase() {
+    REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == true);
     pimpl_->EndReceiveCommunicationPhase();
+    receive_communication_phase_active_ = false;
   }
   [[nodiscard]] bool InSendCommunicationPhase() const noexcept {
-    return pimpl_->InSendCommunicationPhase();
+    return send_communication_phase_active_;
   }
   [[nodiscard]] bool InReceiveCommunicationPhase() const noexcept {
-    return pimpl_->InReceiveCommunicationPhase();
+    return receive_communication_phase_active_;
   }
 
   template <typename Func, typename... Args>
@@ -61,8 +75,6 @@ private:
     virtual void EndSendCommunicationPhase() = 0;
     virtual void BeginReceiveCommunicationPhase() = 0;
     virtual void EndReceiveCommunicationPhase() = 0;
-    virtual bool InSendCommunicationPhase() const noexcept = 0;
-    virtual bool InReceiveCommunicationPhase() const noexcept = 0;
     virtual ~ChannelConcept() noexcept {}
   };
   template <typename T> class ChannelModel : public ChannelConcept {
@@ -74,8 +86,8 @@ private:
     // entirely safe unlike doing it in user code. Although, it's not the most
     // beautiful construction in the world.
     ~ChannelModel() noexcept final {}
-    [[nodiscard]]
-    CommV CreateComm(std::string &&name, CommunicatorDataType type) final {
+    [[nodiscard]] CommV CreateComm(std::string &&name,
+                                   CommunicatorDataType type) final {
       switch (type) {
       case CommunicatorDataType::INT8:
         return impl_.template CreateComm<
@@ -140,14 +152,6 @@ private:
     void EndReceiveCommunicationPhase() final {
       impl_.EndReceiveCommunicationPhase();
     }
-    [[nodiscard]]
-    bool InSendCommunicationPhase() const noexcept final {
-      return impl_.InSendCommunicationPhase();
-    }
-    [[nodiscard]]
-    bool InReceiveCommunicationPhase() const noexcept final {
-      return impl_.InReceiveCommunicationPhase();
-    }
 
   private:
     T impl_;
@@ -174,6 +178,8 @@ private:
   };
 
   std::unique_ptr<ChannelConcept> pimpl_;
+  bool send_communication_phase_active_;
+  bool receive_communication_phase_active_;
 };
 
 } // namespace redev
