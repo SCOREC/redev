@@ -121,6 +121,10 @@ private:
         return impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT64>::type>(
             std::move(name));
+      case CommunicatorDataType::LONG_INT:
+        return impl_.template CreateComm<
+            CommunicatorTypeMap<CommunicatorDataType::LONG_INT>::type>(
+            std::move(name));
       case CommunicatorDataType::FLOAT:
         return impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::FLOAT>::type>(
