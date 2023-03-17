@@ -7,6 +7,7 @@
 #include <numeric> // accumulate, exclusive_scan
 #include <stddef.h>
 #include <type_traits> // is_same
+#include <adios2.h>
 
 namespace {
 void checkStep(adios2::StepStatus status) {
@@ -194,7 +195,7 @@ class AdiosComm : public Communicator<T> {
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &commSz);
       GOs degree(recvRanks,0); //TODO ideally, this would not be needed
-      for( auto i=0; i<outMsg.dest.size(); i++) {
+      for( size_t i=0; i<outMsg.dest.size(); i++) {
         auto destRank = outMsg.dest[i];
         assert(destRank < recvRanks);
         degree[destRank] += outMsg.offsets[i+1] - outMsg.offsets[i];
@@ -259,7 +260,7 @@ class AdiosComm : public Communicator<T> {
       }
 
       //assume one call to pack from each rank for now
-      for( auto i=0; i<outMsg.dest.size(); i++ ) {
+      for( size_t i=0; i<outMsg.dest.size(); i++ ) {
         const auto destRank = outMsg.dest[i];
         const auto lStart = gStart[destRank]+rdvRankStart[destRank];
         const auto lCount = outMsg.offsets[i+1]-outMsg.offsets[i];

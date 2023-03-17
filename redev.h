@@ -1,12 +1,17 @@
 #pragma once
-#include <adios2.h>
-#include <mpi.h>
-#include "redev_types.h"
 #include "redev_assert.h"
 #include "redev_comm.h"
 #include "redev_strings.h"
-#include <array>          // std::array
+#include "redev_types.h"
+#include <adios2.h>
+#include <array> // std::array
+#include <mpi.h>
+#include <optional>
+#include <utility>
 #include <variant>
+
+#include "redev_bidirectional_comm.h"
+#include "redev_channel.h"
 
 namespace redev {
 
@@ -17,14 +22,14 @@ namespace redev {
  * ========================
  *
  * The Rendezvous algorithm
- * > enables scalable algorithms which are most useful when processors neither know which other processors
- * > to send data to, nor which other processors will be sending data to them [1].
- * It is used in LAMMPS [1], the PUMI unstructured mesh library for loading
- * multi-billion element meshes from file [2,3], and in the Data Transfer
- * Toolkit [4].
+ * > enables scalable algorithms which are most useful when processors neither
+ * know which other processors > to send data to, nor which other processors
+ * will be sending data to them [1]. It is used in LAMMPS [1], the PUMI
+ * unstructured mesh library for loading multi-billion element meshes from file
+ * [2,3], and in the Data Transfer Toolkit [4].
  *
- * The following figures from [1] depict two unstructured meshes of the same domain
- * where information from one mesh is needed by the other but they have a
+ * The following figures from [1] depict two unstructured meshes of the same
+ * domain where information from one mesh is needed by the other but they have a
  * different partitioning across the same set of processes.
  * In Figure 4 the colored ovals depict the domain owned by a given process in
  * the two meshes.
@@ -39,11 +44,11 @@ namespace redev {
  * \image xml redevPartition.png
  *
  * The key to the Rendezvous algorithm is a partitioning of the common portion
- * of the domain that (1) has a relatively low memory usage and (2) supports computationally
- * efficient queries for membership within the partition given a entity
- * within the domain (e.g., a mesh element or vertex).
- * The structured grid from the above figure is one possible partition that
- * satisfies these requirements.
+ * of the domain that (1) has a relatively low memory usage and (2) supports
+ * computationally efficient queries for membership within the partition given a
+ * entity within the domain (e.g., a mesh element or vertex). The structured
+ * grid from the above figure is one possible partition that satisfies these
+ * requirements.
  *
  * WDMApp Use Case
  * ===============
@@ -79,33 +84,33 @@ namespace redev {
  * Redev is an implementation of the Rendezvous algorithm that is currently
  * focused on supporting the WDMApp Coupler and its use of independent sets of
  * MPI processes for the core and edge applications.
- * Specifically, each of these applications is executed with its own `mpirun` (or
- * equivalent batch scheduler) command.
- * Transferring data between these sets of processes is directly supported by
- * the [ADIOS2](https://adios2.readthedocs.io/en/latest/) library.
+ * Specifically, each of these applications is executed with its own `mpirun`
+ * (or equivalent batch scheduler) command. Transferring data between these sets
+ * of processes is directly supported by the
+ * [ADIOS2](https://adios2.readthedocs.io/en/latest/) library.
  *
  * Key to the Redev design is the concept of a Server and Clients.
- * A Client is a set of processes that owns some portion of the overlap sub-domain
- * and needs to exchange data in that domain with another Client.
- * Clients query the Redev API to (1) determine which processes in the Server the data
- * they own needs to be sent, (2) send the data, and (3) receive data back from
- * the server in their portion of the domain.
- * The Server is a set of processes that owns the Rendezvous partition of the
- * overlap sub-domain, receives data from Clients, and supports sending the data
- * back to the Clients.
+ * A Client is a set of processes that owns some portion of the overlap
+ * sub-domain and needs to exchange data in that domain with another Client.
+ * Clients query the Redev API to (1) determine which processes in the Server
+ * the data they own needs to be sent, (2) send the data, and (3) receive data
+ * back from the server in their portion of the domain. The Server is a set of
+ * processes that owns the Rendezvous partition of the overlap sub-domain,
+ * receives data from Clients, and supports sending the data back to the
+ * Clients.
  *
- * The following figure depicts an example Redev workflow for exchanging data between
- * two applications (Clients) and the Coupler (the Server).
- * The Rendezvous partition in this example is formed from groups of adjacent
+ * The following figure depicts an example Redev workflow for exchanging data
+ * between two applications (Clients) and the Coupler (the Server). The
+ * Rendezvous partition in this example is formed from groups of adjacent
  * geometric model entities referred to as a 'Feature-based PartitionInterface'.
  * Red colored boxes and text are operations supported by Redev.
  * The phases of the workflow are described below.
  * - _App. Setup_: The applications initialize its domain data
  *   by loading meshes, and associated partition data.
  *   The Coupler loads the geometric model of the domain.
- * - _Rdv. Setup_: The coupler forms the 'Feature-based PartitionInterface' used for Rendezvous, and
- *   sends partition information to an instance of Redev embedded
- *   into each application.
+ * - _Rdv. Setup_: The coupler forms the 'Feature-based PartitionInterface' used
+ * for Rendezvous, and sends partition information to an instance of Redev
+ * embedded into each application.
  * - _Mesh Setup_: Each application queries the rendezvous partition in a loop
  *   over their mesh entities in the overlap sub-domain and create a map of mesh
  *   entities to their destination rank in the Coupler.
@@ -123,18 +128,24 @@ namespace redev {
  *   execution of a field transformation procedure marked 'mesh-to-mesh', and a
  *   **Reverse** send from the Coupler to application 'B'.
  *   The communication round would be completed with the mirror image of this
- *   process; a **Forward** send from 'B' to the Coupler, another transformation, and
- *   a **Reverse** send from the Coupler to 'A'.
+ *   process; a **Forward** send from 'B' to the Coupler, another
+ * transformation, and a **Reverse** send from the Coupler to 'A'.
  *
  * \image xml redevWorkflow500.png
  *
  * References
  * ----------
  *
- * - [[1] “Rendezvous  algorithms for large-scale modeling and simulation”, Plimpton, et.al.,  JPDC, 2021.](https://www.sciencedirect.com/science/article/abs/pii/S0743731520303622)
+ * - [[1] “Rendezvous  algorithms for large-scale modeling and simulation”,
+ * Plimpton, et.al.,  JPDC,
+ * 2021.](https://www.sciencedirect.com/science/article/abs/pii/S0743731520303622)
  * - [[2] PUMI  Github  Issue](https://github.com/SCOREC/core/issues/205)
- * - [[3] "Optimizing  CAD and Mesh Generation  Workflow for  SeisSol", Rettenberger, et.al.,  SC14, 2014.](http://sc14.supercomputing.org/sites/all/themes/sc14/files/archive/tech_poster/poster_files/post175s2-file3.pdf)
- * - [[4] "The  Data Transfer  Kit: A geometric rendezvous-based  tool  for  multiphysicsdata transfer", Slattery et.al.,  M&C * 2013](https://www.osti.gov/biblio/22212795)
+ * - [[3] "Optimizing  CAD and Mesh Generation  Workflow for  SeisSol",
+ * Rettenberger, et.al.,  SC14,
+ * 2014.](http://sc14.supercomputing.org/sites/all/themes/sc14/files/archive/tech_poster/poster_files/post175s2-file3.pdf)
+ * - [[4] "The  Data Transfer  Kit: A geometric rendezvous-based  tool  for
+ * multiphysicsdata transfer", Slattery et.al.,  M&C *
+ * 2013](https://www.osti.gov/biblio/22212795)
  */
 
 /**
@@ -150,252 +161,211 @@ namespace redev {
  * can/should be replaced with concept in C++20
  */
 class PartitionInterface {
-  public:
-    /**
-     * Write the partition to the provided ADIOS engine and io.
-     * @param[in] eng an ADIOS2 Engine opened in write mode
-     * @param[in] io the ADIOS2 IO object that created eng
-     */
-    virtual void Write(adios2::Engine& eng, adios2::IO& io) = 0;
-    /**
-     * Read the partition to the provided ADIOS engine/io.
-     * @param[in] eng an ADIOS2 Engine opened in read mode
-     * @param[in] io the ADIOS2 IO object that created eng
-     */
-    virtual void Read(adios2::Engine& eng, adios2::IO& io) = 0;
-    /**
-     * Send the partition information from the root rank to all other ranks in comm.
-     * @param[in] comm MPI communicator containing the ranks that need the partition information
-     * @param[in] root the source rank that sends the partition information
-     */
-    virtual void Broadcast(MPI_Comm comm, int root=0) = 0;
+public:
+  /**
+   * Write the partition to the provided ADIOS engine and io.
+   * @param[in] eng an ADIOS2 Engine opened in write mode
+   * @param[in] io the ADIOS2 IO object that created eng
+   */
+  virtual void Write(adios2::Engine &eng, adios2::IO &io) = 0;
+  /**
+   * Read the partition to the provided ADIOS engine/io.
+   * @param[in] eng an ADIOS2 Engine opened in read mode
+   * @param[in] io the ADIOS2 IO object that created eng
+   */
+  virtual void Read(adios2::Engine &eng, adios2::IO &io) = 0;
+  /**
+   * Send the partition information from the root rank to all other ranks in
+   * comm.
+   * @param[in] comm MPI communicator containing the ranks that need the
+   * partition information
+   * @param[in] root the source rank that sends the partition information
+   */
+  virtual void Broadcast(MPI_Comm comm, int root = 0) = 0;
 };
 /**
- * The ClassPtn class supports a domain partition defined by the ownership of geometric model entities.
- * The user passes to the constructor the assignment of ranks to geometric model entities.
- * The 'Class' in the name is from the 'classification' term used to define the
- * association of mesh entities with a geometric model entity.
- * The concepts of classification are described in Section 2.2.2 of the PUMI
- * Users Guide (v2.1) https://www.scorec.rpi.edu/pumi/PUMI.pdf.
+ * The ClassPtn class supports a domain partition defined by the ownership of
+ * geometric model entities. The user passes to the constructor the assignment
+ * of ranks to geometric model entities. The 'Class' in the name is from the
+ * 'classification' term used to define the association of mesh entities with a
+ * geometric model entity. The concepts of classification are described in
+ * Section 2.2.2 of the PUMI Users Guide (v2.1)
+ * https://www.scorec.rpi.edu/pumi/PUMI.pdf.
  */
 class ClassPtn : public PartitionInterface {
-  public:
-    /**
-     * Pair of integers (dimension, id) that uniquely identify a geometric model entity by their
-     * dimension and id.  The id for an entity within a dimension is unique.
-     */
-    using ModelEnt = std::pair<redev::LO, redev::LO>;
-    /**
-     * Vector of geometric model entities.
-     */
-    using ModelEntVec = std::vector<ModelEnt>;
-    /**
-     * Map of geometric model entities to the process that owns them.
-     */
-    using ModelEntToRank = std::map<ModelEnt,redev::LO>;
-    ClassPtn();
-    /**
-     * Create a ClassPtn object from a vector of owning ranks and geometric model entities.
-     * @param[in] comm MPI communicator containing the ranks that need the partition information
-     * @param[in] ranks vector of ranks owning each geometric model entity
-     * @param[in] ents vector of geometric model entities
-     */
-    ClassPtn(MPI_Comm comm, const redev::LOs& ranks, const ModelEntVec& ents);
-    /**
-     * Return the rank owning the given geometric model entity.
-     * @param[in] ent the geometric model entity
-     */
-    [[nodiscard]]
-    redev::LO GetRank(ModelEnt ent) const;
-    void Write(adios2::Engine& eng, adios2::IO& io) final;
-    void Read(adios2::Engine& eng, adios2::IO& io) final;
-    void Broadcast(MPI_Comm comm, int root=0) final;
-    /**
-     * Return the vector of owning ranks for all geometric model entity.
-     */
-    [[nodiscard]]
-    redev::LOs GetRanks() const;
-    /**
-     * Return the vector of all geometric model entities.
-     */
-     [[nodiscard]]
-    ModelEntVec GetModelEnts() const;
-  private:
-    const std::string entsAndRanksVarName = "class partition ents and ranks";
-    /**
-     * return a vector with the contents of the ModelEntToRank map
-     * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
-     */
-    void Gather(MPI_Comm comm, int root=0);
-    /**
-     * return a vector with the contents of the ModelEntToRank map
-     * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
-     */
-    [[nodiscard]]
-    redev::LOs SerializeModelEntsAndRanks() const;
-    /**
-     * Given a vector that contains the owning ranks and geometric model entities
-     * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
-     * construct the ModelEntToRank map
-     */
-    [[nodiscard]]
-    ModelEntToRank DeserializeModelEntsAndRanks(const redev::LOs& serialized) const;
-    /**
-     * Ensure that the dimensions of the model ents is [0:3]
-     */
-     [[nodiscard]]
-    bool ModelEntDimsValid(const ModelEntVec& ents) const;
-    /**
-     * The map of geometric model entities to their owning rank
-     */
-    ModelEntToRank modelEntToRank;
+public:
+  /**
+   * Pair of integers (dimension, id) that uniquely identify a geometric model
+   * entity by their dimension and id.  The id for an entity within a dimension
+   * is unique.
+   */
+  using ModelEnt = std::pair<redev::LO, redev::LO>;
+  /**
+   * Vector of geometric model entities.
+   */
+  using ModelEntVec = std::vector<ModelEnt>;
+  /**
+   * Map of geometric model entities to the process that owns them.
+   */
+  using ModelEntToRank = std::map<ModelEnt, redev::LO>;
+  ClassPtn();
+  /**
+   * Create a ClassPtn object from a vector of owning ranks and geometric model
+   * entities.
+   * @param[in] comm MPI communicator containing the ranks that need the
+   * partition information
+   * @param[in] ranks vector of ranks owning each geometric model entity
+   * @param[in] ents vector of geometric model entities
+   */
+  ClassPtn(MPI_Comm comm, const redev::LOs &ranks, const ModelEntVec &ents);
+  /**
+   * Return the rank owning the given geometric model entity.
+   * @param[in] ent the geometric model entity
+   */
+  [[nodiscard]] redev::LO GetRank(ModelEnt ent) const;
+  void Write(adios2::Engine &eng, adios2::IO &io) final;
+  void Read(adios2::Engine &eng, adios2::IO &io) final;
+  void Broadcast(MPI_Comm comm, int root = 0) final;
+  /**
+   * Return the vector of owning ranks for all geometric model entity.
+   */
+  [[nodiscard]] redev::LOs GetRanks() const;
+  /**
+   * Return the vector of all geometric model entities.
+   */
+  [[nodiscard]] ModelEntVec GetModelEnts() const;
+
+private:
+  const std::string entsAndRanksVarName = "class partition ents and ranks";
+  /**
+   * return a vector with the contents of the ModelEntToRank map
+   * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ...,
+   * dim_n-1, id_n-1, rank_n-1]
+   */
+  void Gather(MPI_Comm comm, int root = 0);
+  /**
+   * return a vector with the contents of the ModelEntToRank map
+   * the map is serialized as [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ...,
+   * dim_n-1, id_n-1, rank_n-1]
+   */
+  [[nodiscard]] redev::LOs SerializeModelEntsAndRanks() const;
+  /**
+   * Given a vector that contains the owning ranks and geometric model entities
+   * [dim_0, id_0, rank_0, dim_1, id_1, rank_1, ..., dim_n-1, id_n-1, rank_n-1]
+   * construct the ModelEntToRank map
+   */
+  [[nodiscard]] ModelEntToRank
+  DeserializeModelEntsAndRanks(const redev::LOs &serialized) const;
+  /**
+   * Ensure that the dimensions of the model ents is [0:3]
+   */
+  [[nodiscard]] bool ModelEntDimsValid(const ModelEntVec &ents) const;
+  /**
+   * The map of geometric model entities to their owning rank
+   */
+  ModelEntToRank modelEntToRank;
 };
 
 /**
  * The RCBPtn class supports recursive coordinate bisection domain partitions.
- * The user passes to the constructor the definition of the cut tree and the ranks owning each
- * sub-domain.
- * The non-leaf levels of the partition tree have alternating cut dimensions associated
- * with the level starting with 'x'.
- * Each non-leaf node has a coordinate for the position of the cut along the dimension
- * specified by its level.
- * Non-leaf tree node n with cut dimension d and cut coordinate v along dimension d has
- * a left child that covers the sub-domain d < v and a right child that
- * covers the sub-domain d >= v.
- * ranks: labels the leaf nodes in the partition tree from left to right
- * cuts: Array specifying the coordinates associated with the non-leaf nodes
- * in a breath-first traversal order starting at the root and
- * visiting the child nodes at each level from left to right.
- * The root of the cut tree is stored at index 1 and index 0 is unused.
- * See test_query.cpp for examples.
+ * The user passes to the constructor the definition of the cut tree and the
+ * ranks owning each sub-domain. The non-leaf levels of the partition tree have
+ * alternating cut dimensions associated with the level starting with 'x'. Each
+ * non-leaf node has a coordinate for the position of the cut along the
+ * dimension specified by its level. Non-leaf tree node n with cut dimension d
+ * and cut coordinate v along dimension d has a left child that covers the
+ * sub-domain d < v and a right child that covers the sub-domain d >= v. ranks:
+ * labels the leaf nodes in the partition tree from left to right cuts: Array
+ * specifying the coordinates associated with the non-leaf nodes in a
+ * breath-first traversal order starting at the root and visiting the child
+ * nodes at each level from left to right. The root of the cut tree is stored at
+ * index 1 and index 0 is unused. See test_query.cpp for examples.
  */
 class RCBPtn : public PartitionInterface {
-  public:
-    RCBPtn();
-    /**
-     * Create a RCBPtn object with only the dimension specified.  The cuts and ranks will be filled
-     * in during Redev creation.
-     * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length of each cut vector
-     */
-    RCBPtn(redev::LO dim);
-    /**
-     * Create a RCBPtn object from a vector of owning ranks and cut vectors.
-     * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length of each cut vector
-     * @param[in] ranks vector of ranks owning each sub-domain in the cut tree
-     * @param[in] cuts vector of 2-vectors or 3-vectors, for 2d and 3d domains respectively, defining the cut tree.
-     *             The 2-vectors (3-vectors) are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
-     */
-    RCBPtn(redev::LO dim, std::vector<int>& ranks, std::vector<double>& cuts);
-    /**
-     * Return the rank owning the given point.
-     * @param[in] pt the cartesian point in space. The 3rd value is ignored for 2d domains.
-     */
-    redev::LO GetRank(std::array<redev::Real,3>& pt) const;
-    void Write(adios2::Engine& eng, adios2::IO& io) final;
-    void Read(adios2::Engine& eng, adios2::IO& io) final;
-    void Broadcast(MPI_Comm comm, int root=0) final;
-    /**
-     * Return the vector of owning ranks for each sub-domain of the cut tree.
-     */
-    [[nodiscard]]
-    std::vector<redev::LO> GetRanks() const;
-    /**
-     * Return the vector of cuts defining the cut tree. The 2-vectors (3-vectors) are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
-     */
-    [[nodiscard]]
-    std::vector<redev::Real> GetCuts() const;
-  private:
-    const std::string ranksVarName = "rcb partition ranks";
-    const std::string cutsVarName = "rcb partition cuts";
-    redev::LO dim;
-    std::vector<redev::LO> ranks;
-    std::vector<redev::Real> cuts;
-};
-
-using Partition = std::variant<ClassPtn,RCBPtn>;
-
-/**
- * A BidirectionalComm is a communicator that can send and receive data
- * If you are on a client rank sending sends data to the server and receiving
- * retrieves data from server.
- * If you are on a server rank sending sends data to the client and receiving
- * retrieves data from client.
- */
-template <class T>
-class BidirectionalComm {
 public:
-  BidirectionalComm() = default;
-  BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
-                    std::unique_ptr<Communicator<T>> receiver_)
-      : sender(std::move(sender_)), receiver(std::move(receiver_)) {
-    REDEV_ALWAYS_ASSERT(sender != nullptr);
-    REDEV_ALWAYS_ASSERT(receiver != nullptr);
-  }
-  void SetOutMessageLayout(LOs &dest, LOs &offsets) {
-    REDEV_ALWAYS_ASSERT(sender != nullptr);
-    sender->SetOutMessageLayout(dest, offsets);
-  }
-  InMessageLayout GetInMessageLayout() {
-    REDEV_ALWAYS_ASSERT(receiver != nullptr);
-    return receiver->GetInMessageLayout();
-  }
-
-  void Send(T *msgs, Mode mode=Mode::Deferred) {
-    REDEV_ALWAYS_ASSERT(sender != nullptr);
-    sender->Send(msgs, mode);
-  }
-  std::vector<T> Recv(Mode mode=Mode::Deferred) {
-    REDEV_ALWAYS_ASSERT(receiver != nullptr);
-    return receiver->Recv(mode);
-  }
+  RCBPtn();
+  /**
+   * Create a RCBPtn object with only the dimension specified.  The cuts and
+   * ranks will be filled in during Redev creation.
+   * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length
+   * of each cut vector
+   */
+  RCBPtn(redev::LO dim);
+  /**
+   * Create a RCBPtn object from a vector of owning ranks and cut vectors.
+   * @param[in] dim the dimension of the domain (2=2d,3=3d); defines the length
+   * of each cut vector
+   * @param[in] ranks vector of ranks owning each sub-domain in the cut tree
+   * @param[in] cuts vector of 2-vectors or 3-vectors, for 2d and 3d domains
+   * respectively, defining the cut tree. The 2-vectors (3-vectors) are stored
+   * in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
+   */
+  RCBPtn(redev::LO dim, std::vector<int> &ranks, std::vector<double> &cuts);
+  /**
+   * Return the rank owning the given point.
+   * @param[in] pt the cartesian point in space. The 3rd value is ignored for 2d
+   * domains.
+   */
+  redev::LO GetRank(std::array<redev::Real, 3> &pt) const;
+  void Write(adios2::Engine &eng, adios2::IO &io) final;
+  void Read(adios2::Engine &eng, adios2::IO &io) final;
+  void Broadcast(MPI_Comm comm, int root = 0) final;
+  /**
+   * Return the vector of owning ranks for each sub-domain of the cut tree.
+   */
+  [[nodiscard]] std::vector<redev::LO> GetRanks() const;
+  /**
+   * Return the vector of cuts defining the cut tree. The 2-vectors (3-vectors)
+   * are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
+   */
+  [[nodiscard]] std::vector<redev::Real> GetCuts() const;
 
 private:
-  std::unique_ptr<Communicator<T>> sender;
-  std::unique_ptr<Communicator<T>> receiver;
+  const std::string ranksVarName = "rcb partition ranks";
+  const std::string cutsVarName = "rcb partition cuts";
+  redev::LO dim;
+  std::vector<redev::LO> ranks;
+  std::vector<redev::Real> cuts;
 };
 
-enum class ProcessType {
-  Client = 0,
-  Server = 1
-};
-enum class TransportType {
-  BP4 = 0,
-  SST = 1
-};
+using Partition = std::variant<ClassPtn, RCBPtn>;
 
-// Proof of concept using Adios implementation details
-// TODO: TypeErase BidirectionalChannel & have Adios Specific IMPL
-// TODO: Can partition be const& here?
-class BidirectionalChannel {
-public :
-  BidirectionalChannel(adios2::ADIOS& adios, MPI_Comm comm, std::string name, adios2::Params params,
-                       TransportType transportType, ProcessType processType, Partition& partition,
-                       std::string path,
-                       bool noClients=false) : comm_(comm), process_type_(processType), partition_(partition), send_communication_phase_active_(false), receive_communication_phase_active_(false)
+enum class ProcessType { Client = 0, Server = 1 };
+enum class TransportType { BP4 = 0, SST = 1 };
+
+class AdiosChannel {
+public:
+  AdiosChannel(adios2::ADIOS &adios, MPI_Comm comm, std::string name,
+               adios2::Params params, TransportType transportType,
+               ProcessType processType, Partition &partition, std::string path,
+               bool noClients = false)
+      : comm_(comm), process_type_(processType), partition_(partition),
+        send_communication_phase_active_(false),
+        receive_communication_phase_active_(false)
 
   {
-
-    MPI_Comm_rank(comm,&rank_);
-    auto s2cName = path+name+"_s2c";
-    auto c2sName = path+name+"_c2s";
+    MPI_Comm_rank(comm, &rank_);
+    auto s2cName = path + name + "_s2c";
+    auto c2sName = path + name + "_c2s";
     s2c_io_ = adios.DeclareIO(s2cName);
     c2s_io_ = adios.DeclareIO(c2sName);
-    if(transportType == TransportType::SST && noClients == true) {
+    if (transportType == TransportType::SST && noClients == true) {
       // TODO log message here
       transportType = TransportType::BP4;
     }
     std::string engineType;
     switch (transportType) {
-    case TransportType::BP4 :
+    case TransportType::BP4:
       engineType = "BP4";
-      s2cName = s2cName+".bp";
-      c2sName = c2sName+".bp";
+      s2cName = s2cName + ".bp";
+      c2sName = c2sName + ".bp";
       break;
     case TransportType::SST:
       engineType = "SST";
       break;
       // no default case. This will cause a compiler error if we do not handle a
-      // an engine type that has been defined in the TransportType enum. (-Werror=switch)
+      // an engine type that has been defined in the TransportType enum.
+      // (-Werror=switch)
     }
     s2c_io_.SetEngine(engineType);
     c2s_io_.SetEngine(engineType);
@@ -403,39 +373,62 @@ public :
     c2s_io_.SetParameters(params);
     REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
     switch (transportType) {
-      case TransportType::SST:
-        openEnginesSST(noClients,s2cName,c2sName,
-                   s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
-        break;
-      case TransportType::BP4:
-        openEnginesBP4(noClients,s2cName,c2sName,
-                   s2c_io_, c2s_io_,s2c_engine_,c2s_engine_);
-        break;
+    case TransportType::SST:
+      openEnginesSST(noClients, s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
+                     c2s_engine_);
+      break;
+    case TransportType::BP4:
+      openEnginesBP4(noClients, s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
+                     c2s_engine_);
+      break;
     }
     // TODO pull begin/end step out of Setup/SendReceive metadata functions
     // begin step
     // send metadata
-    Setup(s2c_io_,s2c_engine_);
+    Setup(s2c_io_, s2c_engine_);
     num_server_ranks_ = SendServerCommSizeToClient(s2c_io_, s2c_engine_);
     num_client_ranks_ = SendClientCommSizeToServer(c2s_io_, c2s_engine_);
     // end step
   }
-  BidirectionalChannel(const BidirectionalChannel&) = delete;
-  BidirectionalChannel(BidirectionalChannel&&) = delete;
-  BidirectionalChannel operator=(const BidirectionalChannel&) = delete;
-  BidirectionalChannel operator=(BidirectionalChannel&&) = delete;
-  //FIXME IMPL RULE OF 5
-  ~BidirectionalChannel() {
-    s2c_engine_.Close();
-    c2s_engine_.Close();
+  // don't allow copying of class because it creates
+  AdiosChannel(const AdiosChannel &) = delete;
+  AdiosChannel operator=(const AdiosChannel &) = delete;
+  // FIXME
+  AdiosChannel(AdiosChannel &&o)
+      : s2c_io_(std::exchange(o.s2c_io_, adios2::IO())),
+        c2s_io_(std::exchange(o.c2s_io_, adios2::IO())),
+        c2s_engine_(std::exchange(o.c2s_engine_, adios2::Engine())),
+        s2c_engine_(std::exchange(o.s2c_engine_, adios2::Engine())),
+        num_client_ranks_(o.num_client_ranks_),
+        num_server_ranks_(o.num_server_ranks_),
+        comm_(std::exchange(o.comm_, MPI_COMM_NULL)),
+        process_type_(o.process_type_), rank_(o.rank_),
+        partition_(o.partition_),
+        send_communication_phase_active_(
+            std::exchange(o.send_communication_phase_active_, false)),
+        receive_communication_phase_active_(
+            std::exchange(o.receive_communication_phase_active_, false)) {
+  }
+  AdiosChannel operator=(AdiosChannel &&) = delete;
+  // FIXME IMPL RULE OF 5
+  ~AdiosChannel() {
+    // NEED TO CHECK that the engine exists before trying to close it because it
+    // could be in a moved from state
+    if (s2c_engine_) {
+      s2c_engine_.Close();
+    }
+    if (c2s_engine_) {
+      c2s_engine_.Close();
+    }
   }
   template <typename T>
-  [[nodiscard]]
-  BidirectionalComm<T>
-  CreateComm(std::string name) {
-    // TODO, remove s2c/c2s destinction on variable names then use std::move name
-    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_, s2c_engine_, s2c_io_, name);
-    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_, c2s_engine_, c2s_io_, name);
+  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name) {
+    // TODO, remove s2c/c2s destinction on variable names then use std::move
+    // name
+    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_,
+                                              s2c_engine_, s2c_io_, name);
+    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_,
+                                              c2s_engine_, c2s_io_, name);
     switch (process_type_) {
     case ProcessType::Client:
       return {std::move(c2s), std::move(s2c)};
@@ -445,13 +438,12 @@ public :
     // Quash compiler warnings
     return {nullptr, nullptr};
   }
-  template <typename T>
-  [[nodiscard]]
-  BidirectionalComm<T> CreateNoOpComm() {
+  template <typename T> [[nodiscard]] BidirectionalComm<T> CreateNoOpComm() {
     return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
 
-  // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all the switch statements...
+  // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all
+  // the switch statements...
   void BeginSendCommunicationPhase() {
     REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == false);
     adios2::StepStatus status;
@@ -504,64 +496,28 @@ public :
     }
     receive_communication_phase_active_ = false;
   }
-  [[nodiscard]]
-  bool InSendCommunicationPhase() const noexcept { return send_communication_phase_active_; }
-  [[nodiscard]]
-  bool InReceiveCommunicationPhase() const noexcept { return receive_communication_phase_active_; }
-
-  template <typename Func, typename... Args>
-  auto SendPhase(const Func& f, Args&&... args) {
-    auto sg = PhaseScope(this, CommunicationPhase::Send);
-    return f(std::forward<Args>(args)...);
+  [[nodiscard]] bool InSendCommunicationPhase() const noexcept {
+    return send_communication_phase_active_;
   }
-  template <typename Func, typename... Args>
-  auto ReceivePhase(const Func& f, Args&&... args) {
-    auto sg = PhaseScope(this, CommunicationPhase::Receive);
-    return f(std::forward<Args>(args)...);
+  [[nodiscard]] bool InReceiveCommunicationPhase() const noexcept {
+    return receive_communication_phase_active_;
   }
 
 private:
-  enum class CommunicationPhase { Send, Receive };
-  struct PhaseScope{
-    PhaseScope(BidirectionalChannel* channel, CommunicationPhase phase) : channel_(channel), phase_(phase) {
-      switch(phase_) {
-        case CommunicationPhase::Send:
-          channel_->BeginSendCommunicationPhase();
-          break;
-        case CommunicationPhase::Receive:
-          channel_->BeginReceiveCommunicationPhase();
-          break;
-      }
-    }
-    ~PhaseScope() {
-      switch(phase_) {
-        case CommunicationPhase::Send:
-          channel_->EndSendCommunicationPhase();
-          break;
-        case CommunicationPhase::Receive:
-          channel_->EndReceiveCommunicationPhase();
-          break;
-      }
-    }
-    BidirectionalChannel* channel_;
-    CommunicationPhase phase_;
-  };
-  void openEnginesBP4(bool noClients,
-                      std::string s2cName, std::string c2sName,
-                      adios2::IO& s2cIO, adios2::IO& c2sIO,
-                      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-  void openEnginesSST(bool noClients,
-                      std::string s2cName, std::string c2sName,
-                      adios2::IO& s2cIO, adios2::IO& c2sIO,
-                      adios2::Engine& s2cEngine, adios2::Engine& c2sEngine);
-  [[nodiscard]]
-  redev::LO SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-  [[nodiscard]]
-  redev::LO SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine);
-  [[nodiscard]]
-  std::size_t SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-  void Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine);
-  void CheckVersion(adios2::Engine& eng, adios2::IO& io);
+  void openEnginesBP4(bool noClients, std::string s2cName, std::string c2sName,
+                      adios2::IO &s2cIO, adios2::IO &c2sIO,
+                      adios2::Engine &s2cEngine, adios2::Engine &c2sEngine);
+  void openEnginesSST(bool noClients, std::string s2cName, std::string c2sName,
+                      adios2::IO &s2cIO, adios2::IO &c2sIO,
+                      adios2::Engine &s2cEngine, adios2::Engine &c2sEngine);
+  [[nodiscard]] redev::LO SendServerCommSizeToClient(adios2::IO &s2cIO,
+                                                     adios2::Engine &s2cEngine);
+  [[nodiscard]] redev::LO SendClientCommSizeToServer(adios2::IO &c2sIO,
+                                                     adios2::Engine &c2sEngine);
+  [[nodiscard]] std::size_t
+  SendPartitionTypeToClient(adios2::IO &s2cIO, adios2::Engine &s2cEngine);
+  void Setup(adios2::IO &s2cIO, adios2::Engine &s2cEngine);
+  void CheckVersion(adios2::Engine &eng, adios2::IO &io);
   void ConstructPartitionFromIndex(size_t partition_index);
 
   adios2::IO s2c_io_;
@@ -573,72 +529,76 @@ private:
   MPI_Comm comm_;
   ProcessType process_type_;
   int rank_;
-  Partition & partition_;
+  Partition &partition_;
   bool send_communication_phase_active_;
   bool receive_communication_phase_active_;
-
 };
 
 /**
- * The Redev class exercises the PartitionInterface class APIs to setup the rendezvous
- * partition on the server/rendezvous processes, communicate the partition to
- * the client processes.  It also provides an API to create objects that enable
- * communication with the clients.
- * One instance of Redev can support multiple clients.
+ * The Redev class exercises the PartitionInterface class APIs to setup the
+ * rendezvous partition on the server/rendezvous processes, communicate the
+ * partition to the client processes.  It also provides an API to create objects
+ * that enable communication with the clients. One instance of Redev can support
+ * multiple clients.
  */
 class Redev {
-  public:
-    /**
-     * Create a Redev server
-     * @param[in] comm MPI communicator containing the ranks that are part of the server/client
-     * @param[in] ptn PartitionInterface object defining the redezvous domain partition (see note below)
-     * @param[in] processProcess enum for if the server is a client, server
-     * @param[in] noClients for testing without any clients present
-     * The client processes should pass in an empty PartitionInterface object.
-     * The server will send the client the needed partition information during
-     * the call to CreateAdiosChannel.
-     */
-    Redev(MPI_Comm comm, Partition ptn, ProcessType processType = ProcessType::Server, bool noClients= false);
-    /**
-     * Create a Redev client
-     * @param[in] comm MPI communicator containing the ranks that are part of the server/client
-     * @param[in] processProcess enum for if the server is a client, server
-     * @param[in] noClients for testing without any clients present
-     * The client processes should pass in an empty PartitionInterface object.
-     * The server will send the client the needed partition information during
-     * the call to CreateAdiosChannel.
-     */
-    Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client, bool noClients= false);
-    // FIXME UPDATE DOCS
-    /**
-     * Create a ADIOS2-based BidirectionalComm between the server and one client
-     * @param[in] name name for the communication channel, each BidirectionalComm must have a unique name
-     * @param[in] params list of ADIOS2 parameters controlling IO and Engine creation, see
-     * https://adios2.readthedocs.io/en/latest/engines/engines.html for the list
-     * of applicable parameters for the SST and BP4 engines
-     * @param[in] transportType by default the BP4 Engine is used, other transport
-     * types are available in the TransportType enum
-     */
-    [[nodiscard]]
-    BidirectionalChannel
-    CreateAdiosChannel(std::string name, adios2::Params params,
-                                  TransportType transportType = TransportType::BP4, std::string path = {}) {
-    return BidirectionalChannel{adios,comm,std::move(name),std::move(params),transportType,processType, ptn, std::move(path),noClients};
-    }
-    [[nodiscard]]
-    ProcessType GetProcessType() const noexcept;
-    [[nodiscard]]
-    const Partition & GetPartition() const noexcept;
-    [[nodiscard]]
-    bool RankParticipates() const noexcept;
+public:
+  /**
+   * Create a Redev server
+   * @param[in] comm MPI communicator containing the ranks that are part of the
+   * server/client
+   * @param[in] ptn PartitionInterface object defining the redezvous domain
+   * partition (see note below)
+   * @param[in] processProcess enum for if the server is a client, server
+   * @param[in] noClients for testing without any clients present
+   * The client processes should pass in an empty PartitionInterface object.
+   * The server will send the client the needed partition information during
+   * the call to CreateAdiosChannel.
+   */
+  Redev(MPI_Comm comm, Partition ptn,
+        ProcessType processType = ProcessType::Server, bool noClients = false);
+  /**
+   * Create a Redev client
+   * @param[in] comm MPI communicator containing the ranks that are part of the
+   * server/client
+   * @param[in] processProcess enum for if the server is a client, server
+   * @param[in] noClients for testing without any clients present
+   * The client processes should pass in an empty PartitionInterface object.
+   * The server will send the client the needed partition information during
+   * the call to CreateAdiosChannel.
+   */
+  Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client,
+        bool noClients = false);
+  // FIXME UPDATE DOCS
+  /**
+   * Create a ADIOS2-based BidirectionalComm between the server and one client
+   * @param[in] name name for the communication channel, each BidirectionalComm
+   * must have a unique name
+   * @param[in] params list of ADIOS2 parameters controlling IO and Engine
+   * creation, see https://adios2.readthedocs.io/en/latest/engines/engines.html
+   * for the list of applicable parameters for the SST and BP4 engines
+   * @param[in] transportType by default the BP4 Engine is used, other transport
+   * types are available in the TransportType enum
+   */
+  [[nodiscard]] Channel
+  CreateAdiosChannel(std::string name, adios2::Params params,
+                     TransportType transportType = TransportType::BP4,
+                     std::string path = {}) {
+    return AdiosChannel{
+        adios,       comm, std::move(name), std::move(params), transportType,
+        processType, ptn,  std::move(path), noClients};
+  }
+  [[nodiscard]] ProcessType GetProcessType() const noexcept;
+  [[nodiscard]] const Partition &GetPartition() const noexcept;
+  [[nodiscard]] bool RankParticipates() const noexcept;
 
-  private:
-    ProcessType processType;
-    bool noClients; // true: no clients will be connected, false: otherwise
-    MPI_Comm comm;
-    adios2::ADIOS adios;
-    int rank;
-    Partition ptn;
+private:
+  ProcessType processType;
+  bool noClients; // true: no clients will be connected, false: otherwise
+  MPI_Comm comm;
+  adios2::ADIOS adios;
+  int rank;
+  Partition ptn;
 };
 
-}
+} // namespace redev

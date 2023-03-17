@@ -275,7 +275,7 @@ namespace redev {
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
   // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
-  void BidirectionalChannel::openEnginesBP4(bool noClients,
+  void AdiosChannel::openEnginesBP4(bool noClients,
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -304,7 +304,7 @@ namespace redev {
     // SST support
   // - with a rendezvous + non-rendezvous application pair
   // - with only a rendezvous application for debugging/testing
-  void BidirectionalChannel::openEnginesSST(bool noClients,
+  void AdiosChannel::openEnginesSST(bool noClients,
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -344,7 +344,7 @@ namespace redev {
       MPI_Comm_rank(comm, &rank); //set member var
     }
 
-  void BidirectionalChannel::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+  void AdiosChannel::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     // initialize the partition on the client based on how it's set on the server
     if (process_type_ == ProcessType::Server) {
       std::ignore = SendPartitionTypeToClient(s2cIO, s2cEngine);
@@ -374,7 +374,8 @@ namespace redev {
   /*
    * return the number of processes in the client's MPI communicator
    */
-  redev::LO BidirectionalChannel::SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
+  redev::LO
+  AdiosChannel::SendClientCommSizeToServer(adios2::IO& c2sIO, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
     int commSize;
     MPI_Comm_size(comm_, &commSize);
@@ -402,7 +403,8 @@ namespace redev {
   /*
    * return the number of processes in the server's MPI communicator
    */
-  redev::LO BidirectionalChannel::SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+  redev::LO
+  AdiosChannel::SendServerCommSizeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
     int commSize;
     MPI_Comm_size(comm_, &commSize);
@@ -427,7 +429,8 @@ namespace redev {
     return serverCommSz;
   }
 
-  std::size_t BidirectionalChannel::SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+  std::size_t
+  AdiosChannel::SendPartitionTypeToClient(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
     REDEV_FUNCTION_TIMER;
     const auto varName = "redev partition type";
     auto status = s2cEngine.BeginStep();
@@ -451,7 +454,7 @@ namespace redev {
     return partition_index;
 }
 
-void BidirectionalChannel::ConstructPartitionFromIndex(size_t partition_index) {
+void AdiosChannel::ConstructPartitionFromIndex(size_t partition_index) {
   if(partition_.index() != partition_index) {
     switch(partition_index) {
     case 0:
@@ -468,7 +471,7 @@ void BidirectionalChannel::ConstructPartitionFromIndex(size_t partition_index) {
   }
 }
 
-void BidirectionalChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
+void AdiosChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
     REDEV_FUNCTION_TIMER;
     const auto hashVarName = "redev git hash";
     auto status = eng.BeginStep();
