@@ -21,5 +21,9 @@ using Reals = std::vector<Real>;
 typedef std::complex<double> CV;
 ///Vector of complex values
 using CVs = std::vector<CV>;
+
+enum class ProcessType { Client = 0, Server = 1 };
+enum class TransportType { BP4 = 0, SST = 1 };
+
 }
 #endif
