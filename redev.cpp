@@ -495,6 +495,6 @@ void AdiosChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
   }
   ProcessType Redev::GetProcessType() const noexcept { return processType; }
   const Partition &Redev::GetPartition() const noexcept {return ptn;}
-  bool Redev::RankParticipates() const noexcept { return comm == MPI_COMM_NULL; }
+  bool Redev::RankParticipates() const noexcept { return comm != MPI_COMM_NULL; }
 
   }

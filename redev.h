@@ -200,9 +200,12 @@ public:
   CreateAdiosChannel(std::string name, adios2::Params params,
                      TransportType transportType = TransportType::BP4,
                      std::string path = {}) {
-    return AdiosChannel{
-        adios,       comm, std::move(name), std::move(params), transportType,
-        processType, ptn,  std::move(path), noClients};
+    if(RankParticipates()) {
+      return AdiosChannel{
+          adios,       comm, std::move(name), std::move(params), transportType,
+          processType, ptn,  std::move(path), noClients};
+    }
+    return NoOpChannel{};
   }
   [[nodiscard]] ProcessType GetProcessType() const noexcept;
   [[nodiscard]] const Partition &GetPartition() const noexcept;

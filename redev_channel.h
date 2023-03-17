@@ -182,5 +182,18 @@ private:
   bool receive_communication_phase_active_;
 };
 
+class NoOpChannel {
+public:
+  template <typename T>
+  [[nodiscard]]
+  BidirectionalComm<T> CreateComm(std::string name) {
+    return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
+  }
+  void BeginSendCommunicationPhase(){}
+  void EndSendCommunicationPhase(){}
+  void BeginReceiveCommunicationPhase(){}
+  void EndReceiveCommunicationPhase(){}
+};
+
 } // namespace redev
 #endif // REDEV_REDEV_CHANNEL_H

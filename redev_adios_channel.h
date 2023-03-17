@@ -102,9 +102,6 @@ public:
     // Quash compiler warnings
     return {nullptr, nullptr};
   }
-  template <typename T> [[nodiscard]] BidirectionalComm<T> CreateNoOpComm() {
-    return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
-  }
 
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all
   // the switch statements...
