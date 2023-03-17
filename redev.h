@@ -212,6 +212,7 @@ public:
   [[nodiscard]] bool RankParticipates() const noexcept;
 
 private:
+  void UpdateRank();
   ProcessType processType;
   bool noClients; // true: no clients will be connected, false: otherwise
   MPI_Comm comm;

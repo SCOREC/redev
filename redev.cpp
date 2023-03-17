@@ -33,6 +33,7 @@ namespace redev {
   ClassPtn::ClassPtn() {}
 
   ClassPtn::ClassPtn(MPI_Comm comm, const redev::LOs& ranks_, const ModelEntVec& ents) {
+    REDEV_ALWAYS_ASSERT(comm != MPI_COMM_NULL);
     assert(ranks_.size() == ents.size());
     if( ! ModelEntDimsValid(ents) ) exit(EXIT_FAILURE);
     for(auto i=0; i<ranks_.size(); i++) {
@@ -332,7 +333,7 @@ namespace redev {
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
     REDEV_ALWAYS_ASSERT(isInitialized);
-    MPI_Comm_rank(comm, &rank); //set member var
+    UpdateRank();
   }
   Redev::Redev(MPI_Comm comm, ProcessType processType, bool noClients)
     : comm(comm), adios(comm), ptn(), processType(processType), noClients(noClients) {
@@ -341,7 +342,7 @@ namespace redev {
       int isInitialized = 0;
       MPI_Initialized(&isInitialized);
       REDEV_ALWAYS_ASSERT(isInitialized);
-      MPI_Comm_rank(comm, &rank); //set member var
+      UpdateRank();
     }
 
   void AdiosChannel::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
@@ -496,5 +497,13 @@ void AdiosChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
   ProcessType Redev::GetProcessType() const noexcept { return processType; }
   const Partition &Redev::GetPartition() const noexcept {return ptn;}
   bool Redev::RankParticipates() const noexcept { return comm != MPI_COMM_NULL; }
+  void Redev::UpdateRank() {
+    if(RankParticipates()) {
+      MPI_Comm_rank(comm, &rank); //set member var
+    }
+    else {
+      rank = -1;
+    }
+  }
 
   }
