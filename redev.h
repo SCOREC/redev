@@ -157,8 +157,7 @@ namespace redev {
  * for RCB or the assignment of ranks to geometric model entities is not the
  * purpose/responsiblity of this class or the RCBPtn and ClassPtn derived
  * classes.
- * @note this class is only used to enforce the partition interface and
- * can/should be replaced with concept in C++20
+ * @note this class is for exposition only
  */
 class PartitionInterface {
 public:
@@ -192,7 +191,7 @@ public:
  * Section 2.2.2 of the PUMI Users Guide (v2.1)
  * https://www.scorec.rpi.edu/pumi/PUMI.pdf.
  */
-class ClassPtn : public PartitionInterface {
+class ClassPtn {
 public:
   /**
    * Pair of integers (dimension, id) that uniquely identify a geometric model
@@ -223,9 +222,9 @@ public:
    * @param[in] ent the geometric model entity
    */
   [[nodiscard]] redev::LO GetRank(ModelEnt ent) const;
-  void Write(adios2::Engine &eng, adios2::IO &io) final;
-  void Read(adios2::Engine &eng, adios2::IO &io) final;
-  void Broadcast(MPI_Comm comm, int root = 0) final;
+  void Write(adios2::Engine &eng, adios2::IO &io);
+  void Read(adios2::Engine &eng, adios2::IO &io);
+  void Broadcast(MPI_Comm comm, int root = 0);
   /**
    * Return the vector of owning ranks for all geometric model entity.
    */
@@ -281,7 +280,7 @@ private:
  * nodes at each level from left to right. The root of the cut tree is stored at
  * index 1 and index 0 is unused. See test_query.cpp for examples.
  */
-class RCBPtn : public PartitionInterface {
+class RCBPtn {
 public:
   RCBPtn();
   /**
@@ -307,9 +306,9 @@ public:
    * domains.
    */
   redev::LO GetRank(std::array<redev::Real, 3> &pt) const;
-  void Write(adios2::Engine &eng, adios2::IO &io) final;
-  void Read(adios2::Engine &eng, adios2::IO &io) final;
-  void Broadcast(MPI_Comm comm, int root = 0) final;
+  void Write(adios2::Engine &eng, adios2::IO &io);
+  void Read(adios2::Engine &eng, adios2::IO &io);
+  void Broadcast(MPI_Comm comm, int root = 0);
   /**
    * Return the vector of owning ranks for each sub-domain of the cut tree.
    */
