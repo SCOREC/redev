@@ -82,7 +82,7 @@ void sendRecvRdvMapped(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto channel = rdv.CreateAdiosChannel(name, params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>(name);
+  auto commPair = channel.CreateComm<redev::LO>(name, rdv.GetMPIComm());
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {
@@ -143,7 +143,7 @@ void sendRecvRdvFanOut(MPI_Comm mpiComm, const bool isRdv, const int mbpr,
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto channel = rdv.CreateAdiosChannel(name, params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>(name);
+  auto commPair = channel.CreateComm<redev::LO>(name, rdv.GetMPIComm());
   // the non-rendezvous app sends to the rendezvous app
   for(int i=0; i<3; i++) {
     if(!isRdv) {

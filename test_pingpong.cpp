@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto channel = rdv.CreateAdiosChannel(name, params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>(name);
+  auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {

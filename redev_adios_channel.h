@@ -1,5 +1,6 @@
 #ifndef REDEV_REDEV_ADIOS_CHANNEL_H
 #define REDEV_REDEV_ADIOS_CHANNEL_H
+#include "redev_assert.h"
 #include <adios2.h>
 
 namespace redev {
@@ -86,21 +87,22 @@ public:
     }
   }
   template <typename T>
-  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name) {
+  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm) {
     // TODO, remove s2c/c2s destinction on variable names then use std::move
     // name
-    auto s2c = std::make_unique<AdiosComm<T>>(comm_, num_client_ranks_,
-                                              s2c_engine_, s2c_io_, name);
-    auto c2s = std::make_unique<AdiosComm<T>>(comm_, num_server_ranks_,
-                                              c2s_engine_, c2s_io_, name);
-    switch (process_type_) {
-    case ProcessType::Client:
-      return {std::move(c2s), std::move(s2c)};
-    case ProcessType::Server:
-      return {std::move(s2c), std::move(c2s)};
+    if(comm != MPI_COMM_NULL) {
+      auto s2c = std::make_unique<AdiosComm<T>>(comm, num_client_ranks_,
+                                                s2c_engine_, s2c_io_, name);
+      auto c2s = std::make_unique<AdiosComm<T>>(comm, num_server_ranks_,
+                                                c2s_engine_, c2s_io_, name);
+      switch (process_type_) {
+      case ProcessType::Client:
+        return {std::move(c2s), std::move(s2c)};
+      case ProcessType::Server:
+        return {std::move(s2c), std::move(c2s)};
+      }
     }
-    // Quash compiler warnings
-    return {nullptr, nullptr};
+    return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
 
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all

@@ -61,7 +61,7 @@ void sendRecvRdv(MPI_Comm mpiComm, const bool isRdv, const int mbpr, const int r
   ss << mbpr << " B rdv ";
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto channel = rdv.CreateAdiosChannel(name, params, redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>(name);
+  auto commPair = channel.CreateComm<redev::LO>(name, rdv.GetMPIComm());
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     //dest and offets define a CSR for which ranks the array of messages get sent to

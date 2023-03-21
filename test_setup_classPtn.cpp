@@ -16,7 +16,7 @@ void classPtnTest(int rank, bool isRdv) {
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
   auto channel = rdv.CreateAdiosChannel("foo", params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>("foo");
+  auto commPair = channel.CreateComm<redev::LO>("foo", MPI_COMM_WORLD);
   if(!isRdv) {
     const auto& partition = std::get<redev::ClassPtn>(rdv.GetPartition());
     auto p_ranks = partition.GetRanks();

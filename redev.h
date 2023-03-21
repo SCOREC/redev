@@ -210,7 +210,7 @@ public:
   [[nodiscard]] ProcessType GetProcessType() const noexcept;
   [[nodiscard]] const Partition &GetPartition() const noexcept;
   [[nodiscard]] bool RankParticipates() const noexcept;
-
+  [[nodiscard]] MPI_Comm GetMPIComm() const noexcept;
 private:
   void UpdateRank();
   ProcessType processType;

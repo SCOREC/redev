@@ -114,7 +114,7 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   clientName << "client" << clientId;
   auto channel = rdv.CreateAdiosChannel(
       clientName.str(), params, static_cast<redev::TransportType>(isSST));
-  auto commPair = channel.CreateComm<redev::LO>(clientName.str());
+  auto commPair = channel.CreateComm<redev::LO>(clientName.str(),rdv.GetMPIComm());
 
   //setup outbound message
   std::cout << "sending to server\n";
@@ -163,10 +163,10 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
 
   auto client0_channel = rdv.CreateAdiosChannel(
       "client0", params, static_cast<redev::TransportType>(isSST));
-  auto client0 = client0_channel.CreateComm<redev::LO>("client0");
+  auto client0 = client0_channel.CreateComm<redev::LO>("client0", rdv.GetMPIComm());
   auto client1_channel = rdv.CreateAdiosChannel(
       "client1", params, static_cast<redev::TransportType>(isSST));
-  auto client1 = client1_channel.CreateComm<redev::LO>("client1");
+  auto client1 = client1_channel.CreateComm<redev::LO>("client1", rdv.GetMPIComm());
   /// [Server Create Clients]
 
   /// [Server First Inbound Messages from Clients]

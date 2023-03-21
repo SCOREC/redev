@@ -505,5 +505,6 @@ void AdiosChannel::CheckVersion(adios2::Engine& eng, adios2::IO& io) {
       rank = -1;
     }
   }
+  MPI_Comm Redev::GetMPIComm() const noexcept { return comm; }
 
   }

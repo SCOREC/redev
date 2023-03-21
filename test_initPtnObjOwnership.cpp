@@ -20,7 +20,7 @@ void client() {
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", timeout}};
   auto channel = rdv.CreateAdiosChannel("foo", params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>("foo");
+  auto commPair = channel.CreateComm<redev::LO>("foo", MPI_COMM_WORLD);
 }
 
 void server() {
@@ -32,7 +32,7 @@ void server() {
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", timeout}};
   auto channel = rdv.CreateAdiosChannel("foo", params,
                                                     redev::TransportType::BP4);
-  auto commPair = channel.CreateComm<redev::LO>("foo");
+  auto commPair = channel.CreateComm<redev::LO>("foo", MPI_COMM_WORLD);
 }
 
 int main(int argc, char** argv) {
