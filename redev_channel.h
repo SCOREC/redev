@@ -90,57 +90,57 @@ private:
                                    CommunicatorDataType type) final {
       switch (type) {
       case CommunicatorDataType::INT8:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT8>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::INT16:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT16>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::INT32:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT32>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::INT64:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT64>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::UINT8:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT8>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::UINT16:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT16>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::UINT32:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT32>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::UINT64:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT64>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::LONG_INT:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_INT>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::FLOAT:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::FLOAT>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::DOUBLE:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::DOUBLE>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::LONG_DOUBLE:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_DOUBLE>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       case CommunicatorDataType::COMPLEX_DOUBLE:
-        return impl_.template CreateComm<
+        return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::COMPLEX_DOUBLE>::type>(
-            std::move(name), comm);
+            std::move(name), comm)};
       }
       return {};
     }
