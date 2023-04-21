@@ -11,7 +11,9 @@ void rcbPtnTest(int rank, bool isRdv) {
   const auto dim = 2;
   redev::Redev rdv(MPI_COMM_WORLD, redev::Partition{std::in_place_type<redev::RCBPtn>, dim,ranks,cuts},static_cast<redev::ProcessType>(isRdv));
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>("foo",params,redev::TransportType::BP4);
+  auto channel = rdv.CreateAdiosChannel("foo", params,
+                                                    redev::TransportType::BP4);
+  auto commPair = channel.CreateComm<redev::LO>("foo", MPI_COMM_WORLD);
   if(!isRdv) {
     const auto& partition = std::get<redev::RCBPtn>(rdv.GetPartition());
     auto ptnRanks = partition.GetRanks();

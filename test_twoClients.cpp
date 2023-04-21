@@ -29,7 +29,7 @@
  *
  * \par Client Setup
  *
- * Client setup begins with creation of the redev::BidirectionalComm communication object via the call to redev::CreateAdiosClient.  Note, the string for each created redev::BidirectionalComm must match in the Server and Client calls.
+ * Client setup begins with creation of the redev::BidirectionalComm communication object via the call to redev::CreateAdiosChannel.  Note, the string for each created redev::BidirectionalComm must match in the Server and Client calls.
  *
  * Given that the data being transferred is a single integer and each Client and
  * Server is only running on a single process the data layout (`dest` and
@@ -57,7 +57,7 @@
  * \par Server Create Clients
  *
  * In the Client code only a single redev::BidirectionalComm is needed.
- * As there are two Clients, the Server must call redev::CreateAdiosClient
+ * As there are two Clients, the Server must call redev::CreateAdiosChannel
  * twice; once for "client0" and again for "client1".
  *
  * \snippet{lineno} test_twoClients.cpp Server Create Clients
@@ -112,7 +112,9 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
   /// [Client Setup]
   std::stringstream clientName;
   clientName << "client" << clientId;
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(clientName.str(),params,static_cast<redev::TransportType>(isSST));
+  auto channel = rdv.CreateAdiosChannel(
+      clientName.str(), params, static_cast<redev::TransportType>(isSST));
+  auto commPair = channel.CreateComm<redev::LO>(clientName.str(),rdv.GetMPIComm());
 
   //setup outbound message
   std::cout << "sending to server\n";
@@ -122,11 +124,15 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
 
   //first outbound send
   redev::LOs msgs = redev::LOs(1,42+clientId);
+  channel.BeginSendCommunicationPhase();
   commPair.Send(msgs.data());
+  channel.EndSendCommunicationPhase();
 
   //first inbound message from server
-  std::cout << "recieving from server\n";
+  std::cout << "receiving from server\n";
+  channel.BeginReceiveCommunicationPhase();
   auto msgFromServer = commPair.Recv();
+  channel.EndReceiveCommunicationPhase();
   auto inMsg = commPair.GetInMessageLayout();
   REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
   REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
@@ -140,9 +146,13 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
     std::cout << "iter " << iter << "\n";
     //outbound message to server
     redev::LOs outMsg = redev::LOs(1,42+clientId);
+    channel.BeginSendCommunicationPhase();
     commPair.Send(outMsg.data());
+    channel.EndSendCommunicationPhase();
     //inbound message from server
+    channel.BeginReceiveCommunicationPhase();
     auto msg = commPair.Recv();
+    channel.EndReceiveCommunicationPhase();
     REDEV_ALWAYS_ASSERT(msg[0] == 1337+clientId);
   }
   /// [Client Loop]
@@ -150,13 +160,20 @@ void client(redev::Redev& rdv, const int clientId, adios2::Params params, const 
 
 void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   /// [Server Create Clients]
-  auto client0 = rdv.CreateAdiosClient<redev::LO>("client0",params,static_cast<redev::TransportType>(isSST));
-  auto client1 = rdv.CreateAdiosClient<redev::LO>("client1",params,static_cast<redev::TransportType>(isSST));
+
+  auto client0_channel = rdv.CreateAdiosChannel(
+      "client0", params, static_cast<redev::TransportType>(isSST));
+  auto client0 = client0_channel.CreateComm<redev::LO>("client0", rdv.GetMPIComm());
+  auto client1_channel = rdv.CreateAdiosChannel(
+      "client1", params, static_cast<redev::TransportType>(isSST));
+  auto client1 = client1_channel.CreateComm<redev::LO>("client1", rdv.GetMPIComm());
   /// [Server Create Clients]
 
   /// [Server First Inbound Messages from Clients]
   std::cout << "recieving from client0\n";
+  client0_channel.BeginReceiveCommunicationPhase();
   auto msgs0 = client0.Recv();
+  client0_channel.EndReceiveCommunicationPhase();
   {
     auto inMsg = client0.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
@@ -167,7 +184,9 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   }
 
   std::cout << "recieving from client1\n";
+  client1_channel.BeginReceiveCommunicationPhase();
   auto msgs1 = client1.Recv();
+  client1_channel.EndReceiveCommunicationPhase();
   {
     auto inMsg = client1.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
@@ -177,7 +196,7 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
     REDEV_ALWAYS_ASSERT(msgs1[0] == 43);
   }
   /// [Server First Inbound Messages from Clients]
-
+  client0_channel.BeginSendCommunicationPhase();
   /// [Server Outbound Messages to Clients]
   std::cout << "sending to client0\n";
   redev::LOs dest = redev::LOs{0};
@@ -185,26 +204,36 @@ void server(redev::Redev& rdv, adios2::Params params, const bool isSST) {
   client0.SetOutMessageLayout(dest, offsets);
   redev::LOs msgs = redev::LOs(1,1337);
   client0.Send(msgs.data());
+  client0_channel.EndSendCommunicationPhase();
 
   std::cout << "sending to client1\n";
+  client1_channel.BeginSendCommunicationPhase();
   client1.SetOutMessageLayout(dest, offsets);
   msgs = redev::LOs(1,1338);
   client1.Send(msgs.data());
   /// [Server Outbound Messages to Clients]
-
+  client1_channel.EndSendCommunicationPhase();
   /// [Server Loop]
   for(int iter=0; iter<3; iter++) {
+    client0_channel.BeginReceiveCommunicationPhase();
+    client1_channel.BeginReceiveCommunicationPhase();
     std::cout << "iter " << iter << "\n";
     //inbound messages from clients
     auto inMsg0 = client0.Recv();
-    REDEV_ALWAYS_ASSERT(inMsg0[0] == 42);
     auto inMsg1 = client1.Recv();
+    client0_channel.EndReceiveCommunicationPhase();
+    client1_channel.EndReceiveCommunicationPhase();
+    REDEV_ALWAYS_ASSERT(inMsg0[0] == 42);
     REDEV_ALWAYS_ASSERT(inMsg1[0] == 43);
+    client0_channel.BeginSendCommunicationPhase();
+    client1_channel.BeginSendCommunicationPhase();
     //outbound messages to clients
     redev::LOs outMsg0 = redev::LOs(1,1337);
     client0.Send(outMsg0.data());
     redev::LOs outMsg1 = redev::LOs(1,1338);
     client1.Send(outMsg1.data());
+    client0_channel.EndSendCommunicationPhase();
+    client1_channel.EndSendCommunicationPhase();
   }
   /// [Server Loop]
 }

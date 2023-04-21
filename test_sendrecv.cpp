@@ -43,7 +43,9 @@ int main(int argc, char** argv) {
   redev::Redev rdv(MPI_COMM_WORLD,redev::Partition{std::move(ptn)},static_cast<redev::ProcessType>(isRdv));
   std::string name = "foo";
   adios2::Params params{ {"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
-  auto commPair = rdv.CreateAdiosClient<redev::LO>(name,params,redev::TransportType::BP4);
+  auto channel = rdv.CreateAdiosChannel(name, params,
+                                                    redev::TransportType::BP4);
+  auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
   // the non-rendezvous app sends to the rendezvous app
   if(!isRdv) {
     redev::LOs dest;
@@ -63,9 +65,13 @@ int main(int argc, char** argv) {
       msgs = redev::LOs(11,2);
     }
     commPair.SetOutMessageLayout(dest, offsets);
-    commPair.Send(msgs.data());
+    channel.BeginSendCommunicationPhase();
+    commPair.Send(msgs.data(),redev::Mode::Deferred);
+    channel.EndSendCommunicationPhase();
   } else {
-    auto msgVec = commPair.Recv();
+    channel.BeginReceiveCommunicationPhase();
+    auto msgVec = commPair.Recv(redev::Mode::Deferred);
+    channel.EndReceiveCommunicationPhase();
     auto inMsg = commPair.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));

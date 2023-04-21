@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0...3.21.0)
 
-project(redev VERSION 4.1.0 LANGUAGES C CXX) #C is required to find MPI_C
+project(redev VERSION 4.3.0 LANGUAGES C CXX) #C is required to find MPI_C
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -20,14 +20,18 @@ find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
 
 set(REDEV_HEADERS
   redev.h
-  redev_types.h
-  redev_comm.h
-  redev_profile.h
-  redev_time.h
+  redev_adios_channel.h
   redev_assert.h
-  redev_strings.h
-  redev_variant_tools.h
+  redev_bidirectional_comm.h
+  redev_channel.h
+  redev_comm.h
   redev_exclusive_scan.h
+  redev_partition.h
+  redev_profile.h
+  redev_strings.h
+  redev_time.h
+  redev_types.h
+  redev_variant_tools.h
   )
 
 set(REDEV_SOURCES
