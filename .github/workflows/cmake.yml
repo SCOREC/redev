@@ -13,13 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compiler: [g++,clang++]
+        compiler:
+          - { compiler: GNU, CC: gcc, CXX: g++ }
+          - { compiler: LLVM, CC: clang, CXX: clang++ }
         language: ['cpp']
         build_type: [Debug, Release]
     # Permissions needed for codeql analysis 
     # I think this is the minimal set needed for a public repo (https://github.com/github/codeql-action/pull/689).
     permissions:
       security-events: write
+    env:
+      MPICH_CC: ${{matrix.compiler.CC}}
+      MPICH_CXX: ${{matrix.compiler.CXX}}
 
     steps:
     - name: Install CMake
@@ -38,7 +43,7 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build-adios2
 
     - name: ADIOS2 Checkout repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: ornladios/adios2
         path: adios2
@@ -47,7 +52,8 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build-adios2
       run: /usr/bin/cmake $GITHUB_WORKSPACE/adios2
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DCMAKE_CXX_COMPILER=mpicxx
+           -DCMAKE_CC_COMPILER=mpicc
            -DADIOS2_USE_MPI=ON
            -DADIOS2_USE_CUDA=OFF 
            -DADIOS2_BUILD_EXAMPLES=OFF 
@@ -65,7 +71,7 @@ jobs:
         /usr/bin/cmake --install .
 
     - name: Redev Checkout repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: SCOREC/redev
         path: redev
@@ -77,7 +83,8 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build-redev
       run: cmake $GITHUB_WORKSPACE/redev
-           -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+           -DCMAKE_CXX_COMPILER=mpicxx
+           -DCMAKE_CCC_COMPILER=mpicc
            -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DADIOS2_HAVE_SST=ON
