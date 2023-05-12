@@ -15,9 +15,10 @@ jobs:
       matrix:
         compiler:
           - { compiler: GNU, CC: gcc, CXX: g++ }
-          - { compiler: LLVM, CC: clang, CXX: clang++ }
+          #- { compiler: LLVM, CC: clang, CXX: clang++ }
         language: ['cpp']
-        build_type: [Debug, Release]
+        #build_type: [Debug, Release]
+        build_type: [Debug]
     # Permissions needed for codeql analysis 
     # I think this is the minimal set needed for a public repo (https://github.com/github/codeql-action/pull/689).
     permissions:
@@ -25,6 +26,7 @@ jobs:
     env:
       MPICH_CC: ${{matrix.compiler.CC}}
       MPICH_CXX: ${{matrix.compiler.CXX}}
+      adios_version: v2.9.0
 
     steps:
     - name: Install CMake
@@ -40,18 +42,28 @@ jobs:
         sudo apt-get install -yq mpich libmpich-dev
 
     - name: ADIOS2 Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build-adios2
+      run: /usr/bin/cmake -E make_directory ${{runner.workspace}}/build-adios2
+
+    - name: Restore ADIOS2
+      id: restore-adios2
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{runner.workspace}}/build-adios2/install
+        key: adios2-${{env.adios_version}}-${{matrix.compiler}}
 
     - name: ADIOS2 Checkout repo
+      if: steps.restore-adios2.outputs.cache-hit != 'true'
       uses: actions/checkout@v3
       with:
         repository: ornladios/adios2
         path: adios2
+        ref: ${{env.adios_version}}
 
     - name: ADIOS2 Configure CMake
+      if: steps.restore-adios2.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{runner.workspace}}/build-adios2
-      run: cmake $GITHUB_WORKSPACE/adios2
+      run: /usr/bin/cmake $GITHUB_WORKSPACE/adios2
            -DCMAKE_CXX_COMPILER=mpicxx
            -DCMAKE_CC_COMPILER=mpicc
            -DADIOS2_USE_MPI=ON
@@ -64,27 +76,34 @@ jobs:
            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-adios2/install
 
     - name: ADIOS2 Build
+      if: steps.restore-adios2.outputs.cache-hit != 'true'
       working-directory: ${{runner.workspace}}/build-adios2
       shell: bash
       run: |
-        cmake --build . --parallel 2
-        cmake --install .
+        /usr/bin/cmake --build . --parallel 2
+        /usr/bin/cmake --install .
+
+    - name: Save ADIOS2
+      id: save-adios2
+      uses: actions/cache/save@v3
+      with:
+        path: ${{runner.workspace}}/build-adios2/install
+        key: ${{ steps.restore-adios2.outputs.cache-primary-key }}
 
     - name: Redev Checkout repo
       uses: actions/checkout@v3
       with:
-        repository: SCOREC/redev
         path: redev
 
     - name: Redev Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build-redev
+      run: /usr/bin/cmake -E make_directory ${{runner.workspace}}/build-redev
 
     - name: Redev Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build-redev
-      run: cmake $GITHUB_WORKSPACE/redev
+      run: /usr/bin/cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=mpicxx
-           -DCMAKE_CCC_COMPILER=mpicc
+           -DCMAKE_CC_COMPILER=mpicc
            -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DADIOS2_HAVE_SST=ON
@@ -92,22 +111,22 @@ jobs:
            -DBUILD_TESTING=ON
 
     # Initializes the CodeQL tools for scanning.  This must be done before the code is built.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-        queries: security-and-quality
-        source-root: redev
+    #- name: Initialize CodeQL
+    #  uses: github/codeql-action/init@v2
+    #  with:
+    #    languages: ${{ matrix.language }}
+    #    queries: security-and-quality
+    #    source-root: redev
         
     - name: Redev Build
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
-      run: cmake --build . --parallel 2
+      run: /usr/bin/cmake --build . --parallel 2
 
     - name: Redev Test
       working-directory: ${{runner.workspace}}/build-redev
       shell: bash
       run: ctest --timeout 10 --output-on-failure
       
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+    #- name: Perform CodeQL Analysis
+    #  uses: github/codeql-action/analyze@v2

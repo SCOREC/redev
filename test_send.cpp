@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
       msgs = redev::LOs(11,2);
     }
     commPair.SetOutMessageLayout(dest, offsets);
-    commPair.Send(msgs.data());
+    channel.SendPhase([&](){commPair.Send(msgs.data());});
   }
   }
   MPI_Finalize();
