@@ -15,10 +15,9 @@ jobs:
       matrix:
         compiler:
           - { compiler: GNU, CC: gcc, CXX: g++ }
-          #- { compiler: LLVM, CC: clang, CXX: clang++ }
+          - { compiler: LLVM, CC: clang, CXX: clang++ }
         language: ['cpp']
-        #build_type: [Debug, Release]
-        build_type: [Debug]
+        build_type: [Debug, Release]
     # Permissions needed for codeql analysis 
     # I think this is the minimal set needed for a public repo (https://github.com/github/codeql-action/pull/689).
     permissions:
