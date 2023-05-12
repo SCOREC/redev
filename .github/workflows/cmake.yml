@@ -48,7 +48,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{runner.workspace}}/build-adios2/install
-        key: adios2-${{env.adios_version}}-${{matrix.compiler}}
+        key: adios2-${{env.adios_version}}-${{ matrix.compiler.CC }}
 
     - name: ADIOS2 Checkout repo
       if: steps.restore-adios2.outputs.cache-hit != 'true'
