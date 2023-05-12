@@ -156,19 +156,19 @@ if(BUILD_TESTING)
     NAME2 app PROCS2 3 EXE2 ./test_send ARGS2 0)
   if(ADIOS2_BPLS_PATH)
     add_test(NAME test_send_check_msgs
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 foo_c2s.bp/ foo_c2s)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 27 foo_c2s.bp/ foo)
     set_tests_properties(test_send_check_msgs PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 2 2 2 2 1 1 1 2 0 0 0 0 1 1 1 1 2 2 1 1 2 2 2 2"
       REQUIRED_FILES "foo_c2s.bp/") #results in ctest reporting 'not run'
     add_test(NAME test_send_check_offsets
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 5 foo_c2s.bp/ foo_c2s_offsets)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 5 foo_c2s.bp/ foo_offsets)
     set_tests_properties(test_send_check_offsets PROPERTIES
       PASS_REGULAR_EXPRESSION "0 7 11 21 27"
       REQUIRED_FILES "foo_c2s.bp/")
     add_test(NAME test_send_check_srcRanks
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 12 foo_c2s.bp/ foo_c2s_srcRanks)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 12 foo_c2s.bp/ foo_srcRanks)
     set_tests_properties(test_send_check_srcRanks PROPERTIES
-      ASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2"
+      PASS_REGULAR_EXPRESSION "0 0 0 0 2 0 4 0 3 3 8 2"
       REQUIRED_FILES "foo_c2s.bp/")
   endif()
   add_exe(test_sendOneToTwo test_sendOneToTwo.cpp)
@@ -177,7 +177,7 @@ if(BUILD_TESTING)
     NAME2 app PROCS2 1 EXE2 ./test_sendOneToTwo ARGS2 0)
   if(ADIOS2_BPLS_PATH)
     add_test(NAME test_sendOneToTwo_3p_check_msgs
-      COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 foo_c2s.bp/ foo_c2s)
+      COMMAND ${ADIOS2_BPLS_PATH} -d -n 6 foo_c2s.bp/ foo)
     set_tests_properties(test_sendOneToTwo_3p_check_msgs PROPERTIES
       PASS_REGULAR_EXPRESSION "0 0 1 1 1 1"
       REQUIRED_FILES "foo_c2s.bp/") #results in ctest reporting 'not run'
