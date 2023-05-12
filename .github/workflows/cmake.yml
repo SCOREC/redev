@@ -51,7 +51,7 @@ jobs:
     - name: ADIOS2 Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build-adios2
-      run: /usr/bin/cmake $GITHUB_WORKSPACE/adios2
+      run: cmake $GITHUB_WORKSPACE/adios2
            -DCMAKE_CXX_COMPILER=mpicxx
            -DCMAKE_CC_COMPILER=mpicc
            -DADIOS2_USE_MPI=ON
@@ -67,8 +67,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build-adios2
       shell: bash
       run: |
-        /usr/bin/cmake --build . --parallel 2
-        /usr/bin/cmake --install .
+        cmake --build . --parallel 2
+        cmake --install .
 
     - name: Redev Checkout repo
       uses: actions/checkout@v3
