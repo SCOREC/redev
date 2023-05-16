@@ -83,22 +83,21 @@ function(CheckGitVersion)
 
 endfunction()
 
-function(CheckInGitRepo)
+function(CheckInGitRepo ret)
     execute_process(
         COMMAND git rev-parse
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
         RESULT_VARIABLE GIT_EXISTS_RESULT
         )
-    message("GIT_EXISTS_RESULT ${GIT_EXISTS_RESULT}")
     if(GIT_EXISTS_RESULT EQUAL 0)
-      set(IN_GIT_REPO true)
+      set(${ret} true PARENT_SCOPE)
     else()
-      set(IN_GIT_REPO false)
+      set(${ret} false PARENT_SCOPE)
     endif()
 endfunction()
 
 function(CheckGitSetup)
-    CheckInGitRepo()
+    CheckInGitRepo(IN_GIT_REPO)
     if(NOT IN_GIT_REPO)
       message(STATUS "Not in Git Repo, version set to ${CMAKE_PROJECT_VERSION}")
       set(GIT_HASH ${CMAKE_PROJECT_VERSION})
@@ -121,6 +120,13 @@ function(CheckGitSetup)
       if(IN_GIT_REPO)
         add_dependencies(redev_git_version AlwaysCheckGit)
       else()
+        if (NOT EXISTS ${post_configure_dir})
+            file(MAKE_DIRECTORY ${post_configure_dir})
+        endif ()
+
+        if (NOT EXISTS ${post_configure_dir}/redev_git_version.h)
+            file(COPY ${pre_configure_dir}/redev_git_version.h DESTINATION ${post_configure_dir})
+        endif()
         configure_file(${pre_configure_file} ${post_configure_file} @ONLY)
       endif()
 
