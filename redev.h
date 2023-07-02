@@ -200,6 +200,7 @@ public:
   CreateAdiosChannel(std::string name, adios2::Params params,
                      TransportType transportType = TransportType::BP4,
                      std::string path = {}) {
+    REDEV_FUNCTION_TIMER;
     if(RankParticipates()) {
       return AdiosChannel{
           adios,       comm, std::move(name), std::move(params), transportType,

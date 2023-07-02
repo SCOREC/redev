@@ -1,8 +1,11 @@
 #include<adios2.h>
 #include<vector>
+#include <perfstubs_api/timer.h>
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
+  PERFSTUBS_INITIALIZE();
+  PERFSTUBS_SCOPED_TIMER_FUNC();
   int mpiRank, mpiSize;
   MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
   MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);

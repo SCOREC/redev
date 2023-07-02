@@ -17,6 +17,8 @@ endif()
 find_package(MPI REQUIRED)
 #adios2 adds C and Fortran depending on how it was built
 find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
+# external packages (perfstubs)
+add_subdirectory(external)
 
 set(REDEV_HEADERS
   redev.h
@@ -36,7 +38,6 @@ set(REDEV_HEADERS
 
 set(REDEV_SOURCES
   redev.cpp
-  redev_profile.cpp
   redev_time.cpp
   redev_assert.cpp
   redev_strings.cpp
@@ -45,11 +46,12 @@ set(REDEV_SOURCES
 add_library(redev ${REDEV_SOURCES})
 target_compile_features(redev PUBLIC cxx_std_17)
 target_link_libraries(redev PRIVATE redev_git_version)
-target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C)
+target_link_libraries(redev PUBLIC adios2::cxx11_mpi MPI::MPI_C perfstubs)
 target_compile_options(redev PRIVATE -Werror=switch)
 if(HAS_ASAN)
   target_compile_options(redev PRIVATE -fsanitize=address -fno-omit-frame-pointer)
 endif()
+target_compile_definitions(redev PUBLIC PERFSTUBS_USE_TIMERS)
 
 include(CTest)
 if(BUILD_TESTING)
@@ -148,8 +150,6 @@ if(BUILD_TESTING)
     NAME2 app PROCS2 1 EXE2 ./test_setup_classPtn ARGS2 0)
   add_exe(test_query test_query.cpp)
   mpi_test(test_query_1p 1 ./test_query)
-  add_exe(test_profile test_profile.cpp)
-  mpi_test(test_profile_1p 1 ./test_profile)
   add_exe(test_send test_send.cpp)
   dual_mpi_test(TESTNAME test_send_3p TIMEOUT ${test_timeout}
     NAME1 rdv PROCS1 4 EXE1 ./test_send ARGS1 1

@@ -30,9 +30,12 @@ namespace {
 namespace redev {
 
   //TODO consider moving the ClassPtn source to another file
-  ClassPtn::ClassPtn() {}
+  ClassPtn::ClassPtn() {
+    REDEV_FUNCTION_TIMER;
+  }
 
   ClassPtn::ClassPtn(MPI_Comm comm, const redev::LOs& ranks_, const ModelEntVec& ents) {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(comm != MPI_COMM_NULL);
     assert(ranks_.size() == ents.size());
     if( ! ModelEntDimsValid(ents) ) exit(EXIT_FAILURE);
@@ -64,6 +67,7 @@ namespace redev {
   }
 
   bool ClassPtn::ModelEntDimsValid(const ClassPtn::ModelEntVec& ents) const {
+    REDEV_FUNCTION_TIMER;
     auto badDim = [](ModelEnt e){ return (e.first<0 || e.first>3); };
     auto res = std::find_if(begin(ents), end(ents), badDim);
     if (res != std::end(ents)) {
@@ -183,15 +187,19 @@ namespace redev {
 
 
   //TODO consider moving the RCBPtn source to another file
-  RCBPtn::RCBPtn() {}
+  RCBPtn::RCBPtn() {
+    REDEV_FUNCTION_TIMER;
+  }
 
   RCBPtn::RCBPtn(redev::LO dim_)
     : dim(dim_) {
+    REDEV_FUNCTION_TIMER;
     assert(dim>0 && dim<=3);
   }
 
   RCBPtn::RCBPtn(redev::LO dim_, std::vector<int>& ranks_, std::vector<double>& cuts_)
     : dim(dim_), ranks(ranks_), cuts(cuts_) {
+    REDEV_FUNCTION_TIMER;
     assert(dim>0 && dim<=3);
   }
 
@@ -329,6 +337,7 @@ namespace redev {
 
   Redev::Redev(MPI_Comm comm, Partition ptn, ProcessType processType, bool noClients)
     : comm(comm), adios(comm), ptn(ptn), processType(processType), noClients(noClients) {
+    PERFSTUBS_INITIALIZE();
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
     MPI_Initialized(&isInitialized);
@@ -337,6 +346,7 @@ namespace redev {
   }
   Redev::Redev(MPI_Comm comm, ProcessType processType, bool noClients)
     : comm(comm), adios(comm), ptn(), processType(processType), noClients(noClients) {
+      PERFSTUBS_INITIALIZE();
       REDEV_FUNCTION_TIMER;
       REDEV_ALWAYS_ASSERT(processType == ProcessType::Client);
       int isInitialized = 0;
@@ -346,6 +356,7 @@ namespace redev {
     }
 
   void AdiosChannel::Setup(adios2::IO& s2cIO, adios2::Engine& s2cEngine) {
+    REDEV_FUNCTION_TIMER;
     // initialize the partition on the client based on how it's set on the server
     if (process_type_ == ProcessType::Server) {
       std::ignore = SendPartitionTypeToClient(s2cIO, s2cEngine);
@@ -354,7 +365,6 @@ namespace redev {
       auto partition_index = SendPartitionTypeToClient(s2cIO, s2cEngine);
       ConstructPartitionFromIndex(partition_index);
     }
-    REDEV_FUNCTION_TIMER;
     CheckVersion(s2cEngine,s2cIO);
     auto status = s2cEngine.BeginStep();
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
