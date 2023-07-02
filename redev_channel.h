@@ -12,13 +12,16 @@ public:
       : pimpl_{new ChannelModel<std::remove_cv_t<std::remove_reference_t<T>>>(
             std::forward<T>(channel))},
         send_communication_phase_active_(false),
-        receive_communication_phase_active_(false) {}
+        receive_communication_phase_active_(false) {
+        REDEV_FUNCTION_TIMER;
+        }
 
   // For cases where we may be interested in storing the comm variant rather
   // than the exact type this function can be used to reduce the runtime
   // overhead of converting from the variant to the explicit type back to the
   // variant
   template <typename T> [[nodiscard]] CommV CreateCommV(std::string name, MPI_Comm comm) {
+    REDEV_FUNCTION_TIMER;
     return pimpl_->CreateComm(std::move(name), comm,
                               InvCommunicatorTypeMap<T>::value);
   }
@@ -27,32 +30,39 @@ public:
   // that expects a typed communicator to be created.
   template <typename T>
   [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm) {
+    REDEV_FUNCTION_TIMER;
     return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name), comm));
   }
   void BeginSendCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == false);
     pimpl_->BeginSendCommunicationPhase();
     send_communication_phase_active_ = true;
   }
   void EndSendCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(InSendCommunicationPhase() == true);
     pimpl_->EndSendCommunicationPhase();
     send_communication_phase_active_ = false;
   }
   void BeginReceiveCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == false);
     pimpl_->BeginReceiveCommunicationPhase();
     receive_communication_phase_active_ = true;
   }
   void EndReceiveCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(InReceiveCommunicationPhase() == true);
     pimpl_->EndReceiveCommunicationPhase();
     receive_communication_phase_active_ = false;
   }
   [[nodiscard]] bool InSendCommunicationPhase() const noexcept {
+    REDEV_FUNCTION_TIMER;
     return send_communication_phase_active_;
   }
   [[nodiscard]] bool InReceiveCommunicationPhase() const noexcept {
+    REDEV_FUNCTION_TIMER;
     return receive_communication_phase_active_;
   }
 
@@ -88,6 +98,7 @@ private:
     ~ChannelModel() noexcept final {}
     [[nodiscard]] CommV CreateComm(std::string &&name, MPI_Comm comm,
                                    CommunicatorDataType type) final {
+      REDEV_FUNCTION_TIMER;
       switch (type) {
       case CommunicatorDataType::INT8:
         return CommV{impl_.template CreateComm<
@@ -145,15 +156,19 @@ private:
       return {};
     }
     void BeginSendCommunicationPhase() final {
+      REDEV_FUNCTION_TIMER;
       impl_.BeginSendCommunicationPhase();
     }
     void EndSendCommunicationPhase() final {
+      REDEV_FUNCTION_TIMER;
       impl_.EndSendCommunicationPhase();
     }
     void BeginReceiveCommunicationPhase() final {
+      REDEV_FUNCTION_TIMER;
       impl_.BeginReceiveCommunicationPhase();
     }
     void EndReceiveCommunicationPhase() final {
+      REDEV_FUNCTION_TIMER;
       impl_.EndReceiveCommunicationPhase();
     }
 

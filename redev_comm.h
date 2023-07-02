@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <type_traits> // is_same
 #include <adios2.h>
+#include "redev_time.h"
 
 namespace {
 void checkStep(adios2::StepStatus status) {
