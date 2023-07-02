@@ -83,34 +83,65 @@ function(CheckGitVersion)
 
 endfunction()
 
-function(CheckGitSetup)
-
-    add_custom_target(AlwaysCheckGit COMMAND ${CMAKE_COMMAND}
-        -DRUN_CHECK_GIT_VERSION=1
-        -Dpre_configure_dir=${pre_configure_dir}
-        -Dpost_configure_file=${post_configure_dir}
-        -DGIT_HASH_CACHE=${GIT_HASH_CACHE}
-        -P ${CURRENT_LIST_DIR}/CheckGit.cmake
-        BYPRODUCTS ${post_configure_file}
+function(CheckInGitRepo ret)
+    execute_process(
+        COMMAND git rev-parse
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        RESULT_VARIABLE GIT_EXISTS_RESULT
         )
+    if(GIT_EXISTS_RESULT EQUAL 0)
+      set(${ret} true PARENT_SCOPE)
+    else()
+      set(${ret} false PARENT_SCOPE)
+    endif()
+endfunction()
 
-    add_library(redev_git_version ${post_configure_file})
-    target_include_directories(redev_git_version PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated/>"
-      "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>")
-    add_dependencies(redev_git_version AlwaysCheckGit)
+function(CheckGitSetup)
+    CheckInGitRepo(IN_GIT_REPO)
+    if(NOT IN_GIT_REPO)
+      message(STATUS "Not in Git Repo, version set to ${CMAKE_PROJECT_VERSION}")
+      set(GIT_HASH ${CMAKE_PROJECT_VERSION})
+    else()
+      add_custom_target(AlwaysCheckGit COMMAND ${CMAKE_COMMAND}
+          -DRUN_CHECK_GIT_VERSION=1
+          -Dpre_configure_dir=${pre_configure_dir}
+          -Dpost_configure_file=${post_configure_dir}
+          -DGIT_HASH_CACHE=${GIT_HASH_CACHE}
+          -P ${CURRENT_LIST_DIR}/CheckGit.cmake
+          BYPRODUCTS ${post_configure_file}
+          )
+      endif()
 
-    set(tgt_name "redev_git_version")
-    install(TARGETS ${tgt_name} EXPORT ${tgt_name}-target
-        RUNTIME DESTINATION bin
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
-    install(EXPORT ${tgt_name}-target NAMESPACE ${PROJECT_NAME}::
-            DESTINATION lib/cmake/${PROJECT_NAME})
-    set(${PROJECT_NAME}_EXPORTED_TARGETS
-        ${${PROJECT_NAME}_EXPORTED_TARGETS} ${tgt_name} PARENT_SCOPE)
+      add_library(redev_git_version ${post_configure_file})
+      target_include_directories(redev_git_version PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated/>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>")
 
-    CheckGitVersion()
+      if(IN_GIT_REPO)
+        add_dependencies(redev_git_version AlwaysCheckGit)
+      else()
+        if (NOT EXISTS ${post_configure_dir})
+            file(MAKE_DIRECTORY ${post_configure_dir})
+        endif ()
+
+        if (NOT EXISTS ${post_configure_dir}/redev_git_version.h)
+            file(COPY ${pre_configure_dir}/redev_git_version.h DESTINATION ${post_configure_dir})
+        endif()
+        configure_file(${pre_configure_file} ${post_configure_file} @ONLY)
+      endif()
+
+      set(tgt_name "redev_git_version")
+      install(TARGETS ${tgt_name} EXPORT ${tgt_name}-target
+          RUNTIME DESTINATION bin
+          ARCHIVE DESTINATION lib
+          LIBRARY DESTINATION lib)
+      install(EXPORT ${tgt_name}-target NAMESPACE ${PROJECT_NAME}::
+              DESTINATION lib/cmake/${PROJECT_NAME})
+      set(${PROJECT_NAME}_EXPORTED_TARGETS
+          ${${PROJECT_NAME}_EXPORTED_TARGETS} ${tgt_name} PARENT_SCOPE)
+    if(IN_GIT_REPO)
+      CheckGitVersion()
+    endif() 
 endfunction()
 
 # This is used to run this function from an external cmake process.
