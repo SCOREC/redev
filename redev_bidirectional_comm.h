@@ -17,23 +17,28 @@ public:
   BidirectionalComm(std::unique_ptr<Communicator<T>> sender_,
                     std::unique_ptr<Communicator<T>> receiver_)
       : sender(std::move(sender_)), receiver(std::move(receiver_)) {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(sender != nullptr);
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
   }
   void SetOutMessageLayout(LOs &dest, LOs &offsets) {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(sender != nullptr);
     sender->SetOutMessageLayout(dest, offsets);
   }
   InMessageLayout GetInMessageLayout() {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->GetInMessageLayout();
   }
 
   void Send(T *msgs, Mode mode = Mode::Deferred) {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(sender != nullptr);
     sender->Send(msgs, mode);
   }
   std::vector<T> Recv(Mode mode = Mode::Deferred) {
+    REDEV_FUNCTION_TIMER;
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->Recv(mode);
   }

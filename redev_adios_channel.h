@@ -1,6 +1,7 @@
 #ifndef REDEV_REDEV_ADIOS_CHANNEL_H
 #define REDEV_REDEV_ADIOS_CHANNEL_H
 #include "redev_assert.h"
+#include "redev_profile.h"
 #include <adios2.h>
 
 namespace redev {
@@ -14,6 +15,7 @@ public:
       : comm_(comm), process_type_(processType), partition_(partition)
 
   {
+    REDEV_FUNCTION_TIMER;
     MPI_Comm_rank(comm, &rank_);
     auto s2cName = path + name + "_s2c";
     auto c2sName = path + name + "_c2s";
@@ -73,10 +75,11 @@ public:
         num_server_ranks_(o.num_server_ranks_),
         comm_(std::exchange(o.comm_, MPI_COMM_NULL)),
         process_type_(o.process_type_), rank_(o.rank_),
-        partition_(o.partition_) {}
+        partition_(o.partition_) {REDEV_FUNCTION_TIMER;}
   AdiosChannel operator=(AdiosChannel &&) = delete;
   // FIXME IMPL RULE OF 5
   ~AdiosChannel() {
+    REDEV_FUNCTION_TIMER;
     // NEED TO CHECK that the engine exists before trying to close it because it
     // could be in a moved from state
     if (s2c_engine_) {
@@ -88,6 +91,7 @@ public:
   }
   template <typename T>
   [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm) {
+    REDEV_FUNCTION_TIMER;
     // TODO, remove s2c/c2s destinction on variable names then use std::move
     // name
     if(comm != MPI_COMM_NULL) {
@@ -108,6 +112,7 @@ public:
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all
   // the switch statements...
   void BeginSendCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -130,6 +135,7 @@ public:
     }
   }
   void BeginReceiveCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     adios2::StepStatus status;
     switch (process_type_) {
     case ProcessType::Client:
@@ -142,6 +148,7 @@ public:
     REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
   }
   void EndReceiveCommunicationPhase() {
+    REDEV_FUNCTION_TIMER;
     switch (process_type_) {
     case ProcessType::Client:
       s2c_engine_.EndStep();
