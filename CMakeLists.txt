@@ -18,7 +18,12 @@ find_package(MPI REQUIRED)
 #adios2 adds C and Fortran depending on how it was built
 find_package(ADIOS2 CONFIG 2.7.1 REQUIRED)
 # external packages (perfstubs)
-add_subdirectory(external)
+# FetchContent seems to have issues with downstream (coupler)
+# this may be resolvalbe by "installing" perfstubs.
+# for now, we can use the external build provided via spack
+# If you want to build with spack see: https://github.com/jacobmerson/pcms-spack
+#add_subdirectory(external)
+find_package(perfstubs REQUIRED)
 
 set(REDEV_HEADERS
   redev.h
