@@ -87,7 +87,7 @@ private:
     virtual void EndReceiveCommunicationPhase() = 0;
     virtual ~ChannelConcept() noexcept {}
   };
-  template <typename T> class ChannelModel : public ChannelConcept {
+  template <typename T> class ChannelModel final : public ChannelConcept {
   public:
     ChannelModel(T &&impl) : ChannelConcept(), impl_(std::forward<T>(impl)) {}
     // since we don't have templated virtual functions, we convert the type to a
