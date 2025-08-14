@@ -8,15 +8,22 @@ on:
   
 jobs:
   build:
-
     runs-on: macos-latest
-
     steps:
     - name: Checkout repo
-      uses: actions/checkout@1.0.0
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
     - name: Requirements
-      run: brew install doxygen
-        && pip3 install -r docsDoxySphinx/requirements.txt
+      run: |
+        brew install doxygen
+        pip3 install -r docsDoxySphinx/requirements.txt
+    
     - name: Build docs
-      run: cd docsDoxySphinx
-        && make html
+      run: |
+        cd docsDoxySphinx
+        make html
