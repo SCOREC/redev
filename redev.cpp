@@ -243,8 +243,10 @@ namespace redev {
     assert(len==cuts.size());
     auto ranksVar = io.DefineVariable<redev::LO>(ranksVarName,{},{},{len});
     auto cutsVar = io.DefineVariable<redev::Real>(cutsVarName,{},{},{len});
+    auto dimVar = io.DefineVariable<redev::LO>(dimVarName);
     eng.Put(ranksVar, ranks.data());
     eng.Put(cutsVar, cuts.data());
+    eng.Put(dimVar, dim);
     eng.PerformPuts();
   }
 
@@ -253,17 +255,21 @@ namespace redev {
     const auto step = eng.CurrentStep();
     auto ranksVar = io.InquireVariable<redev::LO>(ranksVarName);
     auto cutsVar = io.InquireVariable<redev::Real>(cutsVarName);
+    auto dimVar = io.InquireVariable<redev::LO>(dimVarName);
     assert(ranksVar && cutsVar);
+    assert(dimVar);
 
     auto blocksInfo = eng.BlocksInfo(ranksVar,step);
     assert(blocksInfo.size()==1);
     ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
     eng.Get(ranksVar, ranks);
 
-    blocksInfo = eng.BlocksInfo(ranksVar,step);
+    blocksInfo = eng.BlocksInfo(dimVar,step);
     assert(blocksInfo.size()==1);
-    ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
+    cutsVar.SetBlockSelection(blocksInfo[0].BlockID);
     eng.Get(cutsVar, cuts);
+
+    eng.Get(dimVar, dim);
     eng.PerformGets(); //default read mode is deferred
   }
 
