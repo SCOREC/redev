@@ -178,6 +178,7 @@ public:
 private:
   const std::string ranksVarName = "rcb partition ranks";
   const std::string cutsVarName = "rcb partition cuts";
+  const std::string dimVarName = "rcb partition dim";
   redev::LO dim;
   std::vector<redev::LO> ranks;
   std::vector<redev::Real> cuts;
