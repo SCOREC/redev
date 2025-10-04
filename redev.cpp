@@ -264,7 +264,7 @@ namespace redev {
     ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
     eng.Get(ranksVar, ranks);
 
-    blocksInfo = eng.BlocksInfo(dimVar,step);
+    blocksInfo = eng.BlocksInfo(cutsVar,step);
     assert(blocksInfo.size()==1);
     cutsVar.SetBlockSelection(blocksInfo[0].BlockID);
     eng.Get(cutsVar, cuts);
