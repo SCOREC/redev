@@ -27,7 +27,7 @@ namespace {
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }
-// Testint the CI
+
 namespace redev {
 
   //TODO consider moving the ClassPtn source to another file
@@ -264,9 +264,9 @@ namespace redev {
     ranksVar.SetBlockSelection(blocksInfo[0].BlockID);
     eng.Get(ranksVar, ranks);
 
-    blocksInfo = eng.BlocksInfo(cutsVar,step);
-    assert(blocksInfo.size()==1);
-    cutsVar.SetBlockSelection(blocksInfo[0].BlockID);
+    auto blockscutsInfo = eng.BlocksInfo(cutsVar,step);
+    assert(blockscutsInfo.size()==1);
+    cutsVar.SetBlockSelection(blockscutsInfo[0].BlockID);
     eng.Get(cutsVar, cuts);
 
     eng.Get(dimVar, dim);
