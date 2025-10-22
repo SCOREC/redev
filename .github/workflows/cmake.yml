@@ -12,7 +12,8 @@ on:
 jobs:
   buildTestAnalyze:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
+    # The reason to use ubuntu-22.04: https://bugs.launchpad.net/ubuntu/+source/mpich/+bug/2072338
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         compiler:
@@ -27,7 +28,7 @@ jobs:
     env:
       MPICH_CC: ${{matrix.compiler.CC}}
       MPICH_CXX: ${{matrix.compiler.CXX}}
-      adios_version: v2.9.0
+      adios_version: v2.10.2
 
     steps:
     - name: Install CMake
@@ -66,7 +67,7 @@ jobs:
       working-directory: ${{runner.workspace}}/build-adios2
       run: /usr/bin/cmake $GITHUB_WORKSPACE/adios2
            -DCMAKE_CXX_COMPILER=mpicxx
-           -DCMAKE_CC_COMPILER=mpicc
+           -DCMAKE_C_COMPILER=mpicc
            -DADIOS2_USE_MPI=ON
            -DADIOS2_USE_CUDA=OFF 
            -DADIOS2_BUILD_EXAMPLES=OFF 
@@ -91,6 +92,47 @@ jobs:
         path: ${{runner.workspace}}/build-adios2/install
         key: ${{ steps.restore-adios2.outputs.cache-primary-key }}
 
+    - name: perfstubs Create Build Environment
+      run: /usr/bin/cmake -E make_directory ${{runner.workspace}}/build-perfstubs
+
+    - name: Restore perfstubs
+      id: restore-perfstubs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{runner.workspace}}/build-perfstubs/install
+        key: perfstubs-${{ matrix.compiler.CC }}
+
+    - name: perfstubs Checkout repo
+      if: steps.restore-perfstubs.outputs.cache-hit != 'true'
+      uses: actions/checkout@v3
+      with:
+        repository: UO-OACISS/perfstubs
+        path: perfstubs
+
+    - name: perfstubs Configure CMake
+      if: steps.restore-perfstubs.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{runner.workspace}}/build-perfstubs
+      run: |
+           /usr/bin/cmake $GITHUB_WORKSPACE/perfstubs \
+            -DCMAKE_CXX_COMPILER=mpicxx \
+            -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/build-perfstubs/install
+
+    - name: perfstubs Build
+      if: steps.restore-perfstubs.outputs.cache-hit != 'true'
+      working-directory: ${{runner.workspace}}/build-perfstubs
+      shell: bash
+      run: |
+        /usr/bin/cmake --build . --parallel 2
+        /usr/bin/cmake --install .
+
+    - name: Save perfstubs
+      id: save-perfstubs
+      uses: actions/cache/save@v3
+      with:
+        path: ${{runner.workspace}}/build-perfstubs/install
+        key: ${{ steps.restore-perfstubs.outputs.cache-primary-key }}
+
     - name: Redev Checkout repo
       uses: actions/checkout@v3
       with:
@@ -104,11 +146,12 @@ jobs:
       working-directory: ${{runner.workspace}}/build-redev
       run: /usr/bin/cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=mpicxx
-           -DCMAKE_CC_COMPILER=mpicc
+           -DCMAKE_C_COMPILER=mpicc
            -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DADIOS2_HAVE_SST=ON
            -DADIOS2_BPLS_PATH=${{runner.workspace}}/build-adios2/install/bin/bpls
+           -Dperfstubs_DIR=${{runner.workspace}}/build-perfstubs/install/lib/cmake/
            -DBUILD_TESTING=ON
 
     # Initializes the CodeQL tools for scanning.  This must be done before the code is built.
