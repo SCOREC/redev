@@ -12,8 +12,8 @@ on:
 jobs:
   buildTestAnalyze:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    # The reason to use ubuntu-22.04: https://bugs.launchpad.net/ubuntu/+source/mpich/+bug/2072338
-    runs-on: ubuntu-22.04
+    # A known bug using MPICH ubuntu-24.04: https://bugs.launchpad.net/ubuntu/+source/mpich/+bug/2072338
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         compiler:
@@ -41,7 +41,7 @@ jobs:
     - name: Install mpi
       run: |
         sudo apt-get update -yq
-        sudo apt-get install -yq mpich libmpich-dev
+        sudo apt-get install -yq openmpi-bin libopenmpi-dev
 
     - name: ADIOS2 Create Build Environment
       run: /usr/bin/cmake -E make_directory ${{runner.workspace}}/build-adios2
@@ -147,6 +147,7 @@ jobs:
       run: /usr/bin/cmake $GITHUB_WORKSPACE/redev
            -DCMAKE_CXX_COMPILER=mpicxx
            -DCMAKE_C_COMPILER=mpicc
+           -DMPIEXEC_PREFLAGS="--oversubscribe"
            -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
            -DADIOS2_DIR=${{runner.workspace}}/build-adios2/install/lib/cmake/adios2/
            -DADIOS2_HAVE_SST=ON
