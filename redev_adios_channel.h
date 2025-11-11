@@ -95,9 +95,9 @@ public:
     // TODO, remove s2c/c2s destinction on variable names then use std::move
     // name
     if(comm != MPI_COMM_NULL) {
-      auto s2c = std::make_unique<AdiosComm<T>>(comm, num_client_ranks_,
+      auto s2c = std::make_unique<AdiosPtnComm<T>>(comm, num_client_ranks_,
                                                 s2c_engine_, s2c_io_, name);
-      auto c2s = std::make_unique<AdiosComm<T>>(comm, num_server_ranks_,
+      auto c2s = std::make_unique<AdiosPtnComm<T>>(comm, num_server_ranks_,
                                                 c2s_engine_, c2s_io_, name);
       switch (process_type_) {
       case ProcessType::Client:
