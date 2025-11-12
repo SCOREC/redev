@@ -215,6 +215,7 @@ if(BUILD_TESTING)
       NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
       NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
   endif()
+  add_exe(test_global_comm ./test_global_comm.cpp)
 endif(BUILD_TESTING)
 
 ## export the library
