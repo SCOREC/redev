@@ -108,7 +108,21 @@ public:
     }
     return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
-
+  template <typename T>
+  [[nodiscard]] BidirectionalComm<T> CreateGlobalComm( std::string name, MPI_Comm comm) {
+    REDEV_FUNCTION_TIMER;
+    if ( comm != MPI_COMM_NULL ) {
+      auto s2c = std::make_unique<AdiosGlobalComm<T>>(comm, s2c_engine_, s2c_io_, name);
+      auto c2s = std::make_unique<AdiosGlobalComm<T>>(comm, c2s_engine_, c2s_io_, name);
+      switch (process_type_) {
+        case ProcessType::Client:
+          return {std::move(c2s), std::move(s2c)};
+        case ProcessType::Server:
+          return {std::move(s2c), std::move(c2s)};
+      }
+    }
+    return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
+  }
   // TODO s2c/c2s Engine/IO -> send/receive Engine/IO. This removes need for all
   // the switch statements...
   void BeginSendCommunicationPhase() {

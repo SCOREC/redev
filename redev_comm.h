@@ -369,5 +369,59 @@ class AdiosPtnComm : public Communicator<T> {
     //receive side state
     InMessageLayout inMsg;
 };
+  template<typename T>
+  class AdiosGlobalComm : public Communicator<T> {
+    public:
+    AdiosGlobalComm(MPI_Comm comm, adios2::Engine& eng_, adios2::IO& io_, std::string name_) : comm(comm), eng(eng_), io(io_), name(name_) {
+    }
+
+    // copy/move of adios engine and io objects isn't safe.
+    AdiosGlobalComm(const AdiosGlobalComm& other) = delete;
+    AdiosGlobalComm(AdiosGlobalComm&& other) = delete;
+    AdiosGlobalComm& operator=(const AdiosGlobalComm& other) = delete;
+    AdiosGlobalComm& operator=(AdiosGlobalComm&& other) = delete;
+
+    void Send(T *msg, Mode mode) {
+      REDEV_FUNCTION_TIMER
+      const auto varName = name;
+      auto status = eng.BeginStep();
+      REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK );
+      auto var = io.InquireVariable<T>(varName);
+      if (!var) {
+        var = io.DefineVariable<T>(varName);
+      }
+      eng.Put(var, msg);
+      eng.EndStep();
+    }
+    std::vector<T> Recv(Mode mode) {
+      REDEV_FUNCTION_TIMER
+      const auto varName = name;
+      std::vector<T> msg;
+      auto status = eng.BeginStep();
+      REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK );
+      auto var = io.InquireVariable<T>(varName);
+      assert(var);
+      if (var) {
+        eng.Get(var, msg);
+        eng.PerformGets();
+      }
+      eng.EndStep();
+      return msg;
+    }
+    void SetOutMessageLayout(LOs& dest, LOs& offsets)  {};
+    InMessageLayout GetInMessageLayout()  { return {}; }
+    void SetVerbose(int lvl) {
+      assert(lvl>=0 && lvl<=5);
+      Verbose = lvl;
+    }
+    private:
+    MPI_Comm comm;
+    adios2::Engine& eng;
+    adios2::IO& io;
+    std::string name;
+    int Verbose;
+
+  };
+
 
 }
