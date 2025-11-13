@@ -216,6 +216,10 @@ if(BUILD_TESTING)
       NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
   endif()
   add_exe(test_global_comm ./test_global_comm.cpp)
+  dual_mpi_test(TESTNAME test_global_comm TIMEOUT ${test_timeout}
+          NAME1 rdv PROCS1 1 EXE1 ./test_global_comm ARGS1 0
+          NAME2 app PROCS2 1 EXE2 ./test_global_comm ARGS2 1)
+
 endif(BUILD_TESTING)
 
 ## export the library

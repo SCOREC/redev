@@ -51,10 +51,6 @@ int main(int argc, char** argv)
     auto channel =
       rdv.CreateAdiosChannel(name, params, redev::TransportType::BP4);
     auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
-
-    auto commGlob =
-      channel.CreateGlobalComm<redev::LO>("global_" + name, MPI_COMM_WORLD);
-    // test the ptn comm
     // the non-rendezvous app sends to the rendezvous app
     if (!isRdv) {
       redev::LOs dest;
@@ -77,13 +73,6 @@ int main(int argc, char** argv)
       channel.BeginSendCommunicationPhase();
       commPair.Send(msgs.data(), redev::Mode::Deferred);
       channel.EndSendCommunicationPhase();
-      // send data to test global comm
-      msgs = redev::LOs{0, 2};
-      if (rank == 0) {
-        channel.BeginSendCommunicationPhase();
-        commGlob.Send(msgs.data(), redev::Mode::Deferred);
-        channel.EndSendCommunicationPhase();
-      }
     } else {
       channel.BeginReceiveCommunicationPhase();
       auto msgVec = commPair.Recv(redev::Mode::Deferred);
@@ -102,14 +91,8 @@ int main(int argc, char** argv)
       } else if (rank == 3) {
         REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({1, 1, 2, 2, 2, 2}));
       }
-      // receive global date
-      channel.BeginReceiveCommunicationPhase();
-      msgVec = commGlob.Recv(redev::Mode::Deferred);
-      channel.EndReceiveCommunicationPhase();
-      REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0, 2}));
     }
   }
-
   MPI_Finalize();
   return 0;
 }

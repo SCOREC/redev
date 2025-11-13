@@ -455,29 +455,24 @@ public:
   {
     REDEV_FUNCTION_TIMER
     const auto varName = name;
-    auto status = eng.BeginStep();
-    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
+
     auto var = io.InquireVariable<T>(varName);
     if (!var) {
       var = io.DefineVariable<T>(varName);
     }
     eng.Put(var, msg);
-    eng.EndStep();
   }
   std::vector<T> Recv(Mode mode)
   {
     REDEV_FUNCTION_TIMER
     const auto varName = name;
     std::vector<T> msg;
-    auto status = eng.BeginStep();
-    REDEV_ALWAYS_ASSERT(status == adios2::StepStatus::OK);
     auto var = io.InquireVariable<T>(varName);
     assert(var);
     if (var) {
       eng.Get(var, msg);
       eng.PerformGets();
     }
-    eng.EndStep();
     return msg;
   }
   void SetOutMessageLayout(LOs& dest, LOs& offsets) {};
