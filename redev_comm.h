@@ -370,6 +370,18 @@ class AdiosPtnComm : public Communicator<T> {
     InMessageLayout inMsg;
 };
 
+/**
+ * The AdiosGlobalComm class implements the Communicator interface to enable
+ * message exchange between clients and the server through ADIOS2.
+ * Similar to AdiosPtnComm, it provides bidirectional communication,
+ * but the key distinction is that the global communicator is shared
+ * across all ranks and partitions.
+ *
+ * It is primarily used for transferring global data and metadata
+ * relevant to coupled applications.
+ *
+ * Currently, the BP4 and SST ADIOS2 engines are supported.
+ */
 template <typename T>
 class AdiosGlobalComm : public Communicator<T>
     {

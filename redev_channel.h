@@ -205,7 +205,7 @@ class NoOpChannel {
 public:
   template <typename T>
   [[nodiscard]]
-  BidirectionalComm<T> CreateComm(std::string, MPI_Comm) {
+  BidirectionalComm<T> CreateComm(std::string, MPI_Comm, CommType) {
     return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
   void BeginSendCommunicationPhase(){}
