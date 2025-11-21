@@ -101,15 +101,15 @@ public:
         case CommType::Ptn:
           s2c = std::make_unique<AdiosPtnComm<T>>(comm, num_client_ranks_,
                                                   s2c_engine_, s2c_io_, name);
-              c2s = std::make_unique<AdiosPtnComm<T>>(comm, num_server_ranks_,
+          c2s = std::make_unique<AdiosPtnComm<T>>(comm, num_server_ranks_,
                                                       c2s_engine_, c2s_io_, name);
-              break;
+          break;
         case CommType::Global:
           s2c = std::make_unique<AdiosGlobalComm<T>>(comm, s2c_engine_, s2c_io_,
                                                      name);
-              c2s = std::make_unique<AdiosGlobalComm<T>>(comm, c2s_engine_, c2s_io_,
+          c2s = std::make_unique<AdiosGlobalComm<T>>(comm, c2s_engine_, c2s_io_,
                                                          name);
-              break;
+          break;
       }
       switch (process_type_) {
         case ProcessType::Client: return {std::move(c2s), std::move(s2c)};

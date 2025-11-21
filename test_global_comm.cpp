@@ -44,8 +44,11 @@ int main(int argc, char** argv)
   // the non-rendezvous app sends to the rendezvous app
   if (!isRdv) {
     // send data to test global comm
-    redev::Real val = 3.14;
-    auto* msgs = &val;
+    redev::Reals vals = {3.14};
+    auto* msgs = &vals[0];
+    std::string varName = "barVar";
+    size_t n= vals.size();
+    commPair.SetCommParams(varName, n);
     if (rank == 0) {
       channel.BeginSendCommunicationPhase();
       commPair.Send(msgs, redev::Mode::Deferred);

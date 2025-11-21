@@ -138,6 +138,9 @@ class Communicator {
     virtual std::vector<T> Recv(Mode mode) = 0;
 
     virtual InMessageLayout GetInMessageLayout() = 0;
+
+    virtual void SetCommParams(std::string VarName, size_t msgSize ) {}
+
     virtual ~Communicator() = default;
 };
 
@@ -398,43 +401,45 @@ class AdiosGlobalComm : public Communicator<T>
         AdiosGlobalComm& operator=(const AdiosGlobalComm& other) = delete;
         AdiosGlobalComm& operator=(AdiosGlobalComm&& other) = delete;
 
-        void Send(T* msg, Mode mode)
+        void SetCommParams(std::string varName, size_t msgSize){
+            varName_ = varName;
+            msgSize_ = msgSize;
+        }
+        void Send(T* ptr, Mode mode)
         {
           REDEV_FUNCTION_TIMER
-          const auto varName = name;
-
-          auto var = io.InquireVariable<T>(varName);
+          auto var = io.InquireVariable<T>(varName_);
+          auto msg = std::vector<T>(ptr, ptr + msgSize_);
           if (!var) {
-            var = io.DefineVariable<T>(varName);
+            var = io.DefineVariable<T>(varName_,{} ,{},{msgSize_});
           }
-          eng.Put(var, msg);
+          assert(var);
+          eng.Put(var, msg.data());
+          if(mode == Mode::Synchronous) {
+              eng.PerformPuts();
+          }
         }
         std::vector<T> Recv(Mode mode)
         {
           REDEV_FUNCTION_TIMER
-          const auto varName = name;
           std::vector<T> msg;
-          auto var = io.InquireVariable<T>(varName);
+          auto var = io.InquireVariable<T>(varName_);
           assert(var);
-          if (var) {
-            eng.Get(var, msg);
-            eng.PerformGets();
+          eng.Get(var, msg.data());
+          if(mode == Mode::Synchronous) {
+              eng.PerformGets();
           }
           return msg;
         }
         void SetOutMessageLayout(LOs& dest, LOs& offsets) {};
         InMessageLayout GetInMessageLayout() { return {}; }
-        void SetVerbose(int lvl)
-        {
-          assert(lvl >= 0 && lvl <= 5);
-          Verbose = lvl;
-        }
 
     private:
         MPI_Comm comm;
         adios2::Engine& eng;
         adios2::IO& io;
         std::string name;
-        int Verbose;
+        std::string varName_ = "";
+        std::size_t msgSize_ = 0;
     };
 }
