@@ -389,9 +389,9 @@ template <typename T>
 class AdiosGlobalComm : public Communicator<T>
     {
     public:
-        AdiosGlobalComm(MPI_Comm comm, adios2::Engine& eng_, adios2::IO& io_,
+        AdiosGlobalComm(MPI_Comm comm_, adios2::Engine& eng_, adios2::IO& io_,
                         std::string name_)
-                : comm(comm), eng(eng_), io(io_), name(name_)
+                : comm(comm_), eng(eng_), io(io_), name(name_)
         {
         }
 
@@ -401,17 +401,17 @@ class AdiosGlobalComm : public Communicator<T>
         AdiosGlobalComm& operator=(const AdiosGlobalComm& other) = delete;
         AdiosGlobalComm& operator=(AdiosGlobalComm&& other) = delete;
 
-        void SetCommParams(std::string varName, size_t msgSize){
-            varName_ = varName;
-            msgSize_ = msgSize;
+        void SetCommParams(std::string varName_, size_t msgSize_){
+            varName = varName_;
+            msgSize = msgSize_;
         }
         void Send(T* ptr, Mode mode)
         {
-          REDEV_FUNCTION_TIMER
-          auto var = io.InquireVariable<T>(varName_);
-          auto msg = std::vector<T>(ptr, ptr + msgSize_);
+          REDEV_FUNCTION_TIMER;
+          auto var = io.InquireVariable<T>(varName);
+          auto msg = std::vector<T>(ptr, ptr + msgSize);
           if (!var) {
-            var = io.DefineVariable<T>(varName_,{} ,{},{msgSize_});
+            var = io.DefineVariable<T>(varName,{} ,{},{msgSize});
           }
           assert(var);
           eng.Put(var, msg.data());
@@ -421,10 +421,11 @@ class AdiosGlobalComm : public Communicator<T>
         }
         std::vector<T> Recv(Mode mode)
         {
-          REDEV_FUNCTION_TIMER
+          REDEV_FUNCTION_TIMER;
           std::vector<T> msg;
-          auto var = io.InquireVariable<T>(varName_);
+          auto var = io.InquireVariable<T>(varName);
           assert(var);
+          msg.resize(msgSize);
           eng.Get(var, msg.data());
           if(mode == Mode::Synchronous) {
               eng.PerformGets();
@@ -439,7 +440,7 @@ class AdiosGlobalComm : public Communicator<T>
         adios2::Engine& eng;
         adios2::IO& io;
         std::string name;
-        std::string varName_ = "";
-        std::size_t msgSize_ = 0;
+        std::string varName = "";
+        std::size_t msgSize = 0;
     };
 }

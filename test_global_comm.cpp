@@ -32,32 +32,35 @@ int main(int argc, char** argv)
   // dummy partition vector data
   redev::Redev rdv(localComm, redev::Partition{std::move(ptn)},
                    static_cast<redev::ProcessType>(isRdv));
-  adios2::Params params{{"Streaming", "On"}, {"OpenTimeoutSecs", "2"}};
+  adios2::Params params{{"Streaming", "On"}, {"OpenTimeoutSecs", "4"}};
+
   std::string name = "bar";
+
 
   auto channel =
     rdv.CreateAdiosChannel(name, params, redev::TransportType::BP4);
   auto commPair =
     channel.CreateComm<redev::Real>(name, localComm, redev::CommType::Global);
 
+  // send data to test global comm
+  redev::Reals vals = {3.14};
+  auto* msgs = &vals[0];
+  std::string varName = "barVar";
+  size_t n = vals.size();
   // test the ptn comm
   // the non-rendezvous app sends to the rendezvous app
   if (!isRdv) {
-    // send data to test global comm
-    redev::Reals vals = {3.14};
-    auto* msgs = &vals[0];
-    std::string varName = "barVar";
-    size_t n= vals.size();
     commPair.SetCommParams(varName, n);
     if (rank == 0) {
       channel.BeginSendCommunicationPhase();
-      commPair.Send(msgs, redev::Mode::Deferred);
+      commPair.Send(msgs, redev::Mode::Synchronous);
       channel.EndSendCommunicationPhase();
     }
   } else {
     // receive global date
     channel.BeginReceiveCommunicationPhase();
-    auto msgVec = commPair.Recv(redev::Mode::Deferred);
+    commPair.SetCommParams(varName, n);
+    auto msgVec = commPair.Recv(redev::Mode::Synchronous);
     channel.EndReceiveCommunicationPhase();
     REDEV_ALWAYS_ASSERT(msgVec[0] == redev::Real{3.14});
     printf("\nTest passed.");
