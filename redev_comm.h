@@ -139,7 +139,9 @@ class Communicator {
 
     virtual InMessageLayout GetInMessageLayout() = 0;
 
-    virtual void SetCommParams(std::string VarName, size_t msgSize ) {}
+    virtual void SetCommParams(std::string VarName, size_t msgSize ) {
+      throw std::logic_error("Communicator::SetCommParams() called — must be overridden in the derived Comm class");
+    }
 
     virtual ~Communicator() = default;
 };
