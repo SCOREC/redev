@@ -20,18 +20,18 @@ public:
   // than the exact type this function can be used to reduce the runtime
   // overhead of converting from the variant to the explicit type back to the
   // variant
-  template <typename T> [[nodiscard]] CommV CreateCommV(std::string name, MPI_Comm comm) {
+  template <typename T> [[nodiscard]] CommV CreateCommV(std::string name, MPI_Comm comm, CommType ctype) {
     REDEV_FUNCTION_TIMER;
-    return pimpl_->CreateComm(std::move(name), comm,
+    return pimpl_->CreateComm(std::move(name), comm, std::move(ctype),
                               InvCommunicatorTypeMap<T>::value);
   }
   // convenience typesafe wrapper to get back the specific communicator type
   // rather than the variant. This is here to simplify updating legacy code
   // that expects a typed communicator to be created.
   template <typename T>
-  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm) {
+  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm, CommType ctype = CommType::Ptn) {
     REDEV_FUNCTION_TIMER;
-    return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name), comm));
+    return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name), comm, std::move(ctype)));
   }
   void BeginSendCommunicationPhase() {
     REDEV_FUNCTION_TIMER;
@@ -80,7 +80,7 @@ public:
 private:
   class ChannelConcept {
   public:
-    virtual CommV CreateComm(std::string &&, MPI_Comm, CommunicatorDataType) = 0;
+    virtual CommV CreateComm(std::string &&, MPI_Comm, CommType, CommunicatorDataType) = 0;
     virtual void BeginSendCommunicationPhase() = 0;
     virtual void EndSendCommunicationPhase() = 0;
     virtual void BeginReceiveCommunicationPhase() = 0;
@@ -96,62 +96,62 @@ private:
     // entirely safe unlike doing it in user code. Although, it's not the most
     // beautiful construction in the world.
     ~ChannelModel() noexcept final {}
-    [[nodiscard]] CommV CreateComm(std::string &&name, MPI_Comm comm,
+    [[nodiscard]] CommV CreateComm(std::string &&name, MPI_Comm comm, CommType ctype,
                                    CommunicatorDataType type) final {
       REDEV_FUNCTION_TIMER;
       switch (type) {
       case CommunicatorDataType::INT8:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT8>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::INT16:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT16>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::INT32:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT32>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::INT64:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT64>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::UINT8:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT8>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::UINT16:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT16>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::UINT32:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT32>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::UINT64:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT64>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::LONG_INT:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_INT>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::FLOAT:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::FLOAT>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::DOUBLE>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::LONG_DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_DOUBLE>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       case CommunicatorDataType::COMPLEX_DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::COMPLEX_DOUBLE>::type>(
-            std::move(name), comm)};
+            std::move(name), comm, std::move(ctype))};
       }
       return {};
     }
@@ -205,7 +205,7 @@ class NoOpChannel {
 public:
   template <typename T>
   [[nodiscard]]
-  BidirectionalComm<T> CreateComm(std::string, MPI_Comm) {
+  BidirectionalComm<T> CreateComm(std::string, MPI_Comm, CommType) {
     return {std::make_unique<NoOpComm<T>>(), std::make_unique<NoOpComm<T>>()};
   }
   void BeginSendCommunicationPhase(){}
