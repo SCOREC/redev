@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
     auto inMsg = commPair.GetInMessageLayout();
     REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,7,11,21,27}));
     REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0,0,0,0,2,0,4,0,3,3,8,2}));
+    REDEV_ALWAYS_ASSERT(msgVec.size()*sizeof(redev::LO) == commPair.GetBytesReceived());
     if(rank == 0) {
       REDEV_ALWAYS_ASSERT(msgVec == redev::LOs({0,0,1,2,2,2,2}));
     } else if(rank == 1) {

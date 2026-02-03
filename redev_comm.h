@@ -70,6 +70,19 @@ void Broadcast(T* data, int count, int root, MPI_Comm comm) {
 }
 
 /**
+ * Compute the total bytes received across all ranks in comm.
+ * @param[in] localBytes Number of bytes received on the calling rank
+ * @param[in] comm MPI communicator across which to aggregate
+ * @return Total bytes received across all ranks in comm
+ */
+inline size_t GetTotalBytesReceived(size_t localBytes, MPI_Comm comm) {
+  REDEV_FUNCTION_TIMER;
+  size_t totalBytes = 0;
+  MPI_Allreduce(&localBytes, &totalBytes, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm);
+  return totalBytes;
+}
+
+/**
  * The InMessageLayout struct contains the arrays defining the arrangement of
  * data in the array returned by Communicator::Recv.
  */
@@ -138,6 +151,11 @@ class Communicator {
     virtual std::vector<T> Recv(Mode mode) = 0;
 
     virtual InMessageLayout GetInMessageLayout() = 0;
+    /**
+     * Get the number of bytes received in the most recent Recv() call.
+     * @return Number of bytes received. Returns 0 if Recv() has not been called.
+     */
+    virtual size_t GetBytesReceived() const = 0;
     virtual ~Communicator() = default;
 };
 
@@ -147,6 +165,7 @@ class NoOpComm : public Communicator<T> {
     void Send(T *msgs, Mode /*unused*/) final {};
     std::vector<T> Recv(Mode /*unused*/) final { return {}; }
     InMessageLayout GetInMessageLayout() final { return {}; }
+    size_t GetBytesReceived() const final { return 0; }
 };
 
 
@@ -314,6 +333,10 @@ class AdiosComm : public Communicator<T> {
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
       std::vector<T> msgs(inMsg.count);
+
+      // Track bytes received
+      bytesReceived = inMsg.count * sizeof(T);
+
       if(inMsg.count) {
         //only call Get with non-zero sized reads
         msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
@@ -351,6 +374,14 @@ class AdiosComm : public Communicator<T> {
       assert(lvl>=0 && lvl<=5);
       verbose = lvl;
     }
+    /**
+     * Get the number of bytes received in the most recent Recv() call.
+     * @return Number of bytes received on this rank. Returns 0 if Recv() has not been called.
+     */
+    size_t GetBytesReceived() const final {
+      REDEV_FUNCTION_TIMER;
+      return bytesReceived;
+    }
   private:
     MPI_Comm comm;
     int recvRanks;
@@ -368,6 +399,7 @@ class AdiosComm : public Communicator<T> {
     int verbose;
     //receive side state
     InMessageLayout inMsg;
+    size_t bytesReceived = 0;
 };
 
 }

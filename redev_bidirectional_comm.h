@@ -43,6 +43,17 @@ public:
     return receiver->Recv(mode);
   }
 
+  /**
+   * Get the number of bytes received in the most recent Recv() call.
+   * This is the number of bytes received by the receiver communicator.
+   * @return Number of bytes received on this rank.
+   */
+  size_t GetBytesReceived() const {
+    REDEV_FUNCTION_TIMER;
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
+    return receiver->GetBytesReceived();
+  }
+
 private:
   std::unique_ptr<Communicator<T>> sender;
   std::unique_ptr<Communicator<T>> receiver;
