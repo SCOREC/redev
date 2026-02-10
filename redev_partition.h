@@ -2,6 +2,7 @@
 #define REDEV_REDEV_PARTITION_H
 #include <adios2.h>
 #include <variant>
+#include "redev_types.h"
 namespace redev {
 
 /**
