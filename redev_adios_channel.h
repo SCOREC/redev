@@ -98,10 +98,10 @@ public:
     if (comm != MPI_COMM_NULL) {
       std::unique_ptr<Communicator<T>> s2c, c2s;
       switch (ctype) {
-        case CommType::Ptn:
-          s2c = std::make_unique<AdiosPtnComm<T>>(comm, num_client_ranks_,
+        case CommType::Partitioned:
+          s2c = std::make_unique<AdiosPartitionedComm<T>>(comm, num_client_ranks_,
                                                   s2c_engine_, s2c_io_, name);
-          c2s = std::make_unique<AdiosPtnComm<T>>(comm, num_server_ranks_,
+          c2s = std::make_unique<AdiosPartitionedComm<T>>(comm, num_server_ranks_,
                                                       c2s_engine_, c2s_io_, name);
           break;
         case CommType::Global:
