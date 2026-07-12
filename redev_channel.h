@@ -22,16 +22,16 @@ public:
   // variant
   template <typename T> [[nodiscard]] CommV CreateCommV(std::string name, MPI_Comm comm, CommType ctype) {
     REDEV_FUNCTION_TIMER;
-    return pimpl_->CreateComm(std::move(name), comm, std::move(ctype),
+    return pimpl_->CreateComm(std::move(name), comm, ctype,
                               InvCommunicatorTypeMap<T>::value);
   }
   // convenience typesafe wrapper to get back the specific communicator type
   // rather than the variant. This is here to simplify updating legacy code
   // that expects a typed communicator to be created.
   template <typename T>
-  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm, CommType ctype = CommType::Ptn) {
+  [[nodiscard]] BidirectionalComm<T> CreateComm(std::string name, MPI_Comm comm, CommType ctype = CommType::Partitioned) {
     REDEV_FUNCTION_TIMER;
-    return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name), comm, std::move(ctype)));
+    return std::get<BidirectionalComm<T>>(CreateCommV<T>(std::move(name), comm, ctype));
   }
   void BeginSendCommunicationPhase() {
     REDEV_FUNCTION_TIMER;
@@ -103,55 +103,55 @@ private:
       case CommunicatorDataType::INT8:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT8>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::INT16:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT16>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::INT32:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT32>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::INT64:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::INT64>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::UINT8:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT8>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::UINT16:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT16>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::UINT32:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT32>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::UINT64:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::UINT64>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::LONG_INT:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_INT>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::FLOAT:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::FLOAT>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::DOUBLE>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::LONG_DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::LONG_DOUBLE>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       case CommunicatorDataType::COMPLEX_DOUBLE:
         return CommV{impl_.template CreateComm<
             CommunicatorTypeMap<CommunicatorDataType::COMPLEX_DOUBLE>::type>(
-            std::move(name), comm, std::move(ctype))};
+            std::move(name), comm, ctype)};
       }
       return {};
     }
