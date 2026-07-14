@@ -140,7 +140,8 @@ class Communicator {
     virtual InMessageLayout GetInMessageLayout() = 0;
 
     virtual void SetCommParams(std::string VarName, size_t msgSize ) {
-      throw std::logic_error("Communicator::SetCommParams() called — must be overridden in the derived Comm class");
+      redev::Redev_Assert_Fail(
+              "SetCommParams() is not implemented for this communicator."); //Current macro doesn't allow string msgs
     }
 
     virtual ~Communicator() = default;
@@ -407,30 +408,38 @@ class AdiosGlobalComm : public Communicator<T>
             varName = varName_;
             msgSize = msgSize_;
         }
-        void Send(T* ptr, Mode mode)
+        void Send( T* ptr, Mode mode)
         {
-          REDEV_FUNCTION_TIMER;
-          auto var = io.InquireVariable<T>(varName);
-          auto msg = std::vector<T>(ptr, ptr + msgSize);
-          if (!var) {
-            var = io.DefineVariable<T>(varName,{} ,{},{msgSize});
-          }
-          assert(var);
-          eng.Put(var, msg.data());
-          if(mode == Mode::Synchronous) {
-              eng.PerformPuts();
-          }
+           REDEV_FUNCTION_TIMER;
+           REDEV_ALWAYS_ASSERT(ptr != nullptr || msgSize == 0);
+           auto var = io.InquireVariable<T>(varName);
+           if (!var) {
+               var = io.DefineVariable<T>( varName,{},{},{msgSize});
+           }
+           REDEV_ALWAYS_ASSERT(var);
+           const auto adiosMode =
+             mode == Mode::Synchronous
+             ? adios2::Mode::Sync
+             : adios2::Mode::Deferred;
+           eng.Put(var, ptr, adiosMode);
+           if (mode == Mode::Deferred) {
+             eng.PerformPuts();
+           }
         }
+
         std::vector<T> Recv(Mode mode)
         {
           REDEV_FUNCTION_TIMER;
-          std::vector<T> msg;
+          std::vector<T> msg(msgSize);
           auto var = io.InquireVariable<T>(varName);
-          assert(var);
-          msg.resize(msgSize);
-          eng.Get(var, msg.data());
-          if(mode == Mode::Synchronous) {
-              eng.PerformGets();
+          REDEV_ALWAYS_ASSERT(var);
+          const auto adiosMode =
+            mode == Mode::Synchronous
+              ? adios2::Mode::Sync
+              : adios2::Mode::Deferred;
+          eng.Get(var, msg.data(), adiosMode);
+          if (mode == Mode::Deferred) {
+            eng.PerformGets();
           }
           return msg;
         }
@@ -442,7 +451,7 @@ class AdiosGlobalComm : public Communicator<T>
         adios2::Engine& eng;
         adios2::IO& io;
         std::string name;
-        std::string varName = "";
+        std::string varName;
         std::size_t msgSize = 0;
     };
 }

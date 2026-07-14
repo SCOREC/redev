@@ -24,6 +24,6 @@ using CVs = std::vector<CV>;
 
 enum class ProcessType { Client = 0, Server = 1 };
 enum class TransportType { BP4 = 0, SST = 1 };
-enum class CommType{ Partitioned = 0, Global = 1 };
+enum class CommType { Partitioned = 0, Global = 1 };
 }
 #endif

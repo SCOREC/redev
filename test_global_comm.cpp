@@ -31,7 +31,7 @@ int main(int argc, char** argv)
       auto *msgs = &vals[0];
       std::string varName = "barVar";
       size_t n = vals.size();
-      // test the ptn comm
+      // test the global comm
       // the non-rendezvous app sends to the rendezvous app
       if (!isRdv) {
           commPair.SetCommParams(varName, n);
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
           commPair.Send(msgs, redev::Mode::Synchronous);
           channel.EndSendCommunicationPhase();
       } else {
-          // receive global date
+          // receive global data
           channel.BeginReceiveCommunicationPhase();
           commPair.SetCommParams(varName, n);
           auto msgVec = commPair.Recv(redev::Mode::Synchronous);
