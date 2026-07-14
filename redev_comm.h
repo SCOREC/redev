@@ -385,7 +385,13 @@ class AdiosPartitionedComm : public Communicator<T> {
  *
  * It is primarily used for transferring global data and metadata
  * relevant to coupled applications.
+ * e.g.
+ *   commPair.SetCommParams(varName, n);
+ *   channel.BeginSendCommunicationPhase();
+ *   commPair.Send(msgs, redev::Mode::Synchronous);
+ *   channel.EndSendCommunicationPhase();
  *
+ * Same Communicator can be used to communicate multiple variables differing by name/type/size.
  * Currently, the BP4 and SST ADIOS2 engines are supported.
  */
 template <typename T>
