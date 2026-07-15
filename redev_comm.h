@@ -99,7 +99,7 @@ struct InMessageLayout {
   size_t start;
   /**
    * Number of items (of the user specified type passed to the template
-   * parameter of AdiosComm) that should be read from the messages array
+   * parameter of AdiosPartitionedComm) that should be read from the messages array
    * (returned by Communicator::Recv).
    */
   size_t count;
@@ -131,13 +131,19 @@ class Communicator {
      */
     virtual void Send(T *msgs, Mode mode) = 0;
     /**
-     * Receive an array. Use AdiosComm's GetInMessageLayout to retreive
+     * Receive an array. Use AdiosPartitionedComm's GetInMessageLayout to retreive
      * an instance of the InMessageLayout struct containing the layout of
      * the received array.
      */
     virtual std::vector<T> Recv(Mode mode) = 0;
 
     virtual InMessageLayout GetInMessageLayout() = 0;
+
+    virtual void SetCommParams(std::string VarName, size_t msgSize ) {
+      redev::Redev_Assert_Fail(
+              "SetCommParams() is not implemented for this communicator."); //Current macro doesn't allow string msgs
+    }
+
     virtual ~Communicator() = default;
 };
 
@@ -151,20 +157,20 @@ class NoOpComm : public Communicator<T> {
 
 
 /**
- * The AdiosComm class implements the Communicator interface to support sending
+ * The AdiosPartitionedComm class implements the Communicator interface to support sending
  * messages between the clients and server via ADIOS2.  The BP4 and SST ADIOS2
  * engines are currently supported.
- * One AdiosComm object is required for each communication link direction.  For
+ * One AdiosPartitionedComm object is required for each communication link direction.  For
  * example, for a client and server to both send and receive messages one
- * AdiosComm for client->server messaging and another AdiosComm for
+ * AdiosPartitionedComm for client->server messaging and another AdiosPartitionedComm for
  * server->client messaging are needed. Redev::BidirectionalComm is a helper
  * class for this use case.
  */
 template<typename T>
-class AdiosComm : public Communicator<T> {
+class AdiosPartitionedComm : public Communicator<T> {
   public:
     /**
-     * Create an AdiosComm object.  Collective across sender and receiver ranks.
+     * Create an AdiosPartitionedComm object.  Collective across sender and receiver ranks.
      * Calls to the constructor from the sender and receiver ranks must be in
      * the same order (i.e., first creating the client-to-server object then the
      * server-to-client link).
@@ -172,19 +178,19 @@ class AdiosComm : public Communicator<T> {
      * @param[in] recvRanks_ number of ranks in the receivers MPI communicator
      * @param[in] eng_ ADIOS2 engine for writing on the sender side
      * @param[in] io_ ADIOS2 IO associated with eng_
-     * @param[in] name_ unique name among AdiosComm objects
+     * @param[in] name_ unique name among AdiosPartitionedComm objects
      */
-    AdiosComm(MPI_Comm comm_, int recvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
+    AdiosPartitionedComm(MPI_Comm comm_, int recvRanks_, adios2::Engine& eng_, adios2::IO& io_, std::string name_)
       : comm(comm_), recvRanks(recvRanks_), eng(eng_), io(io_), name(name_), verbose(0) {
         inMsg.knownSizes = false;
     }
     
     /// We are explicitly not allowing copy/move constructor/assignment as we don't
     /// know if the ADIOS2 Engine and IO objects can be safely copied/moved.
-    AdiosComm(const AdiosComm& other) = delete;
-    AdiosComm(AdiosComm&& other) = delete;
-    AdiosComm& operator=(const AdiosComm& other) = delete;
-    AdiosComm& operator=(AdiosComm&& other) = delete;
+    AdiosPartitionedComm(const AdiosPartitionedComm& other) = delete;
+    AdiosPartitionedComm(AdiosPartitionedComm&& other) = delete;
+    AdiosPartitionedComm& operator=(const AdiosPartitionedComm& other) = delete;
+    AdiosPartitionedComm& operator=(AdiosPartitionedComm&& other) = delete;
 
     void SetOutMessageLayout(LOs& dest_, LOs& offsets_) {
       REDEV_FUNCTION_TIMER;
@@ -343,7 +349,7 @@ class AdiosComm : public Communicator<T> {
       return inMsg;
     }
     /**
-     * Control the amount of output from AdiosComm functions.  The higher the value the more output is written.
+     * Control the amount of output from AdiosPartitionedComm functions.  The higher the value the more output is written.
      * @param[in] lvl valid values are [0:5] where 0 is silent and 5 is produces
      *                the most output
      */
@@ -370,4 +376,88 @@ class AdiosComm : public Communicator<T> {
     InMessageLayout inMsg;
 };
 
+/**
+ * The AdiosGlobalComm class implements the Communicator interface to enable
+ * message exchange between clients and the server through ADIOS2.
+ * Similar to AdiosPartitionedComm, it provides bidirectional communication,
+ * but the key distinction is that the global communicator is shared
+ * across all ranks and partitions.
+ *
+ * It is primarily used for transferring global data and metadata
+ * relevant to coupled applications.
+ * e.g.
+ *   commPair.SetCommParams(varName, n);
+ *   channel.BeginSendCommunicationPhase();
+ *   commPair.Send(msgs, redev::Mode::Synchronous);
+ *   channel.EndSendCommunicationPhase();
+ *
+ * Same Communicator can be used to communicate multiple variables differing by name/type/size.
+ * Currently, the BP4 and SST ADIOS2 engines are supported.
+ */
+template <typename T>
+class AdiosGlobalComm : public Communicator<T>
+    {
+    public:
+        AdiosGlobalComm(MPI_Comm comm_, adios2::Engine& eng_, adios2::IO& io_,
+                        std::string name_)
+                : comm(comm_), eng(eng_), io(io_), name(name_)
+        {
+        }
+
+        // copy/move of adios engine and io objects isn't safe.
+        AdiosGlobalComm(const AdiosGlobalComm& other) = delete;
+        AdiosGlobalComm(AdiosGlobalComm&& other) = delete;
+        AdiosGlobalComm& operator=(const AdiosGlobalComm& other) = delete;
+        AdiosGlobalComm& operator=(AdiosGlobalComm&& other) = delete;
+
+        void SetCommParams(std::string varName_, size_t msgSize_){
+            varName = varName_;
+            msgSize = msgSize_;
+        }
+        void Send( T* ptr, Mode mode)
+        {
+           REDEV_FUNCTION_TIMER;
+           REDEV_ALWAYS_ASSERT(ptr != nullptr || msgSize == 0);
+           auto var = io.InquireVariable<T>(varName);
+           if (!var) {
+               var = io.DefineVariable<T>( varName,{},{},{msgSize});
+           }
+           REDEV_ALWAYS_ASSERT(var);
+           const auto adiosMode =
+             mode == Mode::Synchronous
+             ? adios2::Mode::Sync
+             : adios2::Mode::Deferred;
+           eng.Put(var, ptr, adiosMode);
+           if (mode == Mode::Deferred) {
+             eng.PerformPuts();
+           }
+        }
+
+        std::vector<T> Recv(Mode mode)
+        {
+          REDEV_FUNCTION_TIMER;
+          std::vector<T> msg(msgSize);
+          auto var = io.InquireVariable<T>(varName);
+          REDEV_ALWAYS_ASSERT(var);
+          const auto adiosMode =
+            mode == Mode::Synchronous
+              ? adios2::Mode::Sync
+              : adios2::Mode::Deferred;
+          eng.Get(var, msg.data(), adiosMode);
+          if (mode == Mode::Deferred) {
+            eng.PerformGets();
+          }
+          return msg;
+        }
+        void SetOutMessageLayout(LOs& dest, LOs& offsets) {};
+        InMessageLayout GetInMessageLayout() { return {}; }
+
+    private:
+        MPI_Comm comm;
+        adios2::Engine& eng;
+        adios2::IO& io;
+        std::string name;
+        std::string varName;
+        std::size_t msgSize = 0;
+    };
 }

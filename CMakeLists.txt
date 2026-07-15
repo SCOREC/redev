@@ -198,7 +198,10 @@ if(BUILD_TESTING)
   dual_mpi_test(TESTNAME test_pingpong TIMEOUT ${test_timeout}
     NAME1 rdv PROCS1 1 EXE1 ./test_pingpong ARGS1 1
     NAME2 app PROCS2 1 EXE2 ./test_pingpong ARGS2 0)
-
+  add_exe(test_global_comm ./test_global_comm.cpp)
+  dual_mpi_test(TESTNAME test_global_comm TIMEOUT ${test_timeout}
+          NAME1 rdv PROCS1 1 EXE1 ./test_global_comm ARGS1 0
+          NAME2 app PROCS2 1 EXE2 ./test_global_comm ARGS2 1)
   set(isSST 0)
   add_exe(test_twoClients test_twoClients.cpp)
   tri_mpi_test(TESTNAME test_twoClients
@@ -215,6 +218,7 @@ if(BUILD_TESTING)
       NAME2 client1 EXE2 ./test_twoClients PROCS2 1 ARGS2 ${isSST} 1
       NAME3 rdv     EXE3 ./test_twoClients PROCS3 1 ARGS3 ${isSST} -1)
   endif()
+
 endif(BUILD_TESTING)
 
 ## export the library
