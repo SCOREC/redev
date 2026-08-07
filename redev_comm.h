@@ -137,6 +137,12 @@ class Communicator {
      */
     virtual std::vector<T> Recv(Mode mode) = 0;
 
+  /**
+   * Receive an array into user-provided storage.
+   * @param[out] destination array where received data is stored
+   * @param[in] size number of elements available in destination
+   * @param[in] mode communication mode
+   */
     virtual void Recv(T* destination, std::size_t size, Mode mode) {
       auto received = Recv(mode);
       REDEV_ALWAYS_ASSERT(received.size() == size);
