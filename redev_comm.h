@@ -137,6 +137,12 @@ class Communicator {
      */
     virtual std::vector<T> Recv(Mode mode) = 0;
 
+    virtual void Recv(T* destination, std::size_t size, Mode mode) {
+      auto received = Recv(mode);
+      REDEV_ALWAYS_ASSERT(received.size() == size);
+      std::copy(received.begin(), received.end(), destination);
+    }
+
     virtual InMessageLayout GetInMessageLayout() = 0;
 
     virtual void SetCommParams(std::string VarName, size_t msgSize ) {
@@ -433,20 +439,26 @@ class AdiosGlobalComm : public Communicator<T>
            }
         }
 
-        std::vector<T> Recv(Mode mode)
+        void Recv(T* destination, std::size_t size, Mode mode) override
         {
           REDEV_FUNCTION_TIMER;
-          std::vector<T> msg(msgSize);
+          REDEV_ALWAYS_ASSERT(size == msgSize);
+          REDEV_ALWAYS_ASSERT(destination != nullptr || size == 0);
+
           auto var = io.InquireVariable<T>(varName);
           REDEV_ALWAYS_ASSERT(var);
           const auto adiosMode =
             mode == Mode::Synchronous
               ? adios2::Mode::Sync
               : adios2::Mode::Deferred;
-          eng.Get(var, msg.data(), adiosMode);
+          eng.Get(var, destination, adiosMode);
           if (mode == Mode::Deferred) {
             eng.PerformGets();
           }
+        }
+        std::vector<T> Recv(Mode mode) {
+          std::vector<T> msg(msgSize);
+          Recv(msg.data(), msg.size(), mode);
           return msg;
         }
         void SetOutMessageLayout(LOs& dest, LOs& offsets) {};

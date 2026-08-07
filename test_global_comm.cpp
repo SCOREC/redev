@@ -42,9 +42,11 @@ int main(int argc, char** argv)
           // receive global data
           channel.BeginReceiveCommunicationPhase();
           commPair.SetCommParams(varName, n);
-          auto msgVec = commPair.Recv(redev::Mode::Synchronous);
+          redev::Reals received(n);
+          commPair.Recv(received.data(), received.size(),
+                        redev::Mode::Synchronous);
           channel.EndReceiveCommunicationPhase();
-          REDEV_ALWAYS_ASSERT(msgVec[0] == redev::Real{3.14});
+          REDEV_ALWAYS_ASSERT(received[0] == redev::Real{3.14});
           printf("\nTest passed.");
       }
   }
