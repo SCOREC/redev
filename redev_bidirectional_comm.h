@@ -42,6 +42,12 @@ public:
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->Recv(mode);
   }
+  void Recv(T* destination, std::size_t size,
+            Mode mode = Mode::Deferred) {
+    REDEV_FUNCTION_TIMER;
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
+    receiver->Recv(destination, size, mode);
+  }
   void SetCommParams(std::string &varName, size_t &msgSize) {
     REDEV_FUNCTION_TIMER;
     sender->SetCommParams(varName, msgSize);
