@@ -175,8 +175,62 @@ public:
    * are stored in the vector as (x0,y0(,z0),x1,y1(,z1),...xN-1,yN-1(,zN-1))
    */
   [[nodiscard]] std::vector<redev::Real> GetCuts() const;
+  /**
+   * Return the default tolerance factor applied to the LOCAL sub-domain scale
+   * to form the default search tolerance of GetCandidateRanks(pt) (no
+   * argument).  At each cut plane the local scale is the distance to the
+   * nearest other cut plane in the same dimension (zero when the dimension has
+   * only one cut); the tolerance is
+   * `tol = max(GetDefaultTolFactor() * localScale, machinePrecisionGuard)`,
+   * where machinePrecisionGuard keeps the tolerance above a few machine epsilons
+   * times the coordinate scale so floating-point representation error can
+   * never drive it to zero.
+   */
+  [[nodiscard]] static constexpr redev::Real GetDefaultTolFactor() noexcept {
+    return defaultTolFactor;
+  }
+  /**
+   * Return the ranks of the sub-domains that could own the given point under a
+   * (possibly different) boundary convention. The returned set is complete: every
+   * sub-domain whose closure is within tol of the point on every axis is
+   * included.  For points strictly interior to the owning sub-domain the
+   * returned vector is {GetRank(pt)}; on-boundary (and, with tol, near-
+   * boundary) points return 2..2^dim candidates (the returned vector is sorted
+   * and unique).
+   * The overload without arguments uses the default tolerance factor
+   * (GetDefaultTolFactor); pass tolFactor explicitly to override,
+   * e.g. `tolFactor = 0.0` for exact cut-plane detection only.
+   * @param[in] pt the cartesian point in space. The 3rd value is ignored for 2d
+   * domains.
+   * @param[in] tolFactor factor multiplied by the local sub-domain scale to
+   * form the search tolerance, clamped above a machine-epsilon guard
+   */
+  [[nodiscard]] redev::LOs GetCandidateRanks(std::array<redev::Real, 3>& pt) const;
+  [[nodiscard]] redev::LOs GetCandidateRanks(std::array<redev::Real, 3>& pt,
+                                             redev::Real tolFactor) const;
 
 private:
+  // Fraction of the local sub-domain scale used by the default tolerance.
+  static constexpr redev::Real defaultTolFactor = 1e-3;
+  // Machine-precision guard multiplier: floor tolerance at
+  // defaultEpsFactor * epsilon * max(|coord|, |v|, 1).
+  static constexpr redev::Real defaultEpsFactor = 64;
+
+  // Build per-dimension sorted-unique cut value arrays.
+  std::array<std::vector<redev::Real>, 3> BuildDimCuts() const;
+  // Distance from v to the nearest other cut in the same dimension.
+  static redev::Real LocalSpacing(
+      const std::array<std::vector<redev::Real>, 3>& dimCuts,
+      redev::LO d, redev::Real v, redev::Real fallback);
+  // Tolerance at node (d,v): max(tolFactor * localSpacing(d,v), epsGuard).
+  static redev::Real NodeTolerance(
+      const std::array<std::vector<redev::Real>, 3>& dimCuts,
+      redev::LO d, redev::Real v, redev::Real ptCoord,
+      redev::Real tolFactor);
+  // Fixed-radius multi-path traversal of the cut tree.
+  redev::LOs TraverseCandidates(std::array<redev::Real, 3>& pt,
+                                redev::Real tolFactor,
+                                const std::array<std::vector<redev::Real>, 3>& dimCuts) const;
   const std::string ranksVarName = "rcb partition ranks";
   const std::string cutsVarName = "rcb partition cuts";
   const std::string dimVarName = "rcb partition dim";

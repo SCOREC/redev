@@ -9,6 +9,8 @@
 #include <chrono>         // std::chrono::seconds
 #include <string>         // std::stoi
 #include <algorithm>      // std::find_if
+#include <cmath>          // std::abs, std::log2, std::pow
+#include <limits>         // std::numeric_limits
 
 namespace {
   //Wait for the file to be created by the writer.
@@ -234,6 +236,98 @@ namespace redev {
   std::vector<redev::Real> RCBPtn::GetCuts() const {
     REDEV_FUNCTION_TIMER;
     return cuts;
+  }
+
+  std::array<std::vector<redev::Real>, 3> RCBPtn::BuildDimCuts() const {
+    const auto len = static_cast<redev::LO>(cuts.size());
+    std::array<std::vector<redev::Real>, 3> dc;
+    for(redev::LO i=1; i<len; i++) {
+      const auto level = static_cast<redev::LO>(std::log2(i));
+      dc[level % dim].push_back(cuts[i]);
+    }
+    for(auto& list : dc) {
+      std::sort(list.begin(), list.end());
+      list.erase(std::unique(list.begin(), list.end()), list.end());
+    }
+    return dc;
+  }
+
+  redev::Real RCBPtn::LocalSpacing(
+      const std::array<std::vector<redev::Real>, 3>& dimCuts,
+      redev::LO d, redev::Real v, redev::Real fallback) {
+    const auto& list = dimCuts[d];
+    const auto it = std::lower_bound(list.begin(), list.end(), v);
+    if(it == list.end()) return fallback;
+    if(it != list.begin() && it + 1 != list.end())
+      return std::min(v - *(it-1), *(it+1) - v);
+    if(it != list.begin()) return v - *(it-1);
+    if(it + 1 != list.end()) return *(it+1) - v;
+    return fallback;
+  }
+
+  redev::Real RCBPtn::NodeTolerance(
+      const std::array<std::vector<redev::Real>, 3>& dimCuts,
+      redev::LO d, redev::Real v, redev::Real ptCoord,
+      redev::Real tolFactor) {
+    // hLocal = 0 when dim d has fewer than 2 distinct cuts: there are no
+    // adjacent sub-domains to broaden to on this axis, so the tolerance
+    // collapses to the machine-epsilon floor.
+    const auto hLocal = LocalSpacing(dimCuts, d, v, /*fallback=*/0);
+    const auto epsGuard =
+        defaultEpsFactor * std::numeric_limits<redev::Real>::epsilon() *
+        std::max({std::abs(ptCoord), std::abs(v), redev::Real(1)});
+    return std::max(tolFactor * hLocal, epsGuard);
+  }
+
+  redev::LOs RCBPtn::TraverseCandidates(
+      std::array<redev::Real, 3>& pt, redev::Real tolFactor,
+      const std::array<std::vector<redev::Real>, 3>& dimCuts) const {
+    REDEV_FUNCTION_TIMER;
+    assert(ranks.size() && cuts.size());
+    assert(dim>0 && dim<=3);
+    const auto levels = static_cast<redev::LO>(std::log2(cuts.size()));
+    const auto leafStart = static_cast<redev::LO>(std::pow(2, levels));
+    // Standard multi-path traversal of the RCB cut tree
+    struct Frame { redev::LO node; redev::LO d; };
+    std::vector<Frame> stack;
+    stack.reserve(static_cast<size_t>(levels) * 2);
+    redev::LOs cands;
+    stack.push_back({1, 0});
+    while(!stack.empty()) {
+      const auto frame = stack.back();
+      stack.pop_back();
+      if(frame.node >= leafStart) {
+        const auto rankIdx = frame.node - leafStart;
+        assert(rankIdx >= 0 && rankIdx < static_cast<redev::LO>(ranks.size()));
+        cands.push_back(ranks.at(rankIdx));
+        continue;
+      }
+      const auto v = cuts.at(frame.node);
+      const auto dNext = static_cast<redev::LO>((frame.d + 1) % dim);
+      const auto goLeft = pt[frame.d] < v;
+      const auto tol = NodeTolerance(dimCuts, frame.d, v, pt[frame.d],
+                                     tolFactor);
+      const auto nearPlane = std::abs(pt[frame.d] - v) <= tol;
+      stack.push_back({goLeft ? frame.node*2 : frame.node*2+1, dNext});
+      if(nearPlane)
+        stack.push_back({goLeft ? frame.node*2+1 : frame.node*2, dNext});
+    }
+    std::sort(cands.begin(), cands.end());
+    cands.erase(std::unique(cands.begin(), cands.end()), cands.end());
+    return cands;
+  }
+
+  redev::LOs RCBPtn::GetCandidateRanks(std::array<redev::Real,3>& pt) const {
+    REDEV_FUNCTION_TIMER;
+    const auto dimCuts = BuildDimCuts();
+    return TraverseCandidates(pt, defaultTolFactor, dimCuts);
+  }
+
+  redev::LOs RCBPtn::GetCandidateRanks(std::array<redev::Real,3>& pt,
+                                       redev::Real tolFactor) const {
+    REDEV_FUNCTION_TIMER;
+    const auto dimCuts = BuildDimCuts();
+    return TraverseCandidates(pt, tolFactor, dimCuts);
   }
 
   void RCBPtn::Write(adios2::Engine& eng, adios2::IO& io) {
