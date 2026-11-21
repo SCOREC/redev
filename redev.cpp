@@ -207,7 +207,7 @@ namespace redev {
   redev::LO RCBPtn::GetRank(std::array<redev::Real,3>& pt) const { //TODO better name?
     REDEV_FUNCTION_TIMER;
     assert(ranks.size() && cuts.size());
-    assert(dim>0 && dim<=3);
+    REDEV_ALWAYS_ASSERT(dim>0 && dim<=3);
     const auto len = cuts.size();
     const auto levels = std::log2(len);
     auto lvl = 0;
@@ -279,6 +279,7 @@ namespace redev {
     MPI_Comm_rank(comm, &rank);
     int count = ranks.size();
     redev::Broadcast(&count, 1, root, comm);
+    redev::Broadcast(&dim, 1, root, comm);
     if(root != rank) {
       ranks.resize(count);
       cuts.resize(count);
