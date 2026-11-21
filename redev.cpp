@@ -26,6 +26,28 @@ namespace {
     // TODO: REDEV LOGGING...LOG INFO that sleeping for engine creation
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
+
+  // SST speculative preload on the WAN/evpath data plane has a bug:
+  // https://github.com/ornladios/ADIOS2/issues/5249
+  void disableSstPreloadOnEvpath(adios2::IO& io, int rank) {
+    if constexpr (ADIOS2_VERSION_MAJOR > 2 ||
+                  (ADIOS2_VERSION_MAJOR == 2 && ADIOS2_VERSION_MINOR >= 13)) {
+      return;
+    }
+    auto params = io.Parameters();
+    auto transport = params.find("DataTransport");
+    bool mayUseEvpath = transport == params.end() ||
+                        redev::isSameCaseInsensitive(transport->second, "WAN") ||
+                        redev::isSameCaseInsensitive(transport->second, "evpath");
+    if(!mayUseEvpath) return;
+    auto preload = params.find("SpeculativePreloadMode");
+    if(rank == 0 && preload != params.end() &&
+       !redev::isSameCaseInsensitive(preload->second, "OFF")) {
+      std::cerr << "redev: setting SpeculativePreloadMode=OFF instead of "
+                << preload->second << " (ADIOS2 issue 5249)\n";
+    }
+    io.SetParameter("SpeculativePreloadMode", "OFF");
+  }
 }
 
 namespace redev {
@@ -325,6 +347,8 @@ namespace redev {
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
     REDEV_FUNCTION_TIMER;
+    disableSstPreloadOnEvpath(s2cIO, rank_);
+    disableSstPreloadOnEvpath(c2sIO, rank_);
     //create one engine's reader and writer pair at a time - SST blocks on open(read)
     if(process_type_==ProcessType::Server) {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Write);
