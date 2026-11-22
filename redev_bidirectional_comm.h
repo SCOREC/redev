@@ -42,6 +42,10 @@ public:
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->Recv(mode);
   }
+  [[nodiscard]] std::size_t GetReceiveCount() {
+    REDEV_ALWAYS_ASSERT(receiver != nullptr);
+    return receiver->GetReceiveCount();
+  }
   void Recv(T* destination, std::size_t size,
             Mode mode = Mode::Deferred) {
     REDEV_FUNCTION_TIMER;

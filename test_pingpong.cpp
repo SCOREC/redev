@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <array>
 #include "redev.h"
 
 int main(int argc, char** argv) {
@@ -29,6 +30,10 @@ int main(int argc, char** argv) {
   auto channel = rdv.CreateAdiosChannel(name, params,
                                                     redev::TransportType::BP4);
   auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
+  auto secondField = channel.CreateComm<redev::LO>("bar", MPI_COMM_WORLD);
+  redev::LOs receiveBuffer;
+  std::array<redev::LO, 2> secondBuffer{};
+  const redev::LO* receiveStorage = nullptr;
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
@@ -36,19 +41,36 @@ int main(int argc, char** argv) {
         redev::LOs dest = redev::LOs{0};
         redev::LOs offsets = redev::LOs{0,1};
         commPair.SetOutMessageLayout(dest, offsets);
+        redev::LOs secondOffsets{0, 2};
+        secondField.SetOutMessageLayout(dest, secondOffsets);
       }
-      redev::LOs msgs = redev::LOs(1,42);
-      channel.SendPhase([&](){commPair.Send(msgs.data());});
+      redev::LOs msgs(1, 42 + iter);
+      redev::LOs secondMsgs{100 + iter, 200 + iter};
+      channel.SendPhase([&]() {
+        commPair.Send(msgs.data());
+        secondField.Send(secondMsgs.data());
+      });
     } else {
-      auto msgs = channel.ReceivePhase([&](){return commPair.Recv();});
+      // Resolve both layouts before queuing either deferred payload read.
+      channel.ReceivePhase([&]() {
+        receiveBuffer.resize(commPair.GetReceiveCount());
+        REDEV_ALWAYS_ASSERT(secondField.GetReceiveCount() == secondBuffer.size());
+        commPair.Recv(receiveBuffer.data(), receiveBuffer.size(), redev::Mode::Deferred);
+        secondField.Recv(secondBuffer.data(), secondBuffer.size(), redev::Mode::Deferred);
+      });
       if(iter == 0) {
         auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
         REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+        receiveStorage = receiveBuffer.data();
       }
-      REDEV_ALWAYS_ASSERT(msgs[0] == 42);
+      REDEV_ALWAYS_ASSERT(receiveBuffer.size() == 1);
+      REDEV_ALWAYS_ASSERT(receiveBuffer.data() == receiveStorage);
+      REDEV_ALWAYS_ASSERT(receiveBuffer[0] == 42 + iter);
+      REDEV_ALWAYS_ASSERT(secondBuffer[0] == 100 + iter);
+      REDEV_ALWAYS_ASSERT(secondBuffer[1] == 200 + iter);
     }
     // the rendezvous app sends to the non-rendezvous app
     if(isRdv) {

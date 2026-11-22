@@ -140,8 +140,9 @@ class Communicator {
   /**
    * Receive an array into user-provided storage.
    * @param[out] destination array where received data is stored
-   * @param[in] size number of elements available in destination
+   * @param[in] size expected number of elements in destination
    * @param[in] mode communication mode
+   * For a deferred receive, keep the storage valid until the receive phase ends.
    */
     virtual void Recv(T* destination, std::size_t size, Mode mode) {
       auto received = Recv(mode);
@@ -157,6 +158,14 @@ class Communicator {
     }
 
     virtual ~Communicator() = default;
+
+    /**
+     * Return the number of elements expected in the destination buffer.
+     * Call in a receive phase. The first partitioned query reads and caches
+     * the incoming layout and may complete pending reads on the engine.
+     * Global communication uses the configured size.
+     */
+    [[nodiscard]] virtual std::size_t GetReceiveCount() = 0;
 };
 
 template <typename T>
@@ -165,6 +174,7 @@ class NoOpComm : public Communicator<T> {
     void Send(T *msgs, Mode /*unused*/) final {};
     std::vector<T> Recv(Mode /*unused*/) final { return {}; }
     InMessageLayout GetInMessageLayout() final { return {}; }
+    std::size_t GetReceiveCount() final { return 0; }
 };
 
 
@@ -294,14 +304,16 @@ class AdiosPartitionedComm : public Communicator<T> {
         eng.PerformPuts();
       }
     }
-    std::vector<T> Recv(Mode mode) {
-      REDEV_FUNCTION_TIMER;
-      int rank, commSz;
-      MPI_Comm_rank(comm, &rank);
-      MPI_Comm_size(comm, &commSz);
-      auto t1 = redev::getTime();
+    std::vector<T> Recv(Mode mode) override {
+      std::vector<T> msgs(GetReceiveCount());
+      Recv(msgs.data(), msgs.size(), mode);
+      return msgs;
+    }
 
+    std::size_t GetReceiveCount() override {
       if(!inMsg.knownSizes) {
+        int rank;
+        MPI_Comm_rank(comm, &rank);
         auto rdvRanksVar = io.InquireVariable<redev::GO>(name+"_srcRanks");
         assert(rdvRanksVar);
         auto offsetsVar = io.InquireVariable<redev::GO>(name+"_offsets");
@@ -321,37 +333,44 @@ class AdiosPartitionedComm : public Communicator<T> {
         rdvRanksVar.SetSelection({{0},{rsrSz}});
         eng.Get(rdvRanksVar, inMsg.srcRanks.data());
 
-        // TODO: Can remove in synchronous mode?
         eng.PerformGets();
         inMsg.start = static_cast<size_t>(inMsg.offset[rank]);
         inMsg.count = static_cast<size_t>(inMsg.offset[rank+1]-inMsg.start);
         inMsg.knownSizes = true;
       }
+      return inMsg.count;
+    }
+
+    void Recv(T* destination, std::size_t size, Mode mode) override {
+      REDEV_FUNCTION_TIMER;
+      auto t1 = redev::getTime();
+      const auto count = GetReceiveCount();
       auto t2 = redev::getTime();
+      REDEV_ALWAYS_ASSERT(size == count);
+      REDEV_ALWAYS_ASSERT(destination != nullptr || count == 0);
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      std::vector<T> msgs(inMsg.count);
-      if(inMsg.count) {
+      if(count) {
         //only call Get with non-zero sized reads
-        msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
-        eng.Get(msgsVar, msgs.data());
+        msgsVar.SetSelection({{inMsg.start}, {count}});
+        eng.Get(msgsVar, destination);
       }
       if(mode == Mode::Synchronous) {
         eng.PerformGets();
       }
 
-      //if(mode == Mode::Synchronous) {
-      //  eng.EndStep();
-      //}
-      auto t3 = redev::getTime();
-      std::chrono::duration<double> r1 = t2-t1;
-      std::chrono::duration<double> r2 = t3-t2;
-      if(!rank && verbose) {
-        fprintf(stderr, "recv knownSizes %d r1(sec.) r2(sec.) %f %f\n",
-            inMsg.knownSizes, r1.count(), r2.count());
+      if(verbose) {
+        int rank;
+        MPI_Comm_rank(comm, &rank);
+        if(!rank) {
+          auto t3 = redev::getTime();
+          std::chrono::duration<double> r1 = t2-t1;
+          std::chrono::duration<double> r2 = t3-t2;
+          fprintf(stderr, "recv knownSizes %d r1(sec.) r2(sec.) %f %f\n",
+              inMsg.knownSizes, r1.count(), r2.count());
+        }
       }
-      return msgs;
     }
     /**
      * Return the InMessageLayout object.
@@ -469,6 +488,7 @@ class AdiosGlobalComm : public Communicator<T>
         }
         void SetOutMessageLayout(LOs& dest, LOs& offsets) {};
         InMessageLayout GetInMessageLayout() { return {}; }
+        std::size_t GetReceiveCount() override { return msgSize; }
 
     private:
         MPI_Comm comm;
