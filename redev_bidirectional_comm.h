@@ -42,11 +42,9 @@ public:
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
     return receiver->Recv(mode);
   }
-  // For deferred receives, keep destination's storage valid until phase end.
-  void Recv(std::vector<T>& destination, Mode mode = Mode::Deferred) {
-    REDEV_FUNCTION_TIMER;
+  [[nodiscard]] std::size_t GetReceiveCount() {
     REDEV_ALWAYS_ASSERT(receiver != nullptr);
-    receiver->Recv(destination, mode);
+    return receiver->GetReceiveCount();
   }
   void Recv(T* destination, std::size_t size,
             Mode mode = Mode::Deferred) {

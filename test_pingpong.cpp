@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <array>
 #include "redev.h"
 
 int main(int argc, char** argv) {
@@ -31,9 +32,8 @@ int main(int argc, char** argv) {
   auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
   auto secondField = channel.CreateComm<redev::LO>("bar", MPI_COMM_WORLD);
   redev::LOs receiveBuffer;
-  redev::LOs secondBuffer;
+  std::array<redev::LO, 2> secondBuffer{};
   const redev::LO* receiveStorage = nullptr;
-  const redev::LO* secondStorage = nullptr;
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
@@ -51,11 +51,12 @@ int main(int argc, char** argv) {
         secondField.Send(secondMsgs.data());
       });
     } else {
-      // The first phase discovers both layouts. Later phases can batch both
-      // payload reads with the cached layouts.
+      // Resolve both layouts before queuing either deferred payload read.
       channel.ReceivePhase([&]() {
-        commPair.Recv(receiveBuffer, redev::Mode::Deferred);
-        secondField.Recv(secondBuffer, redev::Mode::Deferred);
+        receiveBuffer.resize(commPair.GetReceiveCount());
+        REDEV_ALWAYS_ASSERT(secondField.GetReceiveCount() == secondBuffer.size());
+        commPair.Recv(receiveBuffer.data(), receiveBuffer.size(), redev::Mode::Deferred);
+        secondField.Recv(secondBuffer.data(), secondBuffer.size(), redev::Mode::Deferred);
       });
       if(iter == 0) {
         auto inMsg = commPair.GetInMessageLayout();
@@ -64,13 +65,10 @@ int main(int argc, char** argv) {
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
         REDEV_ALWAYS_ASSERT(inMsg.count == 1);
         receiveStorage = receiveBuffer.data();
-        secondStorage = secondBuffer.data();
       }
       REDEV_ALWAYS_ASSERT(receiveBuffer.size() == 1);
       REDEV_ALWAYS_ASSERT(receiveBuffer.data() == receiveStorage);
       REDEV_ALWAYS_ASSERT(receiveBuffer[0] == 42 + iter);
-      REDEV_ALWAYS_ASSERT(secondBuffer.size() == 2);
-      REDEV_ALWAYS_ASSERT(secondBuffer.data() == secondStorage);
       REDEV_ALWAYS_ASSERT(secondBuffer[0] == 100 + iter);
       REDEV_ALWAYS_ASSERT(secondBuffer[1] == 200 + iter);
     }
