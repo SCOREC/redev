@@ -289,9 +289,8 @@ namespace redev {
 
   // BP4 support
   // - with a rendezvous + non-rendezvous application pair
-  // - with only a rendezvous application for debugging/testing
   // - in streaming and non-streaming modes; non-streaming requires 'waitForEngineCreation'
-  void AdiosChannel::openEnginesBP4(bool noClients,
+  void AdiosChannel::openEnginesBP4(
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -308,19 +307,16 @@ namespace redev {
     waitForEngineCreation(c2sIO);
     //create engines for reading
     if(process_type_ == ProcessType::Server) {
-      if(noClients==false) { //support unit testing
-        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-        REDEV_ALWAYS_ASSERT(c2sEngine);
-      }
+      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
+      REDEV_ALWAYS_ASSERT(c2sEngine);
     } else {
       s2cEngine = s2cIO.Open(s2cName, adios2::Mode::Read);
       REDEV_ALWAYS_ASSERT(s2cEngine);
     }
   }
-    // SST support
+  // SST support
   // - with a rendezvous + non-rendezvous application pair
-  // - with only a rendezvous application for debugging/testing
-  void AdiosChannel::openEnginesSST(bool noClients,
+  void AdiosChannel::openEnginesSST(
       std::string s2cName, std::string c2sName,
       adios2::IO& s2cIO, adios2::IO& c2sIO,
       adios2::Engine& s2cEngine, adios2::Engine& c2sEngine) {
@@ -333,17 +329,15 @@ namespace redev {
     }
     REDEV_ALWAYS_ASSERT(s2cEngine);
     if(process_type_==ProcessType::Server) {
-      if(noClients==false) { //support unit testing
-        c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
-      }
+      c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Read);
     } else {
       c2sEngine = c2sIO.Open(c2sName, adios2::Mode::Write);
     }
     REDEV_ALWAYS_ASSERT(c2sEngine);
   }
 
-  Redev::Redev(MPI_Comm comm, Partition ptn, ProcessType processType, bool noClients)
-    : comm(comm), adios(comm), ptn(ptn), processType(processType), noClients(noClients) {
+  Redev::Redev(MPI_Comm comm, Partition ptn, ProcessType processType)
+    : comm(comm), adios(comm), ptn(ptn), processType(processType) {
     PERFSTUBS_INITIALIZE();
     REDEV_FUNCTION_TIMER;
     int isInitialized = 0;
@@ -351,8 +345,8 @@ namespace redev {
     REDEV_ALWAYS_ASSERT(isInitialized);
     UpdateRank();
   }
-  Redev::Redev(MPI_Comm comm, ProcessType processType, bool noClients)
-    : comm(comm), adios(comm), ptn(), processType(processType), noClients(noClients) {
+  Redev::Redev(MPI_Comm comm, ProcessType processType)
+    : comm(comm), adios(comm), ptn(), processType(processType) {
       PERFSTUBS_INITIALIZE();
       REDEV_FUNCTION_TIMER;
       REDEV_ALWAYS_ASSERT(processType == ProcessType::Client);
