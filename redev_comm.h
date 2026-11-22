@@ -157,6 +157,15 @@ class Communicator {
     }
 
     virtual ~Communicator() = default;
+
+    /**
+     * Receive into a resizable buffer. Partitioned communication reuses the
+     * buffer's storage when it has enough capacity. For deferred receives,
+     * keep the buffer alive and its storage unmodified until the phase ends.
+     */
+    virtual void Recv(std::vector<T>& destination, Mode mode) {
+      destination = Recv(mode);
+    }
 };
 
 template <typename T>
@@ -294,7 +303,13 @@ class AdiosPartitionedComm : public Communicator<T> {
         eng.PerformPuts();
       }
     }
-    std::vector<T> Recv(Mode mode) {
+    std::vector<T> Recv(Mode mode) override {
+      std::vector<T> msgs;
+      Recv(msgs, mode);
+      return msgs;
+    }
+
+    void Recv(std::vector<T>& msgs, Mode mode) override {
       REDEV_FUNCTION_TIMER;
       int rank, commSz;
       MPI_Comm_rank(comm, &rank);
@@ -331,7 +346,7 @@ class AdiosPartitionedComm : public Communicator<T> {
 
       auto msgsVar = io.InquireVariable<T>(name);
       assert(msgsVar);
-      std::vector<T> msgs(inMsg.count);
+      msgs.resize(inMsg.count);
       if(inMsg.count) {
         //only call Get with non-zero sized reads
         msgsVar.SetSelection({{inMsg.start}, {inMsg.count}});
@@ -351,7 +366,6 @@ class AdiosPartitionedComm : public Communicator<T> {
         fprintf(stderr, "recv knownSizes %d r1(sec.) r2(sec.) %f %f\n",
             inMsg.knownSizes, r1.count(), r2.count());
       }
-      return msgs;
     }
     /**
      * Return the InMessageLayout object.

@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
   auto channel = rdv.CreateAdiosChannel(name, params,
                                                     redev::TransportType::BP4);
   auto commPair = channel.CreateComm<redev::LO>(name, MPI_COMM_WORLD);
+  redev::LOs receiveBuffer;
+  const redev::LO* receiveStorage = nullptr;
   for(int iter=0; iter<3; iter++) {
     // the non-rendezvous app sends to the rendezvous app
     if(!isRdv) {
@@ -37,18 +39,23 @@ int main(int argc, char** argv) {
         redev::LOs offsets = redev::LOs{0,1};
         commPair.SetOutMessageLayout(dest, offsets);
       }
-      redev::LOs msgs = redev::LOs(1,42);
+      redev::LOs msgs(1, 42 + iter);
       channel.SendPhase([&](){commPair.Send(msgs.data());});
     } else {
-      auto msgs = channel.ReceivePhase([&](){return commPair.Recv();});
+      channel.ReceivePhase([&]() {
+        commPair.Recv(receiveBuffer, redev::Mode::Synchronous);
+      });
       if(iter == 0) {
         auto inMsg = commPair.GetInMessageLayout();
         REDEV_ALWAYS_ASSERT(inMsg.offset == redev::GOs({0,1}));
         REDEV_ALWAYS_ASSERT(inMsg.srcRanks == redev::GOs({0}));
         REDEV_ALWAYS_ASSERT(inMsg.start == 0);
         REDEV_ALWAYS_ASSERT(inMsg.count == 1);
+        receiveStorage = receiveBuffer.data();
       }
-      REDEV_ALWAYS_ASSERT(msgs[0] == 42);
+      REDEV_ALWAYS_ASSERT(receiveBuffer.size() == 1);
+      REDEV_ALWAYS_ASSERT(receiveBuffer.data() == receiveStorage);
+      REDEV_ALWAYS_ASSERT(receiveBuffer[0] == 42 + iter);
     }
     // the rendezvous app sends to the non-rendezvous app
     if(isRdv) {
