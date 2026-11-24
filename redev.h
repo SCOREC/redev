@@ -166,25 +166,22 @@ public:
    * @param[in] ptn PartitionInterface object defining the redezvous domain
    * partition (see note below)
    * @param[in] processProcess enum for if the server is a client, server
-   * @param[in] noClients for testing without any clients present
    * The client processes should pass in an empty PartitionInterface object.
    * The server will send the client the needed partition information during
    * the call to CreateAdiosChannel.
    */
   Redev(MPI_Comm comm, Partition ptn,
-        ProcessType processType = ProcessType::Server, bool noClients = false);
+        ProcessType processType = ProcessType::Server);
   /**
    * Create a Redev client
    * @param[in] comm MPI communicator containing the ranks that are part of the
    * server/client
    * @param[in] processProcess enum for if the server is a client, server
-   * @param[in] noClients for testing without any clients present
    * The client processes should pass in an empty PartitionInterface object.
    * The server will send the client the needed partition information during
    * the call to CreateAdiosChannel.
    */
-  Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client,
-        bool noClients = false);
+  Redev(MPI_Comm comm, ProcessType processType = ProcessType::Client);
   // FIXME UPDATE DOCS
   /**
    * Create a ADIOS2-based BidirectionalComm between the server and one client
@@ -204,7 +201,7 @@ public:
     if(RankParticipates()) {
       return AdiosChannel{
           adios,       comm, std::move(name), std::move(params), transportType,
-          processType, ptn,  std::move(path), noClients};
+          processType, ptn,  std::move(path)};
     }
     return NoOpChannel{};
   }
@@ -215,7 +212,6 @@ public:
 private:
   void UpdateRank();
   ProcessType processType;
-  bool noClients; // true: no clients will be connected, false: otherwise
   MPI_Comm comm;
   adios2::ADIOS adios;
   int rank;

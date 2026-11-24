@@ -10,8 +10,7 @@ class AdiosChannel {
 public:
   AdiosChannel(adios2::ADIOS &adios, MPI_Comm comm, std::string name,
                adios2::Params params, TransportType transportType,
-               ProcessType processType, Partition &partition, std::string path,
-               bool noClients = false)
+               ProcessType processType, Partition &partition, std::string path)
       : comm_(comm), process_type_(processType), partition_(partition)
 
   {
@@ -21,10 +20,6 @@ public:
     auto c2sName = path + name + "_c2s";
     s2c_io_ = adios.DeclareIO(s2cName);
     c2s_io_ = adios.DeclareIO(c2sName);
-    if (transportType == TransportType::SST && noClients == true) {
-      // TODO log message here
-      transportType = TransportType::BP4;
-    }
     std::string engineType;
     switch (transportType) {
     case TransportType::BP4:
@@ -46,11 +41,11 @@ public:
     REDEV_ALWAYS_ASSERT(s2c_io_.EngineType() == c2s_io_.EngineType());
     switch (transportType) {
     case TransportType::SST:
-      openEnginesSST(noClients, s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
+      openEnginesSST(s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
                      c2s_engine_);
       break;
     case TransportType::BP4:
-      openEnginesBP4(noClients, s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
+      openEnginesBP4(s2cName, c2sName, s2c_io_, c2s_io_, s2c_engine_,
                      c2s_engine_);
       break;
     }
@@ -170,10 +165,10 @@ public:
   }
 
 private:
-  void openEnginesBP4(bool noClients, std::string s2cName, std::string c2sName,
+  void openEnginesBP4(std::string s2cName, std::string c2sName,
                       adios2::IO &s2cIO, adios2::IO &c2sIO,
                       adios2::Engine &s2cEngine, adios2::Engine &c2sEngine);
-  void openEnginesSST(bool noClients, std::string s2cName, std::string c2sName,
+  void openEnginesSST(std::string s2cName, std::string c2sName,
                       adios2::IO &s2cIO, adios2::IO &c2sIO,
                       adios2::Engine &s2cEngine, adios2::Engine &c2sEngine);
   [[nodiscard]] redev::LO SendServerCommSizeToClient(adios2::IO &s2cIO,
